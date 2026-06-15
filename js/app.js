@@ -266,7 +266,7 @@ async function submitForm() {
     subject: get('f-subject'),
     handler: get('f-handler'),
     note: get('f-note'),
-    signature: (state.sigPad && (() => { try { return !state.sigPad.isEmpty(); } catch(e) { return false; } })()) ? state.sigPad.toDataURL() : '',
+    signature: (state.sigPad && !state.sigPad.isEmpty()) ? state.sigPad.toDataURL() : '',
     created_at: new Date().toISOString(),
   };
 
@@ -279,19 +279,7 @@ async function submitForm() {
     const file = fileInput.files[0];
     showToast('กำลังอัปโหลดไฟล์...');
     try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const res = await API.call({
-        action: 'uploadFile',
-        type: currentFormType,
-        filename: file.name,
-        mimetype: file.type || 'application/octet-stream',
-        data: base64
-      });
+      const res = await API.upload(currentFormType, file);
       if (res.ok) file_url = res.url;
     } catch(e) {
       showToast('อัปโหลดไฟล์ไม่สำเร็จ บันทึกข้อมูลอย่างเดียว');
