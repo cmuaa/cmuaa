@@ -249,7 +249,7 @@ function initSigPad() {
   canvas.addEventListener('touchmove', move, { passive: false });
   canvas.addEventListener('touchend', end);
 
-  state.sigPad = { clear: () => ctx.clearRect(0, 0, canvas.width, canvas.height), toDataURL: () => canvas.toDataURL(), isEmpty: () => !ctx.getImageData(0,0,canvas.width,canvas.height).data.some(v => v !== 0) };
+  state.sigPad = { clear: () => ctx.clearRect(0, 0, canvas.width, canvas.height), toDataURL: () => canvas.toDataURL(), isEmpty: () => { try { return !ctx.getImageData(0,0,canvas.width,canvas.height).data.some(v => v !== 0); } catch(e) { return true; } } };
 }
 
 function clearSig() { if (state.sigPad) state.sigPad.clear(); }
@@ -272,6 +272,32 @@ async function submitForm() {
 
   if (!common.subject) { showToast('กรุณากรอกชื่อเรื่อง'); return; }
 
+  // อัปโหลดไฟล์ไป Drive ก่อน (ถ้ามี)
+  let file_url = '';
+  const fileInput = document.getElementById('f-file');
+  if (fileInput && fileInput.files.length > 0 && API.url) {
+    const file = fileInput.files[0];
+    showToast('กำลังอัปโหลดไฟล์...');
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await API.call({
+        action: 'uploadFile',
+        type: currentFormType,
+        filename: file.name,
+        mimetype: file.type || 'application/octet-stream',
+        data: base64
+      });
+      if (res.ok) file_url = res.url;
+    } catch(e) {
+      showToast('อัปโหลดไฟล์ไม่สำเร็จ บันทึกข้อมูลอย่างเดียว');
+    }
+  }
+
   let record = {};
   if (currentFormType === 'recv') {
     record = { ...common,
@@ -283,6 +309,7 @@ async function submitForm() {
       received_date: get('f-received-date'),
       deadline: get('f-deadline'),
       receiver: get('f-receiver'),
+      file_url,
     };
   } else {
     record = { ...common,
@@ -294,6 +321,7 @@ async function submitForm() {
       receiver_name: get('f-receiver-name'),
       send_date: get('f-send-date'),
       send_channel: get('f-send-channel'),
+      file_url,
     };
   }
 
@@ -337,6 +365,7 @@ function openDetail(id) {
     ['กำหนดตอบ', r.deadline],
     ['ประเภทเอกสาร', r.doc_type],
     ['หมายเหตุ', r.note],
+    ['ไฟล์แนบ', r.file_url ? '🔗 เปิดไฟล์' : ''],
   ] : [
     ['เลขที่ส่ง', r.docno],
     ['วันที่ออก', r.issue_date],
@@ -350,13 +379,14 @@ function openDetail(id) {
     ['ช่องทางส่ง', r.send_channel],
     ['ประเภทเอกสาร', r.doc_type],
     ['หมายเหตุ', r.note],
+    ['ไฟล์แนบ', r.file_url ? '🔗 เปิดไฟล์' : ''],
   ];
 
   document.getElementById('detail-body').innerHTML = `
     <div class="detail-section">
       <h3>ข้อมูลเอกสาร</h3>
       ${rows.filter(([,v]) => v).map(([k,v]) => `
-        <div class="detail-row"><span class="dk">${k}</span><span class="dv">${esc(v)}</span></div>
+        <div class="detail-row"><span class="dk">${k}</span><span class="dv">${k === 'ไฟล์แนบ' ? `<a href="${r.file_url}" target="_blank" style="color:var(--purple)">${esc(v)}</a>` : esc(v)}</span></div>
       `).join('')}
     </div>
     ${r.signature ? `
