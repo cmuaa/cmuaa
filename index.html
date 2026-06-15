@@ -176,23 +176,10 @@
         </button>
       </div>
 
-      <div class="step-indicator" id="step-indicator">
-        <div class="step-dot active" id="sdot-1">1</div>
-        <div class="step-line" id="sline-1"></div>
-        <div class="step-dot" id="sdot-2">2</div>
-        <div class="step-line" id="sline-2"></div>
-        <div class="step-dot" id="sdot-3">3</div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin:-8px 0 12px">
-        <span style="font-size:11px;color:var(--text-hint);width:28px;text-align:center">ข้อมูลหลัก</span>
-        <span style="font-size:11px;color:var(--text-hint);width:28px;text-align:center">รายละเอียด</span>
-        <span style="font-size:11px;color:var(--text-hint);width:28px;text-align:center">ไฟล์/เซ็น</span>
-      </div>
-
       <form id="doc-form" onsubmit="return false">
 
         <!-- ฟิลด์หนังสือรับ step 1 -->
-        <div data-show="recv" class="form-step active" data-step="1">
+        <div data-show="recv" class="form-grid" style="gap:12px">
         <div class="form-grid" style="gap:12px">
           <div class="form-grid two">
             <div class="field">
@@ -243,7 +230,6 @@
             <input type="date" id="f-deadline">
           </div>
         </div>
-        <div class="step-nav"><button class="btn-next" onclick="nextStep()">ถัดไป →</button></div>
         </div>
 
         <!-- ฟิลด์หนังสือส่ง step 1 -->
@@ -302,7 +288,6 @@
             </select>
           </div>
         </div>
-        <div class="step-nav"><button class="btn-next" onclick="nextStep()">ถัดไป →</button></div>
         </div>
 
         <!-- ฟิลด์ร่วม step 2 -->
@@ -331,15 +316,11 @@
           </div>
 
         </div>
-        <div class="step-nav">
-          <button class="btn-back" onclick="prevStep()">← ย้อนกลับ</button>
-          <button class="btn-next" onclick="nextStep()">ถัดไป →</button>
-        </div>
         </div>
 
         <!-- step 3: ไฟล์/ลายเซ็น -->
-        <div data-show="both" class="form-step" data-step="3">
-        <div class="form-grid" style="gap:12px;margin-top:4px">
+        
+        
           <!-- ลายเซ็น (เฉพาะหนังสือส่ง) -->
           <div data-show="send" style="display:none">
             <div class="field">
@@ -370,12 +351,6 @@
             <textarea id="f-note" placeholder="บันทึกเพิ่มเติม"></textarea>
           </div>
 
-        </div>
-        <div class="step-nav">
-          <button class="btn-back" onclick="prevStep()">← ย้อนกลับ</button>
-          <button type="button" class="btn-submit recv" id="submit-btn" onclick="submitForm()" style="flex:1">
-            บันทึกหนังสือรับ
-          </button>
         </div>
         </div>
 

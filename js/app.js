@@ -193,7 +193,6 @@ function openForm(type = 'recv') {
   document.getElementById('form-overlay').classList.add('open');
   setFormType(type);
   resetForm();
-  setFormStep(1);
   initSigPad();
 }
 
@@ -214,7 +213,6 @@ function setFormType(t) {
     const visible = show === 'both' || show === t;
     el.style.display = visible ? '' : 'none';
   });
-  setFormStep(1);
   document.getElementById('form-title').textContent = t === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง';
   const btn = document.getElementById('submit-btn');
   btn.className = 'btn-submit ' + t;
@@ -238,40 +236,43 @@ function initSigPad() {
   const canvas = document.getElementById('sig-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-  canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  ctx.strokeStyle = '#1A1525';
+  // รอให้ drawer เปิดก่อนค่อย resize
+  requestAnimationFrame(() => {
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio || 300;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio || 140;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.strokeStyle = '#1A1525';
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  let drawing = false, lastX = 0, lastY = 0;
+    let drawing = false, lastX = 0, lastY = 0;
 
-  function getPos(e) {
+    function getPos(e) {
     const rect = canvas.getBoundingClientRect();
     const src = e.touches ? e.touches[0] : e;
-    return [(src.clientX - rect.left), (src.clientY - rect.top)];
-  }
+      return [(src.clientX - rect.left), (src.clientY - rect.top)];
+    }
 
-  function start(e) { e.preventDefault(); drawing = true; [lastX, lastY] = getPos(e); }
-  function move(e) {
-    e.preventDefault();
-    if (!drawing) return;
-    const [x, y] = getPos(e);
-    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
-    [lastX, lastY] = [x, y];
-  }
-  function end() { drawing = false; }
+    function start(e) { e.preventDefault(); drawing = true; [lastX, lastY] = getPos(e); }
+    function move(e) {
+      e.preventDefault();
+      if (!drawing) return;
+      const [x, y] = getPos(e);
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+      [lastX, lastY] = [x, y];
+    }
+    function end() { drawing = false; }
 
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
-  canvas.addEventListener('mouseup', end);
-  canvas.addEventListener('touchstart', start, { passive: false });
-  canvas.addEventListener('touchmove', move, { passive: false });
-  canvas.addEventListener('touchend', end);
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
 
-  state.sigPad = { clear: () => ctx.clearRect(0, 0, canvas.width, canvas.height), toDataURL: () => canvas.toDataURL(), isEmpty: () => { try { return !ctx.getImageData(0,0,canvas.width,canvas.height).data.some(v => v !== 0); } catch(e) { return true; } } };
+    state.sigPad = { clear: () => ctx.clearRect(0, 0, canvas.width, canvas.height), toDataURL: () => canvas.toDataURL(), isEmpty: () => { try { return !ctx.getImageData(0,0,canvas.width,canvas.height).data.some(v => v !== 0); } catch(e) { return true; } } };
+  }); // end requestAnimationFrame
 }
 
 function clearSig() { if (state.sigPad) state.sigPad.clear(); }
