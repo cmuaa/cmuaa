@@ -301,14 +301,15 @@ body {
 }
 
 /* ===== SWIPE ACTIONS ===== */
-.doc-card-wrap { position: relative; overflow: hidden; border-radius: var(--radius-lg); margin-bottom: 0; width: 100%; }
-.doc-card-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; }
-.swipe-action { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 16px; font-size: 11px; font-weight: 500; cursor: pointer; border: none; }
+.doc-card-wrap { position: relative; overflow: hidden; border-radius: var(--radius-lg); margin-bottom: 0; width: 100%; max-width: 100%; }
+.doc-card-actions { position: absolute; right: 0; top: 0; bottom: 0; width: 132px; display: flex; align-items: stretch; transform: translateX(132px); transition: transform .25s cubic-bezier(.4,0,.2,1); }
+.doc-card-wrap.swiped .doc-card-actions { transform: translateX(0); }
+.swipe-action { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; font-size: 11px; font-weight: 500; cursor: pointer; border: none; }
 .swipe-action.toggle { background: #1D9E75; color: #fff; }
 .swipe-action.delete { background: #A32D2D; color: #fff; }
 .swipe-action i { font-size: 20px; }
-.doc-card { transition: transform .25s cubic-bezier(.4,0,.2,1); }
-.doc-card.swiped { transform: translateX(-132px); }
+.doc-card { transition: transform .25s cubic-bezier(.4,0,.2,1); width: 100%; }
+.doc-card-wrap.swiped .doc-card { transform: translateX(-132px); }
 
 /* ===== STEP FORM ===== */
 .step-indicator { display: flex; align-items: center; gap: 0; margin-bottom: 16px; }

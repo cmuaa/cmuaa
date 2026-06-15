@@ -300,17 +300,18 @@ function onSwipeMove(e, id) {
 function endSwipe(e, id) {
   if (!swipeState[id]) return;
   const card = document.getElementById('card-' + id);
+  const wrap = document.getElementById('wrap-' + id);
   if (swipeState[id].swiped) {
-    if (card) card.classList.add('swiped');
+    if (wrap) wrap.classList.add('swiped');
     e.stopPropagation();
   } else {
-    if (card) card.classList.remove('swiped');
+    if (wrap) wrap.classList.remove('swiped');
   }
   delete swipeState[id];
 }
 function resetSwipe(id) {
-  const card = document.getElementById('card-' + id);
-  if (card) card.classList.remove('swiped');
+  const wrap = document.getElementById('wrap-' + id);
+  if (wrap) wrap.classList.remove('swiped');
 }
 function setupSwipes() {
   document.querySelectorAll('.doc-card-wrap').forEach(wrap => {
