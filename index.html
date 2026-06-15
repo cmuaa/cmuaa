@@ -318,10 +318,9 @@
         </div>
         </div>
 
-        <!-- step 3: ไฟล์/ลายเซ็น -->
-        
-        
-          <!-- ลายเซ็น (เฉพาะหนังสือส่ง) -->
+        <!-- ไฟล์/ลายเซ็น/หมายเหตุ -->
+        <div data-show="both" class="form-grid" style="gap:12px;margin-top:4px">
+
           <div data-show="send" style="display:none">
             <div class="field">
               <label>ลายเซ็นผู้รับ</label>
@@ -335,7 +334,6 @@
             </div>
           </div>
 
-          <!-- ไฟล์แนบ -->
           <div class="field">
             <label>ไฟล์แนบ</label>
             <div class="file-area" onclick="document.getElementById('f-file').click()">
@@ -351,7 +349,10 @@
             <textarea id="f-note" placeholder="บันทึกเพิ่มเติม"></textarea>
           </div>
 
-        </div>
+          <button type="button" class="btn-submit recv" id="submit-btn" onclick="submitForm()">
+            บันทึกหนังสือรับ
+          </button>
+
         </div>
 
       </form>
