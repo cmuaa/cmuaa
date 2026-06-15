@@ -1,4 +1,4 @@
-/* api.js — เชื่อมต่อ Google Apps Script ผ่าน GET (JSONP) และ POST (upload) */
+/* api.js — เชื่อมต่อ Google Apps Script ผ่าน GET (JSONP) และ POST FormData (upload) */
 const API = {
   url: localStorage.getItem('cmu_api_url') || '',
   setUrl(u) {
@@ -35,7 +35,7 @@ const API = {
     });
   },
 
-  // POST สำหรับอัปโหลดไฟล์
+  // POST FormData สำหรับอัปโหลดไฟล์
   async upload(type, file) {
     if (!this.url) throw new Error('ยังไม่ได้ตั้งค่า API URL');
     const base64 = await new Promise((resolve, reject) => {
@@ -44,16 +44,15 @@ const API = {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+    const formData = new FormData();
+    formData.append('action', 'uploadFile');
+    formData.append('type', type);
+    formData.append('filename', file.name);
+    formData.append('mimetype', file.type || 'application/octet-stream');
+    formData.append('data', base64);
     const res = await fetch(this.url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'uploadFile',
-        type,
-        filename: file.name,
-        mimetype: file.type || 'application/octet-stream',
-        data: base64
-      })
+      body: formData
     });
     const text = await res.text();
     return JSON.parse(text);
