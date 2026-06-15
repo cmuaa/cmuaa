@@ -266,7 +266,7 @@ async function submitForm() {
     subject: get('f-subject'),
     handler: get('f-handler'),
     note: get('f-note'),
-    signature: (state.sigPad && !state.sigPad.isEmpty()) ? state.sigPad.toDataURL() : '',
+    signature: (state.sigPad && (() => { try { return !state.sigPad.isEmpty(); } catch(e) { return false; } })()) ? state.sigPad.toDataURL() : '',
     created_at: new Date().toISOString(),
   };
 
