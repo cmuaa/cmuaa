@@ -1,0 +1,14 @@
+{
+  "name": "บันทึกรับ-ส่งเอกสาร สมาคมนักศึกษาเก่า มช.",
+  "short_name": "เอกสาร มช.",
+  "description": "ระบบบันทึกรับ-ส่งหนังสือ สมาคมนักศึกษาเก่า มหาวิทยาลัยเชียงใหม่",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#351F5D",
+  "theme_color": "#351F5D",
+  "orientation": "any",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

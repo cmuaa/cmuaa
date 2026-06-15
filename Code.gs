@@ -1,0 +1,167 @@
+// ============================================================
+// Code.gs — CMU Alumni Document Tracker Backend
+// วิธีใช้:
+// 1. สร้าง Google Sheets ใหม่ ชื่อ "บันทึกรับ-ส่งเอกสาร"
+// 2. Extensions → Apps Script → วางโค้ดนี้ทั้งหมด
+// 3. Deploy → New Deployment → Web App
+//    Execute as: Me | Who has access: Anyone
+// 4. Copy URL ไปวางในหน้า Settings ของแอพ
+// ============================================================
+
+const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+
+const HEADERS_RECV = [
+  'id','เลขหนังสือรับ','ที่ (เลขจากหน่วยงาน)','วันที่ออกหนังสือ',
+  'จาก','ถึง','เรื่อง','การปฏิบัติ','ผู้รับในสมาคม',
+  'ได้รับวันที่','กำหนดตอบ','ประเภทเอกสาร','สถานะ','หมายเหตุ','วันที่บันทึก'
+];
+
+const HEADERS_SEND = [
+  'id','เลขที่ส่ง','วันที่ออก','ถึง','เรื่อง','รายละเอียด',
+  'การปฏิบัติ','ผู้ส่ง','ผู้รับ','วันที่ส่ง','ช่องทางส่ง',
+  'ประเภทเอกสาร','สถานะ','หมายเหตุ','วันที่บันทึก'
+];
+
+function getOrCreateSheet(name, headers) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold')
+      .setBackground('#351F5D')
+      .setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function doPost(e) {
+  const cors = ContentService.createTextOutput();
+  try {
+    const body = JSON.parse(e.postData.contents);
+    let result;
+
+    switch (body.action) {
+      case 'addRecv':  result = addRecv(body.row);  break;
+      case 'addSend':  result = addSend(body.row);  break;
+      case 'getAll':   result = getAll();             break;
+      case 'updateStatus': result = updateStatus(body.type, body.id, body.status); break;
+      case 'delete':   result = deleteRecord(body.id); break;
+      default: result = { ok: false, error: 'unknown action' };
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify(getAll()))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function addRecv(r) {
+  const sheet = getOrCreateSheet('หนังสือรับ', HEADERS_RECV);
+  sheet.appendRow([
+    r.id || Date.now().toString(),
+    r.docno || '',
+    r.ref_no || '',
+    r.issue_date || '',
+    r.from_org || '',
+    r.to_org || '',
+    r.subject || '',
+    r.handler || '',
+    r.receiver || '',
+    r.received_date || '',
+    r.deadline || '',
+    r.doc_type || '',
+    r.status || 'pend',
+    r.note || '',
+    new Date().toISOString()
+  ]);
+  return { ok: true };
+}
+
+function addSend(r) {
+  const sheet = getOrCreateSheet('หนังสือส่ง', HEADERS_SEND);
+  sheet.appendRow([
+    r.id || Date.now().toString(),
+    r.docno || '',
+    r.issue_date || '',
+    r.to_org || '',
+    r.subject || '',
+    r.detail || '',
+    r.handler || '',
+    r.sender || '',
+    r.receiver_name || '',
+    r.send_date || '',
+    r.send_channel || '',
+    r.doc_type || '',
+    r.status || 'pend',
+    r.note || '',
+    new Date().toISOString()
+  ]);
+  return { ok: true };
+}
+
+function getAll() {
+  const recvSheet = getOrCreateSheet('หนังสือรับ', HEADERS_RECV);
+  const sendSheet = getOrCreateSheet('หนังสือส่ง', HEADERS_SEND);
+
+  const recvData = recvSheet.getDataRange().getValues().slice(1).map(r => ({
+    id: String(r[0]), type: 'recv',
+    docno: r[1], ref_no: r[2], issue_date: r[3],
+    from_org: r[4], to_org: r[5], subject: r[6],
+    handler: r[7], receiver: r[8], received_date: r[9],
+    deadline: r[10], doc_type: r[11], status: r[12], note: r[13]
+  }));
+
+  const sendData = sendSheet.getDataRange().getValues().slice(1).map(r => ({
+    id: String(r[0]), type: 'send',
+    docno: r[1], issue_date: r[2], to_org: r[3],
+    subject: r[4], detail: r[5], handler: r[6],
+    sender: r[7], receiver_name: r[8], send_date: r[9],
+    send_channel: r[10], doc_type: r[11], status: r[12], note: r[13]
+  }));
+
+  const all = [...recvData, ...sendData].sort((a, b) => b.id.localeCompare(a.id));
+  return { ok: true, records: all };
+}
+
+function updateStatus(type, id, status) {
+  const name = type === 'send' ? 'หนังสือส่ง' : 'หนังสือรับ';
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sheet) return { ok: false, error: 'Sheet not found' };
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(id)) {
+      const statusCol = type === 'send' ? 13 : 13;
+      sheet.getRange(i + 1, statusCol).setValue(status);
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: 'Record not found' };
+}
+
+function deleteRecord(id) {
+  ['หนังสือรับ', 'หนังสือส่ง'].forEach(name => {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+    if (!sheet) return;
+    const data = sheet.getDataRange().getValues();
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][0]) === String(id)) {
+        sheet.deleteRow(i + 1);
+        return;
+      }
+    }
+  });
+  return { ok: true };
+}

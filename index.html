@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#351F5D">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="เอกสาร มช.">
+  <title>บันทึกรับ-ส่งเอกสาร — สมาคมนักศึกษาเก่า มช.</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- DESKTOP LAYOUT -->
+  <div class="desktop-layout">
+
+    <!-- DESKTOP SIDEBAR NAV -->
+    <nav class="desktop-nav" aria-label="เมนูหลัก">
+      <div class="logo-wrap">
+        <h1>บันทึกรับ-ส่งเอกสาร</h1>
+        <p>สมาคมนักศึกษาเก่า มช.</p>
+      </div>
+      <button class="desktop-add-btn" id="desktop-add-btn">
+        <i class="ti ti-plus" aria-hidden="true"></i> เพิ่มรายการ
+      </button>
+      <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
+      <button class="desktop-nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
+      <button class="desktop-nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
+    </nav>
+
+    <!-- MAIN AREA -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+
+      <!-- MOBILE HEADER -->
+      <header class="app-header" role="banner">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+        </div>
+        <div class="header-title">
+          <h1>รับ-ส่งเอกสาร</h1>
+          <p>สมาคมนักศึกษาเก่า มช.</p>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="syncFromSheets()" aria-label="ซิงก์ข้อมูล"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content desktop-content" role="main">
+
+        <!-- PAGE: LIST -->
+        <div class="page active" id="page-list">
+          <div class="stats-row" role="region" aria-label="สรุปสถิติ">
+            <div class="stat-card all"><div class="n" id="s-all">0</div><div class="l">ทั้งหมด</div></div>
+            <div class="stat-card send"><div class="n" id="s-send">0</div><div class="l">ส่งออก</div></div>
+            <div class="stat-card recv"><div class="n" id="s-recv">0</div><div class="l">รับเข้า</div></div>
+            <div class="stat-card pend"><div class="n" id="s-pend">0</div><div class="l">รอดำเนินการ</div></div>
+          </div>
+
+          <div class="deadline-warn" id="deadline-warn" style="display:none" role="alert">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            <span></span>
+          </div>
+
+          <div class="search-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="search" id="search-input" placeholder="ค้นหาเลขที่, เรื่อง, หน่วยงาน..." aria-label="ค้นหาเอกสาร">
+          </div>
+
+          <div class="filter-bar" role="group" aria-label="กรองรายการ">
+            <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
+            <button class="filter-chip" data-filter="recv">รับเข้า</button>
+            <button class="filter-chip" data-filter="send">ส่งออก</button>
+            <button class="filter-chip" data-filter="pend">รอดำเนินการ</button>
+          </div>
+
+          <div class="doc-list" id="doc-list" role="list">
+            <div class="empty-state"><i class="ti ti-file-plus"></i><p>กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>
+          </div>
+        </div>
+
+        <!-- PAGE: STATS -->
+        <div class="page" id="page-stats">
+          <div id="stats-content"></div>
+        </div>
+
+        <!-- PAGE: SETTINGS -->
+        <div class="page" id="page-settings">
+          <div class="section-hd"><h2>ตั้งค่าระบบ</h2></div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <i class="ti ti-link" aria-hidden="true"></i>
+              <span class="sr-label">Google Apps Script URL</span>
+            </div>
+            <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:8px">
+              <input type="url" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;padding:8px 10px;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:13px;font-family:inherit">
+              <button class="save-url-btn" onclick="saveApiUrl()">บันทึก URL</button>
+            </div>
+          </div>
+          <div class="settings-card">
+            <div class="settings-row" style="cursor:pointer" onclick="syncFromSheets()">
+              <i class="ti ti-cloud-download" aria-hidden="true"></i>
+              <span class="sr-label">ซิงก์ข้อมูลจาก Google Sheets</span>
+              <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
+            </div>
+            <div class="settings-row" style="cursor:pointer" onclick="exportCSV()">
+              <i class="ti ti-download" aria-hidden="true"></i>
+              <span class="sr-label">ส่งออกข้อมูล CSV</span>
+              <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
+            </div>
+          </div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <i class="ti ti-info-circle" aria-hidden="true"></i>
+              <span class="sr-label">เวอร์ชัน</span>
+              <span class="sr-val">1.0.0</span>
+            </div>
+          </div>
+
+          <!-- APPS SCRIPT CODE -->
+          <div class="section-hd" style="margin-top:24px"><h2>โค้ด Google Apps Script</h2></div>
+          <div class="detail-section">
+            <h3>วิธีติดตั้ง backend</h3>
+            <div style="font-size:13px;color:var(--text-sub);line-height:1.8">
+              <p>1. เปิด <strong>Google Sheets</strong> ใหม่ ตั้งชื่อ "บันทึกรับ-ส่งเอกสาร"</p>
+              <p>2. ไปที่ <strong>Extensions → Apps Script</strong></p>
+              <p>3. วางโค้ดจากไฟล์ <code>Code.gs</code> แล้วกด Save</p>
+              <p>4. Deploy → New Deployment → Web App → Execute as: Me, Who has access: Anyone</p>
+              <p>5. Copy URL มาวางในช่อง Apps Script URL ด้านบน</p>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="bottom-nav" aria-label="เมนูล่าง">
+    <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการ</button>
+    <button class="nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
+    <button class="nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="fab" aria-label="เพิ่มรายการ">
+    <i class="ti ti-plus" aria-hidden="true"></i>
+  </button>
+</div>
+
+<!-- FORM OVERLAY (DRAWER) -->
+<div class="overlay" id="form-overlay" role="dialog" aria-modal="true" aria-labelledby="form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="form-title">บันทึกหนังสือรับ</h2>
+      <button class="drawer-close" onclick="closeForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+
+      <!-- TYPE TOGGLE -->
+      <div class="type-toggle" role="group" aria-label="เลือกประเภท">
+        <button class="type-opt active recv" data-type="recv" onclick="setFormType('recv')">
+          <i class="ti ti-inbox" aria-hidden="true"></i> หนังสือรับ
+        </button>
+        <button class="type-opt send" data-type="send" onclick="setFormType('send')">
+          <i class="ti ti-send" aria-hidden="true"></i> หนังสือส่ง
+        </button>
+      </div>
+
+      <form id="doc-form" onsubmit="return false">
+
+        <!-- ฟิลด์หนังสือรับ -->
+        <div data-show="recv" class="form-grid" style="gap:12px">
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-recv-docno">เลขหนังสือรับ</label>
+              <input type="text" id="f-recv-docno" placeholder="รบ. 2568-001">
+            </div>
+            <div class="field">
+              <label for="f-ref-no">ที่ (เลขจากหน่วยงาน)</label>
+              <input type="text" id="f-ref-no" placeholder="อว 8393/2568">
+            </div>
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-issue-date">วันที่ออกหนังสือ</label>
+              <input type="date" id="f-issue-date">
+            </div>
+            <div class="field">
+              <label for="f-received-date">ได้รับวันที่</label>
+              <input type="date" id="f-received-date">
+            </div>
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-from-org">จาก (หน่วยงาน)</label>
+              <input type="text" id="f-from-org" placeholder="มหาวิทยาลัยเชียงใหม่">
+            </div>
+            <div class="field">
+              <label for="f-to-org-recv">ถึง</label>
+              <input type="text" id="f-to-org-recv" placeholder="สมาคมนักศึกษาเก่า มช.">
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-subject-recv">เรื่อง <span class="required">*</span></label>
+            <input type="text" id="f-subject" placeholder="ชื่อเรื่องของหนังสือ">
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-handler">การปฏิบัติ (ผู้รับผิดชอบ)</label>
+              <input type="text" id="f-handler" placeholder="ชื่อผู้ดำเนินการ">
+            </div>
+            <div class="field">
+              <label for="f-receiver">ผู้รับในสมาคม</label>
+              <input type="text" id="f-receiver" placeholder="ชื่อผู้รับ">
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-deadline">กำหนดตอบ / ครบกำหนด</label>
+            <input type="date" id="f-deadline">
+          </div>
+        </div>
+
+        <!-- ฟิลด์หนังสือส่ง -->
+        <div data-show="send" class="form-grid" style="gap:12px;display:none">
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-send-docno">เลขที่ส่ง</label>
+              <input type="text" id="f-send-docno" placeholder="สส. 2568-001">
+            </div>
+            <div class="field">
+              <label for="f-issue-date-send">วันที่ออก</label>
+              <input type="date" id="f-issue-date">
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-to-org">ถึง (หน่วยงาน / ผู้รับ)</label>
+            <input type="text" id="f-to-org" placeholder="ชื่อหน่วยงานที่ส่งถึง">
+          </div>
+          <div class="field">
+            <label for="f-subject-send">เรื่อง <span class="required">*</span></label>
+            <input type="text" id="f-subject" placeholder="ชื่อเรื่องของหนังสือ">
+          </div>
+          <div class="field">
+            <label for="f-detail">รายละเอียด</label>
+            <textarea id="f-detail" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-handler-send">การปฏิบัติ (ผู้ทำเอกสาร)</label>
+              <input type="text" id="f-handler" placeholder="ชื่อผู้จัดทำ">
+            </div>
+            <div class="field">
+              <label for="f-sender">ผู้ส่ง</label>
+              <input type="text" id="f-sender" placeholder="ชื่อผู้ส่ง">
+            </div>
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-receiver-name">ผู้รับ</label>
+              <input type="text" id="f-receiver-name" placeholder="ชื่อผู้รับ">
+            </div>
+            <div class="field">
+              <label for="f-send-date">วันที่ส่ง</label>
+              <input type="date" id="f-send-date">
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-send-channel">ช่องทางส่ง</label>
+            <select id="f-send-channel">
+              <option value="">-- เลือก --</option>
+              <option>ส่งมือ</option>
+              <option>ไปรษณีย์</option>
+              <option>อีเมล</option>
+              <option>Line</option>
+              <option>อื่น ๆ</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ฟิลด์ร่วม -->
+        <div data-show="both" class="form-grid" style="gap:12px;margin-top:12px">
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-doc-type">ประเภทเอกสาร</label>
+              <select id="f-doc-type">
+                <option value="">-- เลือก --</option>
+                <option>หนังสือราชการ</option>
+                <option>บันทึกข้อความ</option>
+                <option>สัญญา / ข้อตกลง</option>
+                <option>ใบแจ้งหนี้ / ใบสำคัญ</option>
+                <option>รายงาน</option>
+                <option>คำสั่ง / ประกาศ</option>
+                <option>อื่น ๆ</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-status">สถานะ</label>
+              <select id="f-status">
+                <option value="pend">รอดำเนินการ</option>
+                <option value="done">เสร็จสิ้น</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ลายเซ็น (เฉพาะหนังสือส่ง) -->
+          <div data-show="send" style="display:none">
+            <div class="field">
+              <label>ลายเซ็นผู้รับ</label>
+              <div class="sig-wrap">
+                <canvas id="sig-canvas" aria-label="พื้นที่เซ็นชื่อ"></canvas>
+                <div class="sig-actions">
+                  <button type="button" class="sig-clear" onclick="clearSig()">ล้างลายเซ็น</button>
+                  <span class="sig-label">เซ็นในกรอบด้านบน</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ไฟล์แนบ -->
+          <div class="field">
+            <label>ไฟล์แนบ</label>
+            <div class="file-area" onclick="document.getElementById('f-file').click()">
+              <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+              <p>แตะเพื่อแนบไฟล์</p>
+              <input type="file" id="f-file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="document.getElementById('file-name').textContent = this.files[0]?.name || ''">
+            </div>
+            <div id="file-name" class="file-name"></div>
+          </div>
+
+          <div class="field">
+            <label for="f-note">หมายเหตุ</label>
+            <textarea id="f-note" placeholder="บันทึกเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="submit-btn" onclick="submitForm()">
+            บันทึกหนังสือรับ
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL OVERLAY -->
+<div class="detail-overlay" id="detail-overlay" role="dialog" aria-modal="true">
+  <div class="detail-header">
+    <button class="icon-btn" onclick="closeDetail()" aria-label="กลับ"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <h2 id="detail-title">รายละเอียด</h2>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+// Export CSV
+function exportCSV() {
+  if (!state.records.length) { showToast('ไม่มีข้อมูล'); return; }
+  const headers = ['ประเภท','เลขที่','วันที่ออก','เรื่อง','จาก/ถึง','ผู้รับผิดชอบ','สถานะ','ประเภทเอกสาร','หมายเหตุ'];
+  const rows = state.records.map(r => [
+    r.type === 'recv' ? 'รับ' : 'ส่ง',
+    r.docno || '',
+    r.issue_date || '',
+    r.subject || '',
+    r.type === 'recv' ? (r.from_org || '') : (r.to_org || ''),
+    r.handler || '',
+    r.status === 'pend' ? 'รอดำเนินการ' : 'เสร็จสิ้น',
+    r.doc_type || '',
+    r.note || ''
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'เอกสาร-มช-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
