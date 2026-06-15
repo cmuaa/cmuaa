@@ -35,7 +35,6 @@
   --nav-h: 60px;
 }
 
-html, body { overflow-x: hidden; }
 html { font-size: 15px; -webkit-text-size-adjust: 100%; }
 body {
   font-family: 'Sarabun', sans-serif;
@@ -47,7 +46,7 @@ body {
 }
 
 /* ===== LAYOUT ===== */
-#app { display: flex; flex-direction: column; min-height: 100dvh; overflow-x: hidden; }
+#app { display: flex; flex-direction: column; min-height: 100dvh; }
 
 .app-header {
   position: sticky; top: 0; z-index: 100;
@@ -66,7 +65,7 @@ body {
 .icon-btn { width: 36px; height: 36px; border-radius: var(--radius-sm); border: none; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: background .15s; }
 .icon-btn:hover { background: rgba(255,255,255,.2); }
 
-.main-content { flex: 1; padding: 16px 16px calc(var(--nav-h) + 16px); max-width: 900px; width: 100%; margin: 0 auto; overflow-x: hidden; }
+.main-content { flex: 1; padding: 16px 16px calc(var(--nav-h) + 16px); max-width: 900px; width: 100%; margin: 0 auto; }
 
 /* ===== BOTTOM NAV ===== */
 .bottom-nav {
@@ -117,7 +116,7 @@ body {
 .search-wrap input:focus { border-color: var(--purple); }
 
 /* ===== DOC CARDS ===== */
-.doc-list { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.doc-list { display: flex; flex-direction: column; gap: 8px; }
 .doc-card {
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg);
   padding: 14px; cursor: pointer; transition: box-shadow .15s, border-color .15s;
@@ -299,32 +298,3 @@ body {
   .filter-chip { background: #1A1525; }
   .search-wrap input { background: #1A1525; }
 }
-
-/* ===== SWIPE ACTIONS ===== */
-.doc-card-wrap { position: relative; overflow: hidden; border-radius: var(--radius-lg); margin-bottom: 0; width: 100%; max-width: 100%; }
-.doc-card-actions { position: absolute; right: 0; top: 0; bottom: 0; width: 132px; display: flex; align-items: stretch; transform: translateX(132px); transition: transform .25s cubic-bezier(.4,0,.2,1); }
-.doc-card-wrap.swiped .doc-card-actions { transform: translateX(0); }
-.swipe-action { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; font-size: 11px; font-weight: 500; cursor: pointer; border: none; }
-.swipe-action.toggle { background: #1D9E75; color: #fff; }
-.swipe-action.delete { background: #A32D2D; color: #fff; }
-.swipe-action i { font-size: 20px; }
-.doc-card { transition: transform .25s cubic-bezier(.4,0,.2,1); width: 100%; }
-.doc-card-wrap.swiped .doc-card { transform: translateX(-132px); }
-
-/* ===== STEP FORM ===== */
-.step-indicator { display: flex; align-items: center; gap: 0; margin-bottom: 16px; }
-.step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; border: 2px solid var(--border-med); background: var(--color-background-secondary); color: var(--text-sub); transition: all .2s; }
-.step-dot.active { background: var(--purple); border-color: var(--purple); color: #fff; }
-.step-dot.done { background: var(--teal); border-color: var(--teal); color: #fff; }
-.step-line { flex: 1; height: 2px; background: var(--border); }
-.step-line.done { background: var(--teal); }
-.step-label { font-size: 11px; color: var(--text-hint); text-align: center; margin-top: 4px; }
-.form-step { display: none; }
-.form-step.active { display: block; }
-.step-nav { display: flex; gap: 8px; margin-top: 16px; }
-.step-nav .btn-back { flex: 0 0 auto; padding: 12px 16px; border: 1px solid var(--border-med); border-radius: var(--radius); background: #fff; cursor: pointer; font-size: 14px; font-family: inherit; color: var(--text-sub); }
-.step-nav .btn-next { flex: 1; padding: 12px; border: none; border-radius: var(--radius); background: var(--purple); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
-
-/* ===== EDIT FORM ===== */
-.edit-overlay { position: fixed; inset: 0; z-index: 200; background: var(--gray-50); transform: translateX(100%); transition: transform .28s cubic-bezier(.4,0,.2,1); overflow-y: auto; }
-.edit-overlay.open { transform: translateX(0); }
