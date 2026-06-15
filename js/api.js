@@ -1,4 +1,4 @@
-/* api.js — เชื่อมต่อ Google Apps Script Web App */
+/* api.js — เชื่อมต่อ Google Apps Script ผ่าน GET + callback */
 
 const API = {
   url: localStorage.getItem('cmu_api_url') || '',
@@ -8,21 +8,39 @@ const API = {
     localStorage.setItem('cmu_api_url', this.url);
   },
 
-  async call(action, data = {}) {
-    if (!this.url) throw new Error('ยังไม่ได้ตั้งค่า API URL');
-    const res = await fetch(this.url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...data }),
-      mode: 'cors'
+  call(params) {
+    return new Promise((resolve, reject) => {
+      if (!this.url) return reject(new Error('ยังไม่ได้ตั้งค่า API URL'));
+
+      const cbName = 'cb_' + Date.now();
+      const script = document.createElement('script');
+      const timeout = setTimeout(() => {
+        delete window[cbName];
+        document.body.removeChild(script);
+        reject(new Error('Request timeout'));
+      }, 10000);
+
+      window[cbName] = (data) => {
+        clearTimeout(timeout);
+        delete window[cbName];
+        document.body.removeChild(script);
+        resolve(data);
+      };
+
+      const qs = new URLSearchParams({ ...params, callback: cbName }).toString();
+      script.src = this.url + '?' + qs;
+      script.onerror = () => {
+        clearTimeout(timeout);
+        delete window[cbName];
+        reject(new Error('Failed to fetch'));
+      };
+      document.body.appendChild(script);
     });
-    if (!res.ok) throw new Error('เซิร์ฟเวอร์ตอบกลับผิดพลาด: ' + res.status);
-    return res.json();
   },
 
-  async getAll() { return this.call('getAll'); },
-  async addSend(row) { return this.call('addSend', { row }); },
-  async addRecv(row) { return this.call('addRecv', { row }); },
-  async updateStatus(type, id, status) { return this.call('updateStatus', { type, id, status }); },
-  async delete(type, id) { return this.call('delete', { type, id }); },
+  getAll()                        { return this.call({ action: 'getAll' }); },
+  addRecv(row)                    { return this.call({ action: 'addRecv', row: JSON.stringify(row) }); },
+  addSend(row)                    { return this.call({ action: 'addSend', row: JSON.stringify(row) }); },
+  updateStatus(type, id, status)  { return this.call({ action: 'updateStatus', type, id, status }); },
+  delete(type, id)                { return this.call({ action: 'delete', type, id }); },
 };

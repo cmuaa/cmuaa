@@ -1,14 +1,4 @@
-// ============================================================
-// Code.gs — CMU Alumni Document Tracker Backend
-// วิธีใช้:
-// 1. สร้าง Google Sheets ใหม่ ชื่อ "บันทึกรับ-ส่งเอกสาร"
-// 2. Extensions → Apps Script → วางโค้ดนี้ทั้งหมด
-// 3. Deploy → New Deployment → Web App
-//    Execute as: Me | Who has access: Anyone
-// 4. Copy URL ไปวางในหน้า Settings ของแอพ
-// ============================================================
-
-const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+// Code.gs — CMU Alumni Document Tracker Backend (JSONP version)
 
 const HEADERS_RECV = [
   'id','เลขหนังสือรับ','ที่ (เลขจากหน่วยงาน)','วันที่ออกหนังสือ',
@@ -27,6 +17,7 @@ function getOrCreateSheet(name, headers) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
+    if (!headers || headers.length === 0) return sheet;
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length)
       .setFontWeight('bold')
@@ -37,55 +28,49 @@ function getOrCreateSheet(name, headers) {
   return sheet;
 }
 
-function doPost(e) {
-  const cors = ContentService.createTextOutput();
-  try {
-    const body = JSON.parse(e.postData.contents);
-    let result;
-
-    switch (body.action) {
-      case 'addRecv':  result = addRecv(body.row);  break;
-      case 'addSend':  result = addSend(body.row);  break;
-      case 'getAll':   result = getAll();             break;
-      case 'updateStatus': result = updateStatus(body.type, body.id, body.status); break;
-      case 'delete':   result = deleteRecord(body.id); break;
-      default: result = { ok: false, error: 'unknown action' };
-    }
-
-    return ContentService
-      .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: false, error: err.message }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
 function doGet(e) {
+  const params = e.parameter;
+  const callback = params.callback || 'callback';
+  let result;
+
+  try {
+    switch (params.action) {
+      case 'getAll':
+        result = getAll();
+        break;
+      case 'addRecv':
+        result = addRecv(JSON.parse(params.row));
+        break;
+      case 'addSend':
+        result = addSend(JSON.parse(params.row));
+        break;
+      case 'updateStatus':
+        result = updateStatus(params.type, params.id, params.status);
+        break;
+      case 'delete':
+        result = deleteRecord(params.id);
+        break;
+      default:
+        result = { ok: false, error: 'unknown action' };
+    }
+  } catch(err) {
+    result = { ok: false, error: err.message };
+  }
+
   return ContentService
-    .createTextOutput(JSON.stringify(getAll()))
-    .setMimeType(ContentService.MimeType.JSON);
+    .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 function addRecv(r) {
   const sheet = getOrCreateSheet('หนังสือรับ', HEADERS_RECV);
   sheet.appendRow([
     r.id || Date.now().toString(),
-    r.docno || '',
-    r.ref_no || '',
-    r.issue_date || '',
-    r.from_org || '',
-    r.to_org || '',
-    r.subject || '',
-    r.handler || '',
-    r.receiver || '',
-    r.received_date || '',
-    r.deadline || '',
-    r.doc_type || '',
-    r.status || 'pend',
-    r.note || '',
-    new Date().toISOString()
+    r.docno || '', r.ref_no || '', r.issue_date || '',
+    r.from_org || '', r.to_org || '', r.subject || '',
+    r.handler || '', r.receiver || '', r.received_date || '',
+    r.deadline || '', r.doc_type || '', r.status || 'pend',
+    r.note || '', new Date().toISOString()
   ]);
   return { ok: true };
 }
@@ -94,20 +79,11 @@ function addSend(r) {
   const sheet = getOrCreateSheet('หนังสือส่ง', HEADERS_SEND);
   sheet.appendRow([
     r.id || Date.now().toString(),
-    r.docno || '',
-    r.issue_date || '',
-    r.to_org || '',
-    r.subject || '',
-    r.detail || '',
-    r.handler || '',
-    r.sender || '',
-    r.receiver_name || '',
-    r.send_date || '',
-    r.send_channel || '',
-    r.doc_type || '',
-    r.status || 'pend',
-    r.note || '',
-    new Date().toISOString()
+    r.docno || '', r.issue_date || '', r.to_org || '',
+    r.subject || '', r.detail || '', r.handler || '',
+    r.sender || '', r.receiver_name || '', r.send_date || '',
+    r.send_channel || '', r.doc_type || '', r.status || 'pend',
+    r.note || '', new Date().toISOString()
   ]);
   return { ok: true };
 }
@@ -132,7 +108,9 @@ function getAll() {
     send_channel: r[10], doc_type: r[11], status: r[12], note: r[13]
   }));
 
-  const all = [...recvData, ...sendData].sort((a, b) => b.id.localeCompare(a.id));
+  const all = [...recvData, ...sendData]
+    .filter(r => r.id)
+    .sort((a, b) => b.id.localeCompare(a.id));
   return { ok: true, records: all };
 }
 
@@ -143,8 +121,7 @@ function updateStatus(type, id, status) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(id)) {
-      const statusCol = type === 'send' ? 13 : 13;
-      sheet.getRange(i + 1, statusCol).setValue(status);
+      sheet.getRange(i + 1, 13).setValue(status);
       return { ok: true };
     }
   }
