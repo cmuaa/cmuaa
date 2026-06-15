@@ -301,6 +301,7 @@ async function submitForm() {
     };
   } else {
     record = { ...common,
+      subject: get('f-subject-send'),
       docno: get('f-send-docno'),
       issue_date: get('f-issue-date'),
       to_org: get('f-to-org'),
