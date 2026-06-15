@@ -88,7 +88,13 @@ function renderList() {
   document.getElementById('s-all').textContent = state.records.length;
   document.getElementById('s-send').textContent = state.records.filter(r => r.type === 'send').length;
   document.getElementById('s-recv').textContent = state.records.filter(r => r.type === 'recv').length;
-  document.getElementById('s-pend').textContent = state.records.filter(r => r.status === 'pend').length;
+  const pendCount = state.records.filter(r => r.status === 'pend').length;
+  document.getElementById('s-pend').textContent = pendCount;
+  const badge = document.getElementById('nav-badge');
+  if (badge) {
+    badge.textContent = pendCount;
+    badge.style.display = pendCount > 0 ? 'flex' : 'none';
+  }
 
   if (!items.length) {
     container.innerHTML = `<div class="empty-state"><i class="ti ti-file-off"></i><p>ไม่พบรายการ</p></div>`;
@@ -96,7 +102,18 @@ function renderList() {
   }
 
   container.innerHTML = items.map(r => `
-    <div class="doc-card" onclick="openDetail('${r.id}')">
+    <div class="doc-card-wrap" id="wrap-${r.id}">
+      <div class="doc-card-actions">
+        <button class="swipe-action toggle" onclick="toggleStatus('${r.id}');resetSwipe('${r.id}')">
+          <i class="ti ti-${r.status === 'pend' ? 'check' : 'refresh'}" aria-hidden="true"></i>
+          <span>${r.status === 'pend' ? 'เสร็จ' : 'รีเซ็ต'}</span>
+        </button>
+        <button class="swipe-action delete" onclick="deleteRecord('${r.id}')">
+          <i class="ti ti-trash" aria-hidden="true"></i>
+          <span>ลบ</span>
+        </button>
+      </div>
+      <div class="doc-card" id="card-${r.id}" onclick="openDetail('${r.id}')" onmousedown="startSwipe(event,'${r.id}')" ontouchstart="startSwipe(event,'${r.id}')">
       <div class="doc-card-icon ${r.type}">
         <i class="ti ti-${r.type === 'send' ? 'send' : 'inbox'}" aria-hidden="true"></i>
       </div>
@@ -115,8 +132,10 @@ function renderList() {
           ${r.deadline && isPast(r.deadline) && r.status === 'pend' ? `<span class="badge badge-urgent"><i class="ti ti-alert-triangle" aria-hidden="true"></i> ครบกำหนด</span>` : ''}
         </div>
       </div>
+      </div>
     </div>
   `).join('');
+  setupSwipes();
 }
 
 // ===== RENDER STATS =====
@@ -174,6 +193,7 @@ function openForm(type = 'recv') {
   document.getElementById('form-overlay').classList.add('open');
   setFormType(type);
   resetForm();
+  setFormStep(1);
   initSigPad();
 }
 
@@ -191,8 +211,10 @@ function setFormType(t) {
   // toggle fields
   document.querySelectorAll('[data-show]').forEach(el => {
     const show = el.dataset.show;
-    el.style.display = (show === 'both' || show === t) ? '' : 'none';
+    const visible = show === 'both' || show === t;
+    el.style.display = visible ? '' : 'none';
   });
+  setFormStep(1);
   document.getElementById('form-title').textContent = t === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง';
   const btn = document.getElementById('submit-btn');
   btn.className = 'btn-submit ' + t;
@@ -253,6 +275,80 @@ function initSigPad() {
 }
 
 function clearSig() { if (state.sigPad) state.sigPad.clear(); }
+
+
+// ===== SWIPE =====
+let swipeState = {};
+function startSwipe(e, id) {
+  const src = e.touches ? e.touches[0] : e;
+  swipeState[id] = { startX: src.clientX, swiped: false };
+  const card = document.getElementById('card-' + id);
+  if (card) {
+    card.addEventListener('mousemove', (ev) => onSwipeMove(ev, id), { once: false });
+    card.addEventListener('mouseup', (ev) => endSwipe(ev, id), { once: true });
+    card.addEventListener('touchmove', (ev) => onSwipeMove(ev, id), { passive: true });
+    card.addEventListener('touchend', (ev) => endSwipe(ev, id), { once: true });
+  }
+}
+function onSwipeMove(e, id) {
+  if (!swipeState[id]) return;
+  const src = e.touches ? e.touches[0] : e;
+  const dx = swipeState[id].startX - src.clientX;
+  if (dx > 30) swipeState[id].swiped = true;
+}
+function endSwipe(e, id) {
+  if (!swipeState[id]) return;
+  const card = document.getElementById('card-' + id);
+  if (swipeState[id].swiped) {
+    if (card) card.classList.add('swiped');
+    e.stopPropagation();
+  } else {
+    if (card) card.classList.remove('swiped');
+  }
+  delete swipeState[id];
+}
+function resetSwipe(id) {
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.remove('swiped');
+}
+function setupSwipes() {
+  document.querySelectorAll('.doc-card-wrap').forEach(wrap => {
+    wrap.addEventListener('click', e => {
+      const swiped = wrap.querySelector('.doc-card.swiped');
+      if (swiped) { e.stopPropagation(); }
+    });
+  });
+}
+
+// ===== STEP FORM =====
+let currentStep = 1;
+const TOTAL_STEPS = 3;
+
+function setFormStep(step) {
+  currentStep = step;
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const dot = document.getElementById('sdot-' + i);
+    if (dot) {
+      dot.className = 'step-dot' + (i === step ? ' active' : i < step ? ' done' : '');
+      dot.textContent = i < step ? '✓' : i;
+    }
+    if (i < TOTAL_STEPS) {
+      const line = document.getElementById('sline-' + i);
+      if (line) line.className = 'step-line' + (i < step ? ' done' : '');
+    }
+  }
+  document.querySelectorAll('.form-step').forEach(el => {
+    el.classList.toggle('active', el.dataset.step === String(step));
+  });
+}
+
+function nextStep() {
+  if (currentStep < TOTAL_STEPS) setFormStep(currentStep + 1);
+  else submitForm();
+}
+function prevStep() {
+  if (currentStep > 1) setFormStep(currentStep - 1);
+}
 
 // ===== SUBMIT FORM =====
 async function submitForm() {
@@ -386,6 +482,9 @@ function openDetail(id) {
       </div>
     ` : ''}
     <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn-submit" onclick="openEditForm('${r.id}')" style="flex:1;background:var(--purple);color:#fff">
+        <i class="ti ti-edit" aria-hidden="true"></i> แก้ไข
+      </button>
       <button class="btn-submit ${r.status === 'pend' ? 'recv' : 'send'}" onclick="toggleStatus('${r.id}')" style="flex:1">
         ${r.status === 'pend' ? 'มาร์กเป็นเสร็จสิ้น' : 'มาร์กเป็นรอดำเนินการ'}
       </button>
@@ -464,4 +563,32 @@ function render() {
   switchPage('list');
   // Restore API URL in settings
   document.getElementById('api-url-input').value = API.url;
+}
+
+// ===== EDIT =====
+function openEditForm(id) {
+  const r = state.records.find(x => x.id === id);
+  if (!r) return;
+  closeDetail();
+  openForm(r.type);
+  setTimeout(() => {
+    const set = (elId, val) => { const el = document.getElementById(elId); if (el && val) el.value = val; };
+    if (r.type === 'recv') {
+      set('f-recv-docno', r.docno); set('f-ref-no', r.ref_no);
+      set('f-issue-date', r.issue_date); set('f-received-date', r.received_date);
+      set('f-from-org', r.from_org); set('f-to-org-recv', r.to_org);
+      set('f-subject', r.subject); set('f-receiver', r.receiver);
+      set('f-deadline', r.deadline);
+    } else {
+      set('f-send-docno', r.docno); set('f-issue-date', r.issue_date);
+      set('f-to-org', r.to_org); set('f-subject-send', r.subject);
+      set('f-detail', r.detail); set('f-sender', r.sender);
+      set('f-receiver-name', r.receiver_name); set('f-send-date', r.send_date);
+      set('f-send-channel', r.send_channel);
+    }
+    set('f-handler', r.handler); set('f-doc-type', r.doc_type);
+    set('f-status', r.status); set('f-note', r.note);
+    state.records = state.records.filter(x => x.id !== id);
+    saveLocal();
+  }, 100);
 }

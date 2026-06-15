@@ -145,7 +145,7 @@
 
   <!-- MOBILE BOTTOM NAV -->
   <nav class="bottom-nav" aria-label="เมนูล่าง">
-    <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการ</button>
+    <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
     <button class="nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
   </nav>
@@ -176,10 +176,24 @@
         </button>
       </div>
 
+      <div class="step-indicator" id="step-indicator">
+        <div class="step-dot active" id="sdot-1">1</div>
+        <div class="step-line" id="sline-1"></div>
+        <div class="step-dot" id="sdot-2">2</div>
+        <div class="step-line" id="sline-2"></div>
+        <div class="step-dot" id="sdot-3">3</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin:-8px 0 12px">
+        <span style="font-size:11px;color:var(--text-hint);width:28px;text-align:center">ข้อมูลหลัก</span>
+        <span style="font-size:11px;color:var(--text-hint);width:28px;text-align:center">รายละเอียด</span>
+        <span style="font-size:11px;color:var(--text-hint);width:28px;text-align:center">ไฟล์/เซ็น</span>
+      </div>
+
       <form id="doc-form" onsubmit="return false">
 
-        <!-- ฟิลด์หนังสือรับ -->
-        <div data-show="recv" class="form-grid" style="gap:12px">
+        <!-- ฟิลด์หนังสือรับ step 1 -->
+        <div data-show="recv" class="form-step active" data-step="1">
+        <div class="form-grid" style="gap:12px">
           <div class="form-grid two">
             <div class="field">
               <label for="f-recv-docno">เลขหนังสือรับ</label>
@@ -217,7 +231,7 @@
           <div class="form-grid two">
             <div class="field">
               <label for="f-handler">การปฏิบัติ (ผู้รับผิดชอบ)</label>
-              <input type="text" id="f-handler" placeholder="ชื่อผู้ดำเนินการ">
+              <input type="text" id="f-handler" placeholder="ระบุผู้รับผิดชอบ เช่น เสนอนายกสมาคม / มอบหมายให้...">
             </div>
             <div class="field">
               <label for="f-receiver">ผู้รับในสมาคม</label>
@@ -229,8 +243,10 @@
             <input type="date" id="f-deadline">
           </div>
         </div>
+        <div class="step-nav"><button class="btn-next" onclick="nextStep()">ถัดไป →</button></div>
+        </div>
 
-        <!-- ฟิลด์หนังสือส่ง -->
+        <!-- ฟิลด์หนังสือส่ง step 1 -->
         <div data-show="send" class="form-grid" style="gap:12px;display:none">
           <div class="form-grid two">
             <div class="field">
@@ -257,7 +273,7 @@
           <div class="form-grid two">
             <div class="field">
               <label for="f-handler-send">การปฏิบัติ (ผู้ทำเอกสาร)</label>
-              <input type="text" id="f-handler" placeholder="ชื่อผู้จัดทำ">
+              <input type="text" id="f-handler" placeholder="ระบุผู้จัดทำ เช่น นายสมชาย / ฝ่ายธุรการ...">
             </div>
             <div class="field">
               <label for="f-sender">ผู้ส่ง</label>
@@ -286,8 +302,10 @@
             </select>
           </div>
         </div>
+        <div class="step-nav"><button class="btn-next" onclick="nextStep()">ถัดไป →</button></div>
+        </div>
 
-        <!-- ฟิลด์ร่วม -->
+        <!-- ฟิลด์ร่วม step 2 -->
         <div data-show="both" class="form-grid" style="gap:12px;margin-top:12px">
           <div class="form-grid two">
             <div class="field">
@@ -312,6 +330,16 @@
             </div>
           </div>
 
+        </div>
+        <div class="step-nav">
+          <button class="btn-back" onclick="prevStep()">← ย้อนกลับ</button>
+          <button class="btn-next" onclick="nextStep()">ถัดไป →</button>
+        </div>
+        </div>
+
+        <!-- step 3: ไฟล์/ลายเซ็น -->
+        <div data-show="both" class="form-step" data-step="3">
+        <div class="form-grid" style="gap:12px;margin-top:4px">
           <!-- ลายเซ็น (เฉพาะหนังสือส่ง) -->
           <div data-show="send" style="display:none">
             <div class="field">
@@ -342,9 +370,13 @@
             <textarea id="f-note" placeholder="บันทึกเพิ่มเติม"></textarea>
           </div>
 
-          <button type="button" class="btn-submit recv" id="submit-btn" onclick="submitForm()">
+        </div>
+        <div class="step-nav">
+          <button class="btn-back" onclick="prevStep()">← ย้อนกลับ</button>
+          <button type="button" class="btn-submit recv" id="submit-btn" onclick="submitForm()" style="flex:1">
             บันทึกหนังสือรับ
           </button>
+        </div>
         </div>
 
       </form>

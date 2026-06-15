@@ -84,6 +84,8 @@ body {
 .nav-item i { font-size: 22px; }
 .nav-item.active { color: var(--purple); }
 .nav-item.active i { font-weight: 600; }
+.nav-badge { position: absolute; top: 4px; right: calc(50% - 18px); background: #A32D2D; color: #fff; font-size: 10px; font-weight: 600; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+.nav-item { position: relative; }
 
 /* ===== PAGES ===== */
 .page { display: none; }
@@ -145,7 +147,7 @@ body {
   width: 52px; height: 52px; border-radius: 50%;
   background: var(--gold); border: none; color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(212,160,23,.4);
+  font-size: 24px; cursor: pointer; box-shadow: 0 4px 16px rgba(212,160,23,.6), 0 2px 6px rgba(0,0,0,.2);
   transition: transform .15s, box-shadow .15s;
 }
 .fab:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(212,160,23,.5); }
@@ -296,3 +298,31 @@ body {
   .filter-chip { background: #1A1525; }
   .search-wrap input { background: #1A1525; }
 }
+
+/* ===== SWIPE ACTIONS ===== */
+.doc-card-wrap { position: relative; overflow: hidden; border-radius: var(--radius-lg); margin-bottom: 0; }
+.doc-card-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; }
+.swipe-action { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 16px; font-size: 11px; font-weight: 500; cursor: pointer; border: none; }
+.swipe-action.toggle { background: #1D9E75; color: #fff; }
+.swipe-action.delete { background: #A32D2D; color: #fff; }
+.swipe-action i { font-size: 20px; }
+.doc-card { transition: transform .25s cubic-bezier(.4,0,.2,1); }
+.doc-card.swiped { transform: translateX(-132px); }
+
+/* ===== STEP FORM ===== */
+.step-indicator { display: flex; align-items: center; gap: 0; margin-bottom: 16px; }
+.step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; border: 2px solid var(--border-med); background: var(--color-background-secondary); color: var(--text-sub); transition: all .2s; }
+.step-dot.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+.step-dot.done { background: var(--teal); border-color: var(--teal); color: #fff; }
+.step-line { flex: 1; height: 2px; background: var(--border); }
+.step-line.done { background: var(--teal); }
+.step-label { font-size: 11px; color: var(--text-hint); text-align: center; margin-top: 4px; }
+.form-step { display: none; }
+.form-step.active { display: block; }
+.step-nav { display: flex; gap: 8px; margin-top: 16px; }
+.step-nav .btn-back { flex: 0 0 auto; padding: 12px 16px; border: 1px solid var(--border-med); border-radius: var(--radius); background: #fff; cursor: pointer; font-size: 14px; font-family: inherit; color: var(--text-sub); }
+.step-nav .btn-next { flex: 1; padding: 12px; border: none; border-radius: var(--radius); background: var(--purple); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+/* ===== EDIT FORM ===== */
+.edit-overlay { position: fixed; inset: 0; z-index: 200; background: var(--gray-50); transform: translateX(100%); transition: transform .28s cubic-bezier(.4,0,.2,1); overflow-y: auto; }
+.edit-overlay.open { transform: translateX(0); }
