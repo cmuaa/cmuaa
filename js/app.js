@@ -263,14 +263,14 @@ async function submitForm() {
     type: currentFormType,
     status: get('f-status'),
     doc_type: get('f-doc-type'),
-    subject: get('f-subject'),
     handler: get('f-handler'),
     note: get('f-note'),
     signature: (state.sigPad && !state.sigPad.isEmpty()) ? state.sigPad.toDataURL() : '',
     created_at: new Date().toISOString(),
   };
 
-  if (!common.subject) { showToast('กรุณากรอกชื่อเรื่อง'); return; }
+  const subject = currentFormType === 'recv' ? get('f-subject') : get('f-subject-send');
+  if (!subject) { showToast('กรุณากรอกชื่อเรื่อง'); return; }
 
   // อัปโหลดไฟล์ไป Drive ก่อน (ถ้ามี)
   let file_url = '';
@@ -289,6 +289,7 @@ async function submitForm() {
   let record = {};
   if (currentFormType === 'recv') {
     record = { ...common,
+      subject: get('f-subject'),
       docno: get('f-recv-docno'),
       ref_no: get('f-ref-no'),
       issue_date: get('f-issue-date'),
