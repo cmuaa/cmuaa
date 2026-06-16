@@ -112,11 +112,11 @@ function renderList() {
           <span class="badge badge-${r.status === 'pend' ? 'pend' : 'done'}">${r.status === 'pend' ? 'รอ' : 'เสร็จ'}</span>
         </div>
         <div class="doc-card-meta">
-          ${r.docno ? `<strong>${esc(r.docno)}</strong> &nbsp;·&nbsp; ` : ''}${r.type === 'send' ? 'ถึง: ' + esc(r.to_org || '-') : 'จาก: ' + esc(r.from_org || '-')} &nbsp;·&nbsp; ${r.type === 'send' ? r.issue_date || '' : r.received_date || ''}
+          ${r.docno ? `<strong>${esc(r.docno)}</strong> &nbsp;·&nbsp; ` : ''}${r.type === 'send' ? 'ถึง: ' + esc(r.to_org || '-') : 'จาก: ' + esc(r.from_org || '-')} &nbsp;·&nbsp; ${formatDate(r.type === 'send' ? r.issue_date : r.received_date)}
         </div>
         <div class="doc-card-tags">
           <span class="badge badge-${r.type}">${r.type === 'send' ? 'ส่งออก' : 'รับเข้า'}</span>
-          ${r.docno ? `<span class="badge badge-type">${esc(r.docno)}</span>` : ''}
+          ${r.docno && isNaN(new Date(r.docno)) ? `<span class="badge badge-type">${esc(r.docno)}</span>` : ''}
           ${r.doc_type ? `<span class="badge badge-type">${esc(r.doc_type)}</span>` : ''}
           ${r.deadline && isPast(r.deadline) && r.status === 'pend' ? `<span class="badge badge-urgent"><i class="ti ti-alert-triangle" aria-hidden="true"></i> ครบกำหนด</span>` : ''}
         </div>
@@ -463,6 +463,16 @@ async function syncFromSheets() {
   } catch(e) { showToast('ซิงก์ไม่สำเร็จ: ' + e.message); }
 }
 
+
+// ===== FORMAT DATE =====
+function formatDate(d) {
+  if (!d) return '';
+  try {
+    const date = new Date(d);
+    if (isNaN(date)) return d;
+    return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch(e) { return d; }
+}
 // ===== UTILS =====
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function isPast(d) { return d && d < new Date().toISOString().slice(0,10); }
