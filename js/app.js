@@ -195,19 +195,25 @@ function buildTypeStats() {
 // ===== FORM =====
 let currentFormType = 'recv';
 
-function openForm(type = 'recv') {
+function openForm(type = 'recv', isEditMode = false) {
   currentFormType = type;
-  editingId = null;
+  if (!isEditMode) editingId = null;
   document.getElementById('form-overlay').classList.add('open');
   setFormType(type);
-  resetForm();
-  document.getElementById('form-title').textContent = type === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง';
-  document.getElementById('submit-btn').textContent = type === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง';
+  if (!isEditMode) resetForm();
   initSigPad();
 }
 
 function closeForm() {
   document.getElementById('form-overlay').classList.remove('open');
+}
+
+function trySwitchType(t) {
+  if (editingId) {
+    showToast('ไม่สามารถเปลี่ยนประเภทขณะแก้ไขรายการได้');
+    return;
+  }
+  setFormType(t);
 }
 
 function setFormType(t) {
@@ -223,10 +229,15 @@ function setFormType(t) {
     const visible = show === 'both' || show === t;
     el.style.display = visible ? '' : 'none';
   });
-  document.getElementById('form-title').textContent = t === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง';
+  const isEdit = !!editingId;
+  document.getElementById('form-title').textContent = isEdit
+    ? (t === 'recv' ? 'แก้ไขหนังสือรับ' : 'แก้ไขหนังสือส่ง')
+    : (t === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง');
   const btn = document.getElementById('submit-btn');
   btn.className = 'btn-submit ' + t;
-  btn.textContent = t === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง';
+  btn.textContent = isEdit ? 'บันทึกการแก้ไข' : (t === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง');
+  // เคลียร์ข้อความไฟล์แนบเดิมทุกครั้งที่สลับประเภท (จะถูกตั้งใหม่จาก openEditForm ถ้าตรง record)
+  document.getElementById('file-name').textContent = '';
 }
 
 function resetForm() {
@@ -542,9 +553,9 @@ let editingId = null;
 function openEditForm(id) {
   const r = state.records.find(x => x.id === id);
   if (!r) return;
-  closeDetail();
-  openForm(r.type);
   editingId = id;
+  closeDetail();
+  openForm(r.type, true);
   setTimeout(() => {
     const set = (elId, val) => { const el = document.getElementById(elId); if (el && val !== undefined) el.value = val; };
     if (r.type === 'recv') {
