@@ -10,6 +10,8 @@ let state = {
   detailId: null,
   editingType: 'recv',
   sigPad: null,
+  currentPage: 1,
+  pageSize: 20,
 };
 
 // ===== STORAGE (offline fallback) =====
@@ -57,11 +59,13 @@ function setupFab() {
 function setupSearch() {
   document.getElementById('search-input').addEventListener('input', e => {
     state.search = e.target.value.toLowerCase();
+    state.currentPage = 1;
     renderList();
   });
   document.querySelectorAll('.filter-chip').forEach(el => {
     el.addEventListener('click', () => {
       state.filter = el.dataset.filter;
+      state.currentPage = 1;
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === state.filter));
       renderList();
     });
@@ -98,10 +102,26 @@ function renderList() {
 
   if (!items.length) {
     container.innerHTML = `<div class="empty-state"><i class="ti ti-file-off"></i><p>ไม่พบรายการ</p></div>`;
+    const pgEl = document.getElementById('pagination');
+    if (pgEl) pgEl.innerHTML = '';
     return;
   }
 
-  container.innerHTML = items.map(r => `
+  // Pagination
+  const totalPages = Math.ceil(items.length / state.pageSize);
+  if (state.currentPage > totalPages) state.currentPage = 1;
+  const pgStart = (state.currentPage - 1) * state.pageSize;
+  const pagedItems = items.slice(pgStart, pgStart + state.pageSize);
+  const pgEl = document.getElementById('pagination');
+  if (pgEl) {
+    let btns = '';
+    if (state.currentPage > 1) btns += '<button class="pg-btn" onclick="goPage(' + (state.currentPage-1) + ')">← ก่อนหน้า</button>';
+    btns += '<span class="pg-info">หน้า ' + state.currentPage + ' / ' + totalPages + ' (' + items.length + ' รายการ)</span>';
+    if (state.currentPage < totalPages) btns += '<button class="pg-btn" onclick="goPage(' + (state.currentPage+1) + ')">ถัดไป →</button>';
+    pgEl.innerHTML = btns;
+  }
+
+  container.innerHTML = pagedItems.map(r => `
     <div class="doc-card" onclick="openDetail('${r.id}')">
       <div class="doc-card-icon ${r.type}">
         <i class="ti ti-${r.type === 'send' ? 'send' : 'inbox'}" aria-hidden="true"></i>
@@ -473,6 +493,12 @@ function formatDate(d) {
     return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
   } catch(e) { return d; }
 }
+function goPage(p) {
+  state.currentPage = p;
+  renderList();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // ===== UTILS =====
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function isPast(d) { return d && d < new Date().toISOString().slice(0,10); }

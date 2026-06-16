@@ -298,3 +298,9 @@ body {
   .filter-chip { background: #1A1525; }
   .search-wrap input { background: #1A1525; }
 }
+
+/* ===== PAGINATION ===== */
+.pagination-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 0 8px; flex-wrap: wrap; }
+.pg-btn { border: 1px solid var(--border-med); border-radius: var(--radius); padding: 8px 16px; font-size: 13px; font-family: inherit; background: #fff; color: var(--purple); cursor: pointer; font-weight: 500; transition: all .15s; }
+.pg-btn:hover { background: var(--purple); color: #fff; border-color: var(--purple); }
+.pg-info { font-size: 13px; color: var(--text-sub); }
