@@ -112,7 +112,7 @@ function renderList() {
           <span class="badge badge-${r.status === 'pend' ? 'pend' : 'done'}">${r.status === 'pend' ? 'รอ' : 'เสร็จ'}</span>
         </div>
         <div class="doc-card-meta">
-          ${r.type === 'send' ? 'ถึง: ' + esc(r.to_org || '-') : 'จาก: ' + esc(r.from_org || '-')} &nbsp;·&nbsp; ${r.type === 'send' ? r.issue_date || '' : r.received_date || ''}
+          ${r.docno ? `<strong>${esc(r.docno)}</strong> &nbsp;·&nbsp; ` : ''}${r.type === 'send' ? 'ถึง: ' + esc(r.to_org || '-') : 'จาก: ' + esc(r.from_org || '-')} &nbsp;·&nbsp; ${r.type === 'send' ? r.issue_date || '' : r.received_date || ''}
         </div>
         <div class="doc-card-tags">
           <span class="badge badge-${r.type}">${r.type === 'send' ? 'ส่งออก' : 'รับเข้า'}</span>
