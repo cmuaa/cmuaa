@@ -197,9 +197,12 @@ let currentFormType = 'recv';
 
 function openForm(type = 'recv') {
   currentFormType = type;
+  editingId = null;
   document.getElementById('form-overlay').classList.add('open');
   setFormType(type);
   resetForm();
+  document.getElementById('form-title').textContent = type === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง';
+  document.getElementById('submit-btn').textContent = type === 'recv' ? 'บันทึกหนังสือรับ' : 'บันทึกหนังสือส่ง';
   initSigPad();
 }
 
@@ -289,8 +292,10 @@ function clearSig() { if (state.sigPad) state.sigPad.clear(); }
 async function submitForm() {
   const get = id => document.getElementById(id)?.value?.trim() || '';
 
+  const isEdit = !!editingId;
+
   const common = {
-    id: Date.now().toString(),
+    id: isEdit ? editingId : Date.now().toString(),
     type: currentFormType,
     status: get('f-status'),
     doc_type: get('f-doc-type'),
@@ -303,8 +308,11 @@ async function submitForm() {
   const subject = currentFormType === 'recv' ? get('f-subject') : get('f-subject-send');
   if (!subject) { showToast('กรุณากรอกชื่อเรื่อง'); return; }
 
-  // อัปโหลดไฟล์ไป Drive ก่อน (ถ้ามี)
-  let file_url = '';
+  // เก็บ file_url เดิมไว้ก่อน (ถ้าแก้ไขและไม่ได้แนบไฟล์ใหม่)
+  const oldRecord = isEdit ? state.records.find(x => x.id === editingId) : null;
+  let file_url = oldRecord ? (oldRecord.file_url || '') : '';
+
+  // อัปโหลดไฟล์ไป Drive (ถ้ามีการเลือกไฟล์ใหม่)
   const fileInput = document.getElementById('f-file');
   if (fileInput && fileInput.files.length > 0 && API.url) {
     const file = fileInput.files[0];
@@ -346,20 +354,32 @@ async function submitForm() {
     };
   }
 
-  // Save locally first
-  state.records.unshift(record);
+  if (isEdit) {
+    // แก้ไขรายการเดิม
+    const idx = state.records.findIndex(x => x.id === editingId);
+    if (idx !== -1) state.records[idx] = record;
+  } else {
+    // เพิ่มรายการใหม่
+    state.records.unshift(record);
+  }
   saveLocal();
   renderList();
   closeForm();
-  showToast('บันทึกสำเร็จ');
+  showToast(isEdit ? 'แก้ไขสำเร็จ' : 'บันทึกสำเร็จ');
 
-  // Try sync to Google Sheets
+  // Sync to Google Sheets
   if (API.url) {
     try {
-      if (currentFormType === 'recv') await API.addRecv(record);
-      else await API.addSend(record);
+      if (isEdit) {
+        await API.updateRecord(currentFormType, record);
+      } else {
+        if (currentFormType === 'recv') await API.addRecv(record);
+        else await API.addSend(record);
+      }
     } catch(e) { showToast('บันทึก offline — จะซิงก์เมื่อออนไลน์'); }
   }
+
+  editingId = null;
 }
 
 // ===== DETAIL =====
@@ -517,39 +537,14 @@ function render() {
 }
 
 // ===== EDIT =====
-function openEditForm(id) {
-  const r = state.records.find(x => x.id === id);
-  if (!r) return;
-  closeDetail();
-  openForm(r.type);
-  setTimeout(() => {
-    const set = (elId, val) => { const el = document.getElementById(elId); if (el && val) el.value = val; };
-    if (r.type === 'recv') {
-      set('f-recv-docno', r.docno); set('f-ref-no', r.ref_no);
-      set('f-issue-date', r.issue_date); set('f-received-date', r.received_date);
-      set('f-from-org', r.from_org); set('f-to-org-recv', r.to_org);
-      set('f-subject', r.subject); set('f-receiver', r.receiver);
-      set('f-deadline', r.deadline);
-    } else {
-      set('f-send-docno', r.docno); set('f-issue-date', r.issue_date);
-      set('f-to-org', r.to_org); set('f-subject-send', r.subject);
-      set('f-detail', r.detail); set('f-sender', r.sender);
-      set('f-receiver-name', r.receiver_name); set('f-send-date', r.send_date);
-      set('f-send-channel', r.send_channel);
-    }
-    set('f-handler', r.handler); set('f-doc-type', r.doc_type);
-    set('f-status', r.status); set('f-note', r.note);
-    state.records = state.records.filter(x => x.id !== id);
-    saveLocal();
-  }, 100);
-}
+let editingId = null;
 
-// ===== EDIT =====
 function openEditForm(id) {
   const r = state.records.find(x => x.id === id);
   if (!r) return;
   closeDetail();
   openForm(r.type);
+  editingId = id;
   setTimeout(() => {
     const set = (elId, val) => { const el = document.getElementById(elId); if (el && val !== undefined) el.value = val; };
     if (r.type === 'recv') {
@@ -567,7 +562,8 @@ function openEditForm(id) {
     }
     set('f-handler', r.handler); set('f-doc-type', r.doc_type);
     set('f-status', r.status); set('f-note', r.note);
-    state.records = state.records.filter(x => x.id !== id);
-    saveLocal();
-  }, 150);
+    if (r.file_url) document.getElementById('file-name').textContent = '📎 ไฟล์เดิมถูกแนบไว้แล้ว (แนบใหม่เพื่อเปลี่ยน)';
+    document.getElementById('form-title').textContent = (r.type === 'recv' ? 'แก้ไขหนังสือรับ' : 'แก้ไขหนังสือส่ง');
+    document.getElementById('submit-btn').textContent = 'บันทึกการแก้ไข';
+  }, 100);
 }

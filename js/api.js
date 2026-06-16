@@ -61,6 +61,7 @@ const API = {
   getAll()                        { return this.call({ action: 'getAll' }); },
   addRecv(row)                    { return this.call({ action: 'addRecv', row: JSON.stringify(row) }); },
   addSend(row)                    { return this.call({ action: 'addSend', row: JSON.stringify(row) }); },
+  updateRecord(type, row)         { return this.call({ action: 'updateRecord', type, row: JSON.stringify(row) }); },
   updateStatus(type, id, status)  { return this.call({ action: 'updateStatus', type, id, status }); },
   delete(type, id)                { return this.call({ action: 'delete', type, id }); },
 };
