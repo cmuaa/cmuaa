@@ -218,11 +218,21 @@
           <div class="form-grid two">
             <div class="field">
               <label for="f-handler">การปฏิบัติ (ผู้รับผิดชอบ)</label>
-              <input type="text" id="f-handler" placeholder="ระบุผู้รับผิดชอบ เช่น เสนอนายกสมาคม / มอบหมายให้...">
+              <select id="f-handler">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
             </div>
             <div class="field">
               <label for="f-receiver">ผู้รับในสมาคม</label>
-              <input type="text" id="f-receiver" placeholder="ชื่อผู้รับ">
+              <select id="f-receiver">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
             </div>
           </div>
           <div class="field">
@@ -236,7 +246,10 @@
           <div class="form-grid two">
             <div class="field">
               <label for="f-send-docno">เลขที่ส่ง</label>
-              <input type="text" id="f-send-docno" placeholder="สส. 2568-001">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:14px;color:var(--text-sub);white-space:nowrap">สก.มช.</span>
+                <input type="text" id="f-send-docno" placeholder="1/2569">
+              </div>
             </div>
             <div class="field">
               <label for="f-issue-date-send">วันที่ออก</label>
@@ -258,17 +271,32 @@
           <div class="form-grid two">
             <div class="field">
               <label for="f-handler-send">การปฏิบัติ (ผู้ทำเอกสาร)</label>
-              <input type="text" id="f-handler" placeholder="ระบุผู้จัดทำ เช่น นายสมชาย / ฝ่ายธุรการ...">
+              <select id="f-handler">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
             </div>
             <div class="field">
               <label for="f-sender">ผู้ส่ง</label>
-              <input type="text" id="f-sender" placeholder="ชื่อผู้ส่ง">
+              <select id="f-sender">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
             </div>
           </div>
           <div class="form-grid two">
             <div class="field">
               <label for="f-receiver-name">ผู้รับ</label>
-              <input type="text" id="f-receiver-name" placeholder="ชื่อผู้รับ">
+              <select id="f-receiver-name">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
             </div>
             <div class="field">
               <label for="f-send-date">วันที่ส่ง</label>

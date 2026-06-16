@@ -342,7 +342,7 @@ async function submitForm() {
   } else {
     record = { ...common,
       subject: get('f-subject-send'),
-      docno: get('f-send-docno'),
+      docno: get('f-send-docno') ? ('สก.มช.' + get('f-send-docno')) : '',
       issue_date: get('f-issue-date'),
       to_org: get('f-to-org'),
       detail: get('f-detail'),
@@ -554,7 +554,7 @@ function openEditForm(id) {
       set('f-subject', r.subject); set('f-receiver', r.receiver);
       set('f-deadline', r.deadline);
     } else {
-      set('f-send-docno', r.docno); set('f-issue-date', r.issue_date);
+      set('f-send-docno', (r.docno || '').replace('สก.มช.', '')); set('f-issue-date', r.issue_date);
       set('f-to-org', r.to_org); set('f-subject-send', r.subject);
       set('f-detail', r.detail); set('f-sender', r.sender);
       set('f-receiver-name', r.receiver_name); set('f-send-date', r.send_date);
