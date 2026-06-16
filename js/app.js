@@ -14,6 +14,17 @@ let state = {
   pageSize: 20,
 };
 
+// ===== FINANCE STATE =====
+let finState = {
+  records: [],
+  filter: 'all',
+  search: '',
+  detailId: null,
+  currentPage: 1,
+  pageSize: 20,
+};
+let finEditingId = null;
+
 // ===== STORAGE (offline fallback) =====
 function saveLocal() { try { localStorage.setItem('cmu_records', JSON.stringify(state.records)); } catch(e){} }
 function loadLocal() {
@@ -23,9 +34,18 @@ function loadLocal() {
   } catch(e) {}
 }
 
+function saveFinLocal() { try { localStorage.setItem('cmu_fin_records', JSON.stringify(finState.records)); } catch(e){} }
+function loadFinLocal() {
+  try {
+    const d = localStorage.getItem('cmu_fin_records');
+    if (d) finState.records = JSON.parse(d);
+  } catch(e) {}
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
   loadLocal();
+  loadFinLocal();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
   render();
   setupNav();
@@ -47,12 +67,19 @@ function switchPage(p) {
   document.querySelectorAll('.nav-item, .desktop-nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === p));
   if (p === 'list' || p === 'send' || p === 'recv') renderList();
   if (p === 'stats') renderStats();
+  if (p === 'finance') renderFinList();
 }
 
 // ===== FAB =====
 function setupFab() {
-  document.getElementById('fab').addEventListener('click', () => openForm('recv'));
-  document.getElementById('desktop-add-btn').addEventListener('click', () => openForm('recv'));
+  document.getElementById('fab').addEventListener('click', () => {
+    if (state.page === 'finance') openFinForm();
+    else openForm('recv');
+  });
+  document.getElementById('desktop-add-btn').addEventListener('click', () => {
+    if (state.page === 'finance') openFinForm();
+    else openForm('recv');
+  });
 }
 
 // ===== SEARCH =====
@@ -62,12 +89,29 @@ function setupSearch() {
     state.currentPage = 1;
     renderList();
   });
-  document.querySelectorAll('.filter-chip').forEach(el => {
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(el => {
     el.addEventListener('click', () => {
       state.filter = el.dataset.filter;
       state.currentPage = 1;
-      document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === state.filter));
+      document.querySelectorAll('.filter-chip[data-filter]').forEach(c => c.classList.toggle('active', c.dataset.filter === state.filter));
       renderList();
+    });
+  });
+
+  const finSearch = document.getElementById('fin-search-input');
+  if (finSearch) {
+    finSearch.addEventListener('input', e => {
+      finState.search = e.target.value.toLowerCase();
+      finState.currentPage = 1;
+      renderFinList();
+    });
+  }
+  document.querySelectorAll('.filter-chip[data-fin-filter]').forEach(el => {
+    el.addEventListener('click', () => {
+      finState.filter = el.dataset.finFilter;
+      finState.currentPage = 1;
+      document.querySelectorAll('.filter-chip[data-fin-filter]').forEach(c => c.classList.toggle('active', c.dataset.finFilter === finState.filter));
+      renderFinList();
     });
   });
 }
@@ -510,7 +554,9 @@ async function syncFromSheets() {
   showToast('กำลังซิงก์...');
   try {
     const data = await API.getAll();
-    if (data.records) { state.records = data.records; saveLocal(); renderList(); showToast('ซิงก์สำเร็จ'); }
+    if (data.records) { state.records = data.records; saveLocal(); renderList(); }
+    await syncFinFromSheets();
+    showToast('ซิงก์สำเร็จ');
   } catch(e) { showToast('ซิงก์ไม่สำเร็จ: ' + e.message); }
 }
 
@@ -577,4 +623,265 @@ function openEditForm(id) {
     document.getElementById('form-title').textContent = (r.type === 'recv' ? 'แก้ไขหนังสือรับ' : 'แก้ไขหนังสือส่ง');
     document.getElementById('submit-btn').textContent = 'บันทึกการแก้ไข';
   }, 100);
+}
+
+// ===== FINANCE: FORMAT HELPERS =====
+function formatMoney(n) {
+  const num = parseFloat(n);
+  if (isNaN(num)) return '฿0';
+  return '฿' + num.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function finStatusLabel(s) {
+  return { pend: 'รออนุมัติ', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ', paid: 'จ่ายแล้ว' }[s] || s;
+}
+function finStatusBadgeClass(s) {
+  return { pend: 'badge-pend', approved: 'badge-type', rejected: 'badge-urgent', paid: 'badge-done' }[s] || 'badge-type';
+}
+
+// ===== FINANCE: FORM =====
+function openFinForm() {
+  finEditingId = null;
+  document.getElementById('fin-form-overlay').classList.add('open');
+  document.getElementById('fin-form').reset();
+  document.getElementById('fin-file-name').textContent = '';
+  document.getElementById('fin-form-title').textContent = 'บันทึกรายการเบิก-จ่ายเงิน';
+  document.getElementById('fin-submit-btn').textContent = 'บันทึกรายการเบิก-จ่ายเงิน';
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('fin-request-date').value = today;
+}
+
+function closeFinForm() {
+  document.getElementById('fin-form-overlay').classList.remove('open');
+}
+
+function openFinEditForm(id) {
+  const r = finState.records.find(x => x.id === id);
+  if (!r) return;
+  finEditingId = id;
+  closeFinDetail();
+  document.getElementById('fin-form-overlay').classList.add('open');
+  document.getElementById('fin-form-title').textContent = 'แก้ไขรายการเบิก-จ่ายเงิน';
+  document.getElementById('fin-submit-btn').textContent = 'บันทึกการแก้ไข';
+  setTimeout(() => {
+    const set = (elId, val) => { const el = document.getElementById(elId); if (el && val !== undefined) el.value = val; };
+    set('fin-docno', (r.docno || '').replace('บง.มช.', ''));
+    set('fin-request-date', r.request_date);
+    set('fin-requester', r.requester);
+    set('fin-title', r.title);
+    set('fin-amount-request', r.amount_request);
+    set('fin-category', r.category);
+    set('fin-approver', r.approver);
+    set('fin-status', r.status);
+    set('fin-pay-date', r.pay_date);
+    set('fin-pay-method', r.pay_method);
+    set('fin-payee', r.payee);
+    set('fin-bank-account', r.bank_account);
+    set('fin-amount-paid', r.amount_paid);
+    set('fin-receipt-no', r.receipt_no);
+    set('fin-note', r.note);
+    if (r.file_url) document.getElementById('fin-file-name').textContent = '📎 ไฟล์เดิมถูกแนบไว้แล้ว (แนบใหม่เพื่อเปลี่ยน)';
+    else document.getElementById('fin-file-name').textContent = '';
+  }, 100);
+}
+
+async function submitFinForm() {
+  const get = id => document.getElementById(id)?.value?.trim() || '';
+  const isEdit = !!finEditingId;
+
+  const title = get('fin-title');
+  if (!title) { showToast('กรุณากรอกรายการ / เรื่องที่ขอเบิก'); return; }
+
+  const oldRecord = isEdit ? finState.records.find(x => x.id === finEditingId) : null;
+  let file_url = oldRecord ? (oldRecord.file_url || '') : '';
+
+  const fileInput = document.getElementById('fin-file');
+  if (fileInput && fileInput.files.length > 0 && API.url) {
+    const file = fileInput.files[0];
+    showToast('กำลังอัปโหลดไฟล์...');
+    try {
+      const res = await API.upload('finance', file);
+      if (res.ok) file_url = res.url;
+    } catch(e) {
+      showToast('อัปโหลดไฟล์ไม่สำเร็จ บันทึกข้อมูลอย่างเดียว');
+    }
+  }
+
+  const docnoRaw = get('fin-docno');
+  const record = {
+    id: isEdit ? finEditingId : Date.now().toString(),
+    docno: docnoRaw ? ('บง.มช.' + docnoRaw) : '',
+    request_date: get('fin-request-date'),
+    requester: get('fin-requester'),
+    title,
+    amount_request: get('fin-amount-request'),
+    category: get('fin-category'),
+    approver: get('fin-approver'),
+    status: get('fin-status') || 'pend',
+    pay_date: get('fin-pay-date'),
+    pay_method: get('fin-pay-method'),
+    payee: get('fin-payee'),
+    bank_account: get('fin-bank-account'),
+    amount_paid: get('fin-amount-paid'),
+    receipt_no: get('fin-receipt-no'),
+    note: get('fin-note'),
+    file_url,
+    created_at: new Date().toISOString(),
+  };
+
+  if (isEdit) {
+    const idx = finState.records.findIndex(x => x.id === finEditingId);
+    if (idx !== -1) finState.records[idx] = record;
+  } else {
+    finState.records.unshift(record);
+  }
+  saveFinLocal();
+  renderFinList();
+  closeFinForm();
+  showToast(isEdit ? 'แก้ไขสำเร็จ' : 'บันทึกสำเร็จ');
+
+  if (API.url) {
+    try {
+      if (isEdit) await API.call({ action: 'updateFinance', row: JSON.stringify(record) });
+      else await API.call({ action: 'addFinance', row: JSON.stringify(record) });
+    } catch(e) { showToast('บันทึก offline — จะซิงก์เมื่อออนไลน์'); }
+  }
+
+  finEditingId = null;
+}
+
+// ===== FINANCE: RENDER LIST =====
+function renderFinList() {
+  const container = document.getElementById('fin-list');
+  let items = finState.records;
+
+  if (finState.filter !== 'all') items = items.filter(r => r.status === finState.filter);
+  if (finState.search) {
+    items = items.filter(r =>
+      [r.docno, r.title, r.requester, r.payee, r.category].some(v => v && v.toLowerCase().includes(finState.search))
+    );
+  }
+
+  const totalAll = finState.records.length;
+  const pendCount = finState.records.filter(r => r.status === 'pend').length;
+  const paidAmt = finState.records.filter(r => r.status === 'paid').reduce((s,r) => s + (parseFloat(r.amount_paid) || parseFloat(r.amount_request) || 0), 0);
+  const pendAmt = finState.records.filter(r => r.status === 'pend').reduce((s,r) => s + (parseFloat(r.amount_request) || 0), 0);
+
+  document.getElementById('fin-total').textContent = totalAll;
+  document.getElementById('fin-pend').textContent = pendCount;
+  document.getElementById('fin-paid-amt').textContent = formatMoney(paidAmt);
+  document.getElementById('fin-pend-amt').textContent = formatMoney(pendAmt);
+
+  if (!items.length) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-receipt"></i><p>ไม่พบรายการ</p></div>`;
+    document.getElementById('fin-pagination').innerHTML = '';
+    return;
+  }
+
+  const totalPages = Math.ceil(items.length / finState.pageSize);
+  if (finState.currentPage > totalPages) finState.currentPage = 1;
+  const start = (finState.currentPage - 1) * finState.pageSize;
+  const paged = items.slice(start, start + finState.pageSize);
+
+  const pg = document.getElementById('fin-pagination');
+  if (pg) {
+    let btns = '';
+    if (finState.currentPage > 1) btns += `<button class="pg-btn" onclick="goFinPage(${finState.currentPage-1})">← ก่อนหน้า</button>`;
+    btns += `<span class="pg-info">หน้า ${finState.currentPage} / ${totalPages} (${items.length} รายการ)</span>`;
+    if (finState.currentPage < totalPages) btns += `<button class="pg-btn" onclick="goFinPage(${finState.currentPage+1})">ถัดไป →</button>`;
+    pg.innerHTML = btns;
+  }
+
+  container.innerHTML = paged.map(r => `
+    <div class="doc-card" onclick="openFinDetail('${r.id}')">
+      <div class="doc-card-icon" style="background:var(--gold-light);color:#854F0B">
+        <i class="ti ti-cash" aria-hidden="true"></i>
+      </div>
+      <div class="doc-card-body">
+        <div class="doc-card-row">
+          <div class="doc-card-title">${esc(r.title || '-')}</div>
+          <span class="badge ${finStatusBadgeClass(r.status)}">${finStatusLabel(r.status)}</span>
+        </div>
+        <div class="doc-card-meta">
+          ${r.docno ? `<strong>${esc(r.docno)}</strong> &nbsp;·&nbsp; ` : ''}ผู้ขอเบิก: ${esc(r.requester || '-')} &nbsp;·&nbsp; ${formatDate(r.request_date)}
+        </div>
+        <div class="doc-card-tags">
+          <span class="badge badge-type">ขอเบิก ${formatMoney(r.amount_request)}</span>
+          ${r.amount_paid ? `<span class="badge badge-done">จ่ายจริง ${formatMoney(r.amount_paid)}</span>` : ''}
+          ${r.category ? `<span class="badge badge-type">${esc(r.category)}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function goFinPage(p) {
+  finState.currentPage = p;
+  renderFinList();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== FINANCE: DETAIL =====
+function openFinDetail(id) {
+  const r = finState.records.find(x => x.id === id);
+  if (!r) return;
+  finState.detailId = id;
+
+  const rows = [
+    ['เลขที่เบิก', r.docno],
+    ['วันที่ขอเบิก', formatDate(r.request_date)],
+    ['ผู้ขอเบิก', r.requester],
+    ['รายการ / เรื่อง', r.title],
+    ['จำนวนเงินที่ขอเบิก', formatMoney(r.amount_request)],
+    ['หมวดงบประมาณ', r.category],
+    ['ผู้อนุมัติ', r.approver],
+    ['สถานะ', finStatusLabel(r.status)],
+    ['วันที่จ่ายเงินจริง', formatDate(r.pay_date)],
+    ['วิธีจ่าย', r.pay_method],
+    ['จ่ายให้', r.payee],
+    ['เลขบัญชีปลายทาง', r.bank_account],
+    ['จำนวนเงินที่จ่ายจริง', r.amount_paid ? formatMoney(r.amount_paid) : ''],
+    ['เลขที่ใบเสร็จ', r.receipt_no],
+    ['หมายเหตุ', r.note],
+    ['หลักฐานการจ่าย', r.file_url ? '🔗 เปิดไฟล์' : ''],
+  ];
+
+  document.getElementById('fin-detail-body').innerHTML = `
+    <div class="detail-section">
+      <h3>ข้อมูลรายการ</h3>
+      ${rows.filter(([,v]) => v).map(([k,v]) => `
+        <div class="detail-row"><span class="dk">${k}</span><span class="dv">${k === 'หลักฐานการจ่าย' ? `<a href="${r.file_url}" target="_blank" style="color:var(--purple)">${esc(v)}</a>` : esc(v)}</span></div>
+      `).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn-submit" onclick="openFinEditForm('${r.id}')" style="flex:1;background:var(--purple);color:#fff">
+        <i class="ti ti-edit" aria-hidden="true"></i> แก้ไข
+      </button>
+      <button onclick="deleteFinRecord('${r.id}')" style="padding:12px 16px;border:1px solid var(--border-med);border-radius:var(--radius);background:#fff;cursor:pointer;font-size:18px;color:var(--text-sub)">
+        <i class="ti ti-trash" aria-hidden="true"></i>
+      </button>
+    </div>
+  `;
+
+  document.getElementById('fin-detail-overlay').classList.add('open');
+}
+
+function closeFinDetail() { document.getElementById('fin-detail-overlay').classList.remove('open'); }
+
+function deleteFinRecord(id) {
+  if (!confirm('ลบรายการนี้?')) return;
+  finState.records = finState.records.filter(x => x.id !== id);
+  saveFinLocal();
+  closeFinDetail();
+  renderFinList();
+  showToast('ลบรายการแล้ว');
+  if (API.url) API.call({ action: 'deleteFinance', id }).catch(()=>{});
+}
+
+async function syncFinFromSheets() {
+  if (!API.url) return;
+  try {
+    const data = await API.call({ action: 'getAllFinance' });
+    if (data.records) { finState.records = data.records; saveFinLocal(); renderFinList(); }
+  } catch(e) {}
 }

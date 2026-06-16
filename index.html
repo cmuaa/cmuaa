@@ -32,6 +32,7 @@
         <i class="ti ti-plus" aria-hidden="true"></i> เพิ่มรายการ
       </button>
       <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
+      <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
       <button class="desktop-nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
       <button class="desktop-nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
     </nav>
@@ -86,6 +87,33 @@
             <div class="empty-state"><i class="ti ti-file-plus"></i><p>กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>
           </div>
           <div id="pagination" class="pagination-wrap"></div>
+        </div>
+
+        <!-- PAGE: FINANCE -->
+        <div class="page" id="page-finance">
+          <div class="stats-row" role="region" aria-label="สรุปการเงิน">
+            <div class="stat-card all"><div class="n" id="fin-total">0</div><div class="l">รายการทั้งหมด</div></div>
+            <div class="stat-card pend"><div class="n" id="fin-pend">0</div><div class="l">รออนุมัติ/จ่าย</div></div>
+            <div class="stat-card recv"><div class="n" id="fin-paid-amt">฿0</div><div class="l">จ่ายแล้วทั้งหมด</div></div>
+            <div class="stat-card send"><div class="n" id="fin-pend-amt">฿0</div><div class="l">ยอดรออนุมัติ</div></div>
+          </div>
+
+          <div class="search-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="search" id="fin-search-input" placeholder="ค้นหาเลขที่เบิก, รายการ, ผู้รับเงิน..." aria-label="ค้นหารายการการเงิน">
+          </div>
+
+          <div class="filter-bar" role="group" aria-label="กรองรายการการเงิน">
+            <button class="filter-chip active" data-fin-filter="all">ทั้งหมด</button>
+            <button class="filter-chip" data-fin-filter="pend">รออนุมัติ</button>
+            <button class="filter-chip" data-fin-filter="approved">อนุมัติแล้ว</button>
+            <button class="filter-chip" data-fin-filter="paid">จ่ายแล้ว</button>
+          </div>
+
+          <div class="doc-list" id="fin-list" role="list">
+            <div class="empty-state"><i class="ti ti-receipt"></i><p>กดปุ่ม + เพื่อเพิ่มรายการเบิก-จ่ายแรก</p></div>
+          </div>
+          <div id="fin-pagination" class="pagination-wrap"></div>
         </div>
 
         <!-- PAGE: STATS -->
@@ -147,6 +175,7 @@
   <!-- MOBILE BOTTOM NAV -->
   <nav class="bottom-nav" aria-label="เมนูล่าง">
     <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
+    <button class="nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
     <button class="nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
   </nav>
@@ -379,6 +408,158 @@
       </form>
     </div>
   </div>
+</div>
+
+<!-- FINANCE FORM OVERLAY (DRAWER) -->
+<div class="overlay" id="fin-form-overlay" role="dialog" aria-modal="true" aria-labelledby="fin-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="fin-form-title">บันทึกรายการเบิก-จ่ายเงิน</h2>
+      <button class="drawer-close" onclick="closeFinForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="fin-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="fin-docno">เลขที่เบิก</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:14px;color:var(--text-sub);white-space:nowrap">บง.มช.</span>
+                <input type="text" id="fin-docno" placeholder="1/2569">
+              </div>
+            </div>
+            <div class="field">
+              <label for="fin-request-date">วันที่ขอเบิก</label>
+              <input type="date" id="fin-request-date">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="fin-requester">ผู้ขอเบิก</label>
+            <select id="fin-requester">
+              <option value="">-- เลือก --</option>
+              <option>ไอยลดา</option>
+              <option>จิตรภณ</option>
+              <option>โรจนวัน</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="fin-title">รายการ / เรื่องที่ขอเบิก <span class="required">*</span></label>
+            <input type="text" id="fin-title" placeholder="เช่น ค่าจัดงานปั่นเพื่อน้อง">
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="fin-amount-request">จำนวนเงินที่ขอเบิก (บาท)</label>
+              <input type="number" id="fin-amount-request" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="field">
+              <label for="fin-category">หมวดงบประมาณ</label>
+              <select id="fin-category">
+                <option value="">-- เลือก --</option>
+                <option>ค่าใช้จ่ายกิจกรรม</option>
+                <option>ค่าบริหารจัดการ</option>
+                <option>ทุนการศึกษา</option>
+                <option>อื่น ๆ</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="fin-approver">ผู้อนุมัติ</label>
+              <select id="fin-approver">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fin-status">สถานะ</label>
+              <select id="fin-status">
+                <option value="pend">รออนุมัติ</option>
+                <option value="approved">อนุมัติแล้ว</option>
+                <option value="rejected">ไม่อนุมัติ</option>
+                <option value="paid">จ่ายแล้ว</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="section-hd" style="margin:8px 0 4px"><h2 id="fin-section-pay-title">ขั้นตอนจ่ายเงิน</h2></div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="fin-pay-date">วันที่จ่ายเงินจริง</label>
+              <input type="date" id="fin-pay-date">
+            </div>
+            <div class="field">
+              <label for="fin-pay-method">วิธีจ่าย</label>
+              <select id="fin-pay-method">
+                <option value="">-- เลือก --</option>
+                <option>โอนเงิน</option>
+                <option>เงินสด</option>
+                <option>เช็ค</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="fin-payee">จ่ายให้ใคร (ชื่อผู้รับเงิน / หน่วยงาน)</label>
+            <input type="text" id="fin-payee" placeholder="ชื่อผู้รับเงินหรือหน่วยงาน">
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="fin-bank-account">เลขบัญชีปลายทาง (ถ้าโอน)</label>
+              <input type="text" id="fin-bank-account" placeholder="เลขบัญชี + ชื่อธนาคาร">
+            </div>
+            <div class="field">
+              <label for="fin-amount-paid">จำนวนเงินที่จ่ายจริง (บาท)</label>
+              <input type="number" id="fin-amount-paid" placeholder="0.00" step="0.01" min="0">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="fin-receipt-no">เลขที่ใบเสร็จ / ใบกำกับภาษี</label>
+            <input type="text" id="fin-receipt-no" placeholder="ถ้ามี">
+          </div>
+
+          <div class="field">
+            <label>หลักฐานการจ่าย / สลิปโอน</label>
+            <div class="file-area" onclick="document.getElementById('fin-file').click()">
+              <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+              <p>แตะเพื่อแนบไฟล์</p>
+              <input type="file" id="fin-file" accept=".pdf,.jpg,.png" onchange="document.getElementById('fin-file-name').textContent = this.files[0]?.name || ''">
+            </div>
+            <div id="fin-file-name" class="file-name"></div>
+          </div>
+
+          <div class="field">
+            <label for="fin-note">หมายเหตุ</label>
+            <textarea id="fin-note" placeholder="บันทึกเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="fin-submit-btn" onclick="submitFinForm()">
+            บันทึกรายการเบิก-จ่ายเงิน
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- FINANCE DETAIL OVERLAY -->
+<div class="detail-overlay" id="fin-detail-overlay" role="dialog" aria-modal="true">
+  <div class="detail-header">
+    <button class="icon-btn" onclick="closeFinDetail()" aria-label="กลับ"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <h2 id="fin-detail-title">รายละเอียดรายการเบิก-จ่ายเงิน</h2>
+  </div>
+  <div class="detail-body" id="fin-detail-body"></div>
 </div>
 
 <!-- DETAIL OVERLAY -->
