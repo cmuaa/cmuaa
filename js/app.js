@@ -5,6 +5,7 @@ let state = {
   records: [],
   page: 'list',
   filter: 'all',
+  year: 'all',
   search: '',
   loading: false,
   detailId: null,
@@ -98,6 +99,15 @@ function setupSearch() {
     });
   });
 
+  const yearSel = document.getElementById('year-filter');
+  if (yearSel) {
+    yearSel.addEventListener('change', e => {
+      state.year = e.target.value;
+      state.currentPage = 1;
+      renderList();
+    });
+  }
+
   const finSearch = document.getElementById('fin-search-input');
   if (finSearch) {
     finSearch.addEventListener('input', e => {
@@ -116,8 +126,26 @@ function setupSearch() {
   });
 }
 
+// ===== YEAR FILTER (ปี ค.ศ. -> แสดงเป็น พ.ศ.) =====
+function populateYearFilter() {
+  const sel = document.getElementById('year-filter');
+  if (!sel) return;
+  const years = new Set();
+  state.records.forEach(r => {
+    const d = r.type === 'send' ? r.issue_date : r.received_date;
+    if (d) { const y = String(d).slice(0, 4); if (/^\d{4}$/.test(y)) years.add(y); }
+  });
+  const sorted = [...years].sort((a, b) => b - a);
+  // เก็บค่าที่เลือกไว้ ไม่ให้ reset ทุกครั้งที่ render
+  if (state.year !== 'all' && !years.has(state.year)) state.year = 'all';
+  sel.innerHTML = '<option value="all">ทุกปี</option>' +
+    sorted.map(y => `<option value="${y}" ${y === state.year ? 'selected' : ''}>พ.ศ. ${(+y) + 543}</option>`).join('');
+  sel.value = state.year;
+}
+
 // ===== RENDER LIST =====
 function renderList() {
+  populateYearFilter();
   const container = document.getElementById('doc-list');
   let items = state.records;
 
@@ -125,6 +153,12 @@ function renderList() {
     if (state.filter === 'send') items = items.filter(r => r.type === 'send');
     else if (state.filter === 'recv') items = items.filter(r => r.type === 'recv');
     else if (state.filter === 'pend') items = items.filter(r => r.status === 'pend');
+  }
+  if (state.year !== 'all') {
+    items = items.filter(r => {
+      const d = r.type === 'send' ? r.issue_date : r.received_date;
+      return d && String(d).slice(0, 4) === state.year;
+    });
   }
   if (state.search) {
     items = items.filter(r =>
@@ -166,21 +200,20 @@ function renderList() {
   }
 
   container.innerHTML = pagedItems.map(r => `
-    <div class="doc-card" onclick="openDetail('${r.id}')">
+    <div class="doc-card ${r.status === 'pend' ? 'is-pend' : ''}" onclick="openDetail('${r.id}')">
       <div class="doc-card-icon ${r.type}">
         <i class="ti ti-${r.type === 'send' ? 'send' : 'inbox'}" aria-hidden="true"></i>
       </div>
       <div class="doc-card-body">
         <div class="doc-card-row">
-          <div class="doc-card-title">${esc(r.subject || '-')}</div>
-          <span class="badge badge-${r.status === 'pend' ? 'pend' : 'done'}">${r.status === 'pend' ? 'รอ' : 'เสร็จ'}</span>
+          <div class="doc-card-title ${r.subject ? '' : 'untitled'}">${r.subject ? esc(r.subject) : '(ยังไม่ระบุเรื่อง)'}</div>
+          <span class="badge badge-status badge-${r.status === 'pend' ? 'pend' : 'done'}">${r.status === 'pend' ? 'รอ' : 'เสร็จ'}</span>
         </div>
         <div class="doc-card-meta">
           ${r.docno ? `<strong>${esc(r.docno)}</strong> &nbsp;·&nbsp; ` : ''}${r.type === 'send' ? 'ถึง: ' + esc(r.to_org || '-') : 'จาก: ' + esc(r.from_org || '-')} &nbsp;·&nbsp; ${formatDate(r.type === 'send' ? r.issue_date : r.received_date)}
         </div>
         <div class="doc-card-tags">
           <span class="badge badge-${r.type}">${r.type === 'send' ? 'ส่งออก' : 'รับเข้า'}</span>
-          ${r.docno && isNaN(new Date(r.docno)) ? `<span class="badge badge-type">${esc(r.docno)}</span>` : ''}
           ${r.doc_type ? `<span class="badge badge-type">${esc(r.doc_type)}</span>` : ''}
           ${r.deadline && isPast(r.deadline) && r.status === 'pend' ? `<span class="badge badge-urgent"><i class="ti ti-alert-triangle" aria-hidden="true"></i> ครบกำหนด</span>` : ''}
         </div>
