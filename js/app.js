@@ -5,7 +5,6 @@ let state = {
   records: [],
   page: 'list',
   filter: 'all',
-  year: 'all',
   search: '',
   loading: false,
   detailId: null,
@@ -99,15 +98,6 @@ function setupSearch() {
     });
   });
 
-  const yearSel = document.getElementById('year-filter');
-  if (yearSel) {
-    yearSel.addEventListener('change', e => {
-      state.year = e.target.value;
-      state.currentPage = 1;
-      renderList();
-    });
-  }
-
   const finSearch = document.getElementById('fin-search-input');
   if (finSearch) {
     finSearch.addEventListener('input', e => {
@@ -126,39 +116,23 @@ function setupSearch() {
   });
 }
 
-// ===== YEAR FILTER (ปี ค.ศ. -> แสดงเป็น พ.ศ.) =====
-function populateYearFilter() {
-  const sel = document.getElementById('year-filter');
-  if (!sel) return;
-  const years = new Set();
-  state.records.forEach(r => {
-    const d = r.type === 'send' ? r.issue_date : r.received_date;
-    if (d) { const y = String(d).slice(0, 4); if (/^\d{4}$/.test(y)) years.add(y); }
-  });
-  const sorted = [...years].sort((a, b) => b - a);
-  // เก็บค่าที่เลือกไว้ ไม่ให้ reset ทุกครั้งที่ render
-  if (state.year !== 'all' && !years.has(state.year)) state.year = 'all';
-  sel.innerHTML = '<option value="all">ทุกปี</option>' +
-    sorted.map(y => `<option value="${y}" ${y === state.year ? 'selected' : ''}>พ.ศ. ${(+y) + 543}</option>`).join('');
-  sel.value = state.year;
-}
-
 // ===== RENDER LIST =====
 function renderList() {
-  populateYearFilter();
   const container = document.getElementById('doc-list');
-  let items = state.records;
+  let items = [...state.records];
+
+  // เรียงตามวันที่รับ/ส่ง ล่าสุดก่อน
+  items.sort((a, b) => {
+    const da = a.type === 'recv' ? (a.received_date || a.issue_date || '') : (a.issue_date || a.send_date || '');
+    const db = b.type === 'recv' ? (b.received_date || b.issue_date || '') : (b.issue_date || b.send_date || '');
+    if (db !== da) return db > da ? 1 : -1;
+    return b.id.localeCompare(a.id);
+  });
 
   if (state.filter !== 'all') {
     if (state.filter === 'send') items = items.filter(r => r.type === 'send');
     else if (state.filter === 'recv') items = items.filter(r => r.type === 'recv');
     else if (state.filter === 'pend') items = items.filter(r => r.status === 'pend');
-  }
-  if (state.year !== 'all') {
-    items = items.filter(r => {
-      const d = r.type === 'send' ? r.issue_date : r.received_date;
-      return d && String(d).slice(0, 4) === state.year;
-    });
   }
   if (state.search) {
     items = items.filter(r =>
@@ -200,20 +174,21 @@ function renderList() {
   }
 
   container.innerHTML = pagedItems.map(r => `
-    <div class="doc-card ${r.status === 'pend' ? 'is-pend' : ''}" onclick="openDetail('${r.id}')">
+    <div class="doc-card" onclick="openDetail('${r.id}')">
       <div class="doc-card-icon ${r.type}">
         <i class="ti ti-${r.type === 'send' ? 'send' : 'inbox'}" aria-hidden="true"></i>
       </div>
       <div class="doc-card-body">
         <div class="doc-card-row">
-          <div class="doc-card-title ${r.subject ? '' : 'untitled'}">${r.subject ? esc(r.subject) : '(ยังไม่ระบุเรื่อง)'}</div>
-          <span class="badge badge-status badge-${r.status === 'pend' ? 'pend' : 'done'}">${r.status === 'pend' ? 'รอ' : 'เสร็จ'}</span>
+          <div class="doc-card-title">${esc(r.subject || '-')}</div>
+          <span class="badge badge-${r.status === 'pend' ? 'pend' : 'done'}">${r.status === 'pend' ? 'รอ' : 'เสร็จ'}</span>
         </div>
         <div class="doc-card-meta">
           ${r.docno ? `<strong>${esc(r.docno)}</strong> &nbsp;·&nbsp; ` : ''}${r.type === 'send' ? 'ถึง: ' + esc(r.to_org || '-') : 'จาก: ' + esc(r.from_org || '-')} &nbsp;·&nbsp; ${formatDate(r.type === 'send' ? r.issue_date : r.received_date)}
         </div>
         <div class="doc-card-tags">
           <span class="badge badge-${r.type}">${r.type === 'send' ? 'ส่งออก' : 'รับเข้า'}</span>
+          ${r.docno && isNaN(new Date(r.docno)) ? `<span class="badge badge-type">${esc(r.docno)}</span>` : ''}
           ${r.doc_type ? `<span class="badge badge-type">${esc(r.doc_type)}</span>` : ''}
           ${r.deadline && isPast(r.deadline) && r.status === 'pend' ? `<span class="badge badge-urgent"><i class="ti ti-alert-triangle" aria-hidden="true"></i> ครบกำหนด</span>` : ''}
         </div>
@@ -678,6 +653,7 @@ function openFinForm() {
   document.getElementById('fin-form-overlay').classList.add('open');
   document.getElementById('fin-form').reset();
   document.getElementById('fin-file-name').textContent = '';
+  document.getElementById('fin-approve-file-name').textContent = '';
   document.getElementById('fin-form-title').textContent = 'บันทึกรายการเบิก-จ่ายเงิน';
   document.getElementById('fin-submit-btn').textContent = 'บันทึกรายการเบิก-จ่ายเงิน';
   const today = new Date().toISOString().slice(0, 10);
@@ -702,9 +678,11 @@ function openFinEditForm(id) {
     set('fin-request-date', r.request_date);
     set('fin-requester', r.requester);
     set('fin-title', r.title);
+    set('fin-detail', r.detail);
     set('fin-amount-request', r.amount_request);
     set('fin-category', r.category);
     set('fin-approver', r.approver);
+    set('fin-approve-date', r.approve_date);
     set('fin-status', r.status);
     set('fin-pay-date', r.pay_date);
     set('fin-pay-method', r.pay_method);
@@ -715,6 +693,8 @@ function openFinEditForm(id) {
     set('fin-note', r.note);
     if (r.file_url) document.getElementById('fin-file-name').textContent = '📎 ไฟล์เดิมถูกแนบไว้แล้ว (แนบใหม่เพื่อเปลี่ยน)';
     else document.getElementById('fin-file-name').textContent = '';
+    if (r.approve_file_url) document.getElementById('fin-approve-file-name').textContent = '📎 ไฟล์เดิมถูกแนบไว้แล้ว (แนบใหม่เพื่อเปลี่ยน)';
+    else document.getElementById('fin-approve-file-name').textContent = '';
   }, 100);
 }
 
@@ -727,16 +707,29 @@ async function submitFinForm() {
 
   const oldRecord = isEdit ? finState.records.find(x => x.id === finEditingId) : null;
   let file_url = oldRecord ? (oldRecord.file_url || '') : '';
+  let approve_file_url = oldRecord ? (oldRecord.approve_file_url || '') : '';
 
   const fileInput = document.getElementById('fin-file');
   if (fileInput && fileInput.files.length > 0 && API.url) {
     const file = fileInput.files[0];
-    showToast('กำลังอัปโหลดไฟล์...');
+    showToast('กำลังอัปโหลดหลักฐานการจ่าย...');
     try {
-      const res = await API.upload('finance', file);
+      const res = await API.upload('finance', file, 'หลักฐานการจ่าย');
       if (res.ok) file_url = res.url;
     } catch(e) {
       showToast('อัปโหลดไฟล์ไม่สำเร็จ บันทึกข้อมูลอย่างเดียว');
+    }
+  }
+
+  const approveFileInput = document.getElementById('fin-approve-file');
+  if (approveFileInput && approveFileInput.files.length > 0 && API.url) {
+    const file = approveFileInput.files[0];
+    showToast('กำลังอัปโหลดหลักฐานการอนุมัติ...');
+    try {
+      const res = await API.upload('finance', file, 'หลักฐานการอนุมัติ');
+      if (res.ok) approve_file_url = res.url;
+    } catch(e) {
+      showToast('อัปโหลดไฟล์อนุมัติไม่สำเร็จ บันทึกข้อมูลอย่างเดียว');
     }
   }
 
@@ -747,9 +740,12 @@ async function submitFinForm() {
     request_date: get('fin-request-date'),
     requester: get('fin-requester'),
     title,
+    detail: get('fin-detail'),
     amount_request: get('fin-amount-request'),
     category: get('fin-category'),
     approver: get('fin-approver'),
+    approve_date: get('fin-approve-date'),
+    approve_file_url,
     status: get('fin-status') || 'pend',
     pay_date: get('fin-pay-date'),
     pay_method: get('fin-pay-method'),
@@ -786,7 +782,15 @@ async function submitFinForm() {
 // ===== FINANCE: RENDER LIST =====
 function renderFinList() {
   const container = document.getElementById('fin-list');
-  let items = finState.records;
+  let items = [...finState.records];
+
+  // เรียงตามวันที่ขอเบิก ล่าสุดก่อน
+  items.sort((a, b) => {
+    const da = a.request_date || '';
+    const db = b.request_date || '';
+    if (db !== da) return db > da ? 1 : -1;
+    return b.id.localeCompare(a.id);
+  });
 
   if (finState.filter !== 'all') items = items.filter(r => r.status === finState.filter);
   if (finState.search) {
@@ -865,9 +869,11 @@ function openFinDetail(id) {
     ['วันที่ขอเบิก', formatDate(r.request_date)],
     ['ผู้ขอเบิก', r.requester],
     ['รายการ / เรื่อง', r.title],
+    ['รายละเอียดการเบิกเงิน', r.detail],
     ['จำนวนเงินที่ขอเบิก', formatMoney(r.amount_request)],
     ['หมวดงบประมาณ', r.category],
     ['ผู้อนุมัติ', r.approver],
+    ['วันที่อนุมัติ', formatDate(r.approve_date)],
     ['สถานะ', finStatusLabel(r.status)],
     ['วันที่จ่ายเงินจริง', formatDate(r.pay_date)],
     ['วิธีจ่าย', r.pay_method],
@@ -877,13 +883,18 @@ function openFinDetail(id) {
     ['เลขที่ใบเสร็จ', r.receipt_no],
     ['หมายเหตุ', r.note],
     ['หลักฐานการจ่าย', r.file_url ? '🔗 เปิดไฟล์' : ''],
+    ['หลักฐานการอนุมัติ', r.approve_file_url ? '🔗 เปิดไฟล์' : ''],
   ];
 
   document.getElementById('fin-detail-body').innerHTML = `
     <div class="detail-section">
       <h3>ข้อมูลรายการ</h3>
       ${rows.filter(([,v]) => v).map(([k,v]) => `
-        <div class="detail-row"><span class="dk">${k}</span><span class="dv">${k === 'หลักฐานการจ่าย' ? `<a href="${r.file_url}" target="_blank" style="color:var(--purple)">${esc(v)}</a>` : esc(v)}</span></div>
+        <div class="detail-row"><span class="dk">${k}</span><span class="dv">${
+          k === 'หลักฐานการจ่าย' ? `<a href="${r.file_url}" target="_blank" style="color:var(--purple)">${esc(v)}</a>` :
+          k === 'หลักฐานการอนุมัติ' ? `<a href="${r.approve_file_url}" target="_blank" style="color:var(--purple)">${esc(v)}</a>` :
+          esc(v)
+        }</span></div>
       `).join('')}
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
