@@ -714,8 +714,8 @@
             <label>หลักฐานการจ่าย / สลิปโอน</label>
             <div class="file-area" onclick="document.getElementById('fin-file').click()">
               <i class="ti ti-cloud-upload" aria-hidden="true"></i>
-              <p>แตะเพื่อแนบไฟล์</p>
-              <input type="file" id="fin-file" accept=".pdf,.jpg,.png" onchange="document.getElementById('fin-file-name').textContent = this.files[0]?.name || ''">
+              <p>แตะเพื่อแนบไฟล์ (เลือกได้หลายไฟล์)</p>
+              <input type="file" id="fin-file" accept=".pdf,.jpg,.png" multiple onchange="updateFinFileNames()">
             </div>
             <div id="fin-file-name" class="file-name"></div>
           </div>

@@ -666,6 +666,14 @@ function finStatusBadgeClass(s) {
 }
 
 // ===== FINANCE: FORM =====
+function updateFinFileNames() {
+  const input = document.getElementById('fin-file');
+  const label = document.getElementById('fin-file-name');
+  if (!input || !input.files.length) { label.textContent = ''; return; }
+  const names = Array.from(input.files).map((f, i) => `📎 ${f.name}`).join('\n');
+  label.textContent = names;
+}
+
 function openFinForm() {
   finEditingId = null;
   document.getElementById('fin-form-overlay').classList.add('open');
@@ -709,8 +717,15 @@ function openFinEditForm(id) {
     set('fin-amount-paid', r.amount_paid);
     set('fin-receipt-no', r.receipt_no);
     set('fin-note', r.note);
-    if (r.file_url) document.getElementById('fin-file-name').textContent = '📎 ไฟล์เดิมถูกแนบไว้แล้ว (แนบใหม่เพื่อเปลี่ยน)';
-    else document.getElementById('fin-file-name').textContent = '';
+    if (r.file_url) {
+      const names = r.file_url.split(',').map((entry, i) => {
+        const parts = entry.split('|');
+        return '📎 ' + (parts[1] || 'ไฟล์ ' + (i+1));
+      }).join('\n');
+      document.getElementById('fin-file-name').textContent = names + '\n(แนบใหม่เพื่อแทนที่ทั้งหมด)';
+    } else {
+      document.getElementById('fin-file-name').textContent = '';
+    }
     if (r.approve_file_url) document.getElementById('fin-approve-file-name').textContent = '📎 ไฟล์เดิมถูกแนบไว้แล้ว (แนบใหม่เพื่อเปลี่ยน)';
     else document.getElementById('fin-approve-file-name').textContent = '';
   }, 100);
@@ -729,14 +744,17 @@ async function submitFinForm() {
 
   const fileInput = document.getElementById('fin-file');
   if (fileInput && fileInput.files.length > 0 && API.url) {
-    const file = fileInput.files[0];
-    showToast('กำลังอัปโหลดหลักฐานการจ่าย...');
-    try {
-      const res = await API.upload('finance', file, 'หลักฐานการจ่าย');
-      if (res.ok) file_url = res.url;
-    } catch(e) {
-      showToast('อัปโหลดไฟล์ไม่สำเร็จ บันทึกข้อมูลอย่างเดียว');
+    showToast(`กำลังอัปโหลด ${fileInput.files.length} ไฟล์...`);
+    const urls = [];
+    for (const file of Array.from(fileInput.files)) {
+      try {
+        const res = await API.upload('finance', file, 'หลักฐานการจ่าย');
+        if (res.ok) urls.push(res.url + '|' + file.name);
+      } catch(e) {
+        showToast('อัปโหลด ' + file.name + ' ไม่สำเร็จ');
+      }
     }
+    if (urls.length) file_url = urls.join(',');
   }
 
   const approveFileInput = document.getElementById('fin-approve-file');
@@ -900,20 +918,27 @@ function openFinDetail(id) {
     ['จำนวนเงินที่จ่ายจริง', r.amount_paid ? formatMoney(r.amount_paid) : ''],
     ['เลขที่ใบเสร็จ', r.receipt_no],
     ['หมายเหตุ', r.note],
-    ['หลักฐานการจ่าย', r.file_url ? '🔗 เปิดไฟล์' : ''],
     ['หลักฐานการอนุมัติ', r.approve_file_url ? '🔗 เปิดไฟล์' : ''],
   ];
+
+  // แปลง file_url หลายอัน
+  const fileLinks = r.file_url ? r.file_url.split(',').map((entry, i) => {
+    const parts = entry.split('|');
+    const url = parts[0];
+    const name = parts[1] || ('ไฟล์ ' + (i+1));
+    return `<a href="${url}" target="_blank" style="color:var(--purple);display:block">🔗 ${esc(name)}</a>`;
+  }).join('') : '';
 
   document.getElementById('fin-detail-body').innerHTML = `
     <div class="detail-section">
       <h3>ข้อมูลรายการ</h3>
       ${rows.filter(([,v]) => v).map(([k,v]) => `
         <div class="detail-row"><span class="dk">${k}</span><span class="dv">${
-          k === 'หลักฐานการจ่าย' ? `<a href="${r.file_url}" target="_blank" style="color:var(--purple)">${esc(v)}</a>` :
           k === 'หลักฐานการอนุมัติ' ? `<a href="${r.approve_file_url}" target="_blank" style="color:var(--purple)">${esc(v)}</a>` :
           esc(v)
         }</span></div>
       `).join('')}
+      ${fileLinks ? `<div class="detail-row"><span class="dk">หลักฐานการจ่าย</span><span class="dv">${fileLinks}</span></div>` : ''}
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn-submit" onclick="openFinEditForm('${r.id}')" style="flex:1;background:var(--purple);color:#fff">
