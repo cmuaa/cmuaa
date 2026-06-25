@@ -33,6 +33,7 @@
       </button>
       <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
       <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
+      <button class="desktop-nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
       <button class="desktop-nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
       <button class="desktop-nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
     </nav>
@@ -116,6 +117,74 @@
           <div id="fin-pagination" class="pagination-wrap"></div>
         </div>
 
+        <!-- PAGE: CALENDAR -->
+        <div class="page" id="page-calendar">
+          <div class="cal-layout">
+
+            <!-- LEFT PANEL -->
+            <div class="cal-left">
+              <div class="cal-pin-section">
+                <div class="cal-pin-header">
+                  <span>กิจกรรมสำคัญ</span>
+                  <button class="text-btn" onclick="switchPage('calendar')">ดูทั้งหมด</button>
+                </div>
+                <div id="cal-pinned-list">
+                  <div class="empty-state" style="padding:1rem 0"><i class="ti ti-calendar-off"></i><p>ยังไม่มีกิจกรรม</p></div>
+                </div>
+              </div>
+
+              <div class="cal-mini">
+                <div class="cal-mini-header">
+                  <span id="cal-mini-label">มิถุนายน 2568</span>
+                  <div style="display:flex;gap:4px">
+                    <button class="icon-btn" style="width:28px;height:28px;background:var(--color-background-secondary);color:var(--color-text-secondary)" onclick="calNav(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                    <button class="icon-btn" style="width:28px;height:28px;background:var(--color-background-secondary);color:var(--color-text-secondary)" onclick="calNav(1)"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+                  </div>
+                </div>
+                <div class="cal-grid-wrap" id="cal-grid"></div>
+              </div>
+            </div>
+
+            <!-- CENTER PANEL -->
+            <div class="cal-center">
+              <div class="cal-center-header">
+                <div>
+                  <div class="cal-day-title">กิจกรรมวันนี้</div>
+                  <div class="cal-day-sub" id="cal-today-label"></div>
+                </div>
+                <button class="fab" style="position:static;width:36px;height:36px;box-shadow:none" onclick="openCalForm()" aria-label="เพิ่มกิจกรรม">
+                  <i class="ti ti-plus" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div id="cal-event-list" class="doc-list"></div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="cal-right">
+              <div class="cal-right-section">
+                <div class="cal-right-title">สรุปเดือนนี้</div>
+                <div class="stats-row" style="grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:0">
+                  <div class="stat-card all"><div class="n" id="cal-s-total">0</div><div class="l">ทั้งหมด</div></div>
+                  <div class="stat-card pend"><div class="n" id="cal-s-soon">0</div><div class="l">ใกล้ถึง</div></div>
+                  <div class="stat-card recv"><div class="n" id="cal-s-done">0</div><div class="l">ผ่านไปแล้ว</div></div>
+                  <div class="stat-card send"><div class="n" id="cal-s-types">0</div><div class="l">ประเภท</div></div>
+                </div>
+              </div>
+
+              <div class="cal-right-section">
+                <div class="cal-right-title">กำลังจะมาถึง</div>
+                <div id="cal-upcoming-list"></div>
+              </div>
+
+              <div class="cal-right-section">
+                <div class="cal-right-title">ทีมงาน</div>
+                <div id="cal-team-list"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
         <!-- PAGE: STATS -->
         <div class="page" id="page-stats">
           <div id="stats-content"></div>
@@ -176,6 +245,7 @@
   <nav class="bottom-nav" aria-label="เมนูล่าง">
     <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
     <button class="nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
+    <button class="nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
     <button class="nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
   </nav>
@@ -405,6 +475,87 @@
           </button>
         </div>
 
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- CALENDAR FORM OVERLAY (DRAWER) -->
+<div class="overlay" id="cal-form-overlay" role="dialog" aria-modal="true" aria-labelledby="cal-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="cal-form-title">เพิ่มกิจกรรม</h2>
+      <button class="drawer-close" onclick="closeCalForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="cal-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="field">
+            <label for="cal-f-title">ชื่องาน / กิจกรรม <span class="required">*</span></label>
+            <input type="text" id="cal-f-title" placeholder="เช่น ประชุมคณะกรรมการสมาคม">
+          </div>
+
+          <div class="field">
+            <label for="cal-f-type">ประเภท</label>
+            <select id="cal-f-type">
+              <option value="">-- เลือก --</option>
+              <option>ประชุม</option>
+              <option>กิจกรรม</option>
+              <option>งานภายนอก</option>
+              <option>งานเอกสาร</option>
+              <option>อื่นๆ</option>
+            </select>
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="cal-f-date-start">วันที่เริ่ม <span class="required">*</span></label>
+              <input type="date" id="cal-f-date-start">
+            </div>
+            <div class="field">
+              <label for="cal-f-date-end">วันที่สิ้นสุด</label>
+              <input type="date" id="cal-f-date-end">
+            </div>
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="cal-f-time-start">เวลาเริ่ม</label>
+              <input type="time" id="cal-f-time-start">
+            </div>
+            <div class="field">
+              <label for="cal-f-time-end">เวลาสิ้นสุด</label>
+              <input type="time" id="cal-f-time-end">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="cal-f-location">สถานที่</label>
+            <input type="text" id="cal-f-location" placeholder="เช่น ห้องประชุมใหญ่ / ออนไลน์ Zoom">
+          </div>
+
+          <div class="field">
+            <label for="cal-f-owner">ผู้รับผิดชอบ</label>
+            <select id="cal-f-owner">
+              <option value="">-- เลือก --</option>
+              <option>ไอยลดา</option>
+              <option>จิตรภณ</option>
+              <option>โรจนวัน</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="cal-f-note">หมายเหตุ</label>
+            <textarea id="cal-f-note" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="cal-submit-btn" onclick="submitCalForm()">
+            บันทึกกิจกรรม
+          </button>
+
+        </div>
       </form>
     </div>
   </div>
