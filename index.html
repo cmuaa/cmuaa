@@ -74,9 +74,6 @@
           <div class="search-wrap">
             <i class="ti ti-search" aria-hidden="true"></i>
             <input type="search" id="search-input" placeholder="ค้นหาเลขที่, เรื่อง, หน่วยงาน..." aria-label="ค้นหาเอกสาร">
-            <select id="year-filter" class="year-filter" aria-label="กรองตามปี">
-              <option value="all">ทุกปี</option>
-            </select>
           </div>
 
           <div class="filter-bar" role="group" aria-label="กรองรายการ">
@@ -108,9 +105,9 @@
 
           <div class="filter-bar" role="group" aria-label="กรองรายการการเงิน">
             <button class="filter-chip active" data-fin-filter="all">ทั้งหมด</button>
-            <button class="filter-chip" data-fin-filter="pend">รออนุมัติ</button>
-            <button class="filter-chip" data-fin-filter="approved">อนุมัติแล้ว</button>
-            <button class="filter-chip" data-fin-filter="paid">จ่ายแล้ว</button>
+            <button class="filter-chip" data-fin-filter="prepaid">ชำระให้ก่อน</button>
+            <button class="filter-chip" data-fin-filter="pending">รอสมาคมชำระ</button>
+            <button class="filter-chip" data-fin-filter="refund">ต้องโอนคืน</button>
           </div>
 
           <div class="doc-list" id="fin-list" role="list">
@@ -425,105 +422,136 @@
       <form id="fin-form" onsubmit="return false">
         <div class="form-grid" style="gap:12px">
 
-          <div class="form-grid two">
-            <div class="field">
-              <label for="fin-docno">เลขที่เบิก</label>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-size:14px;color:var(--text-sub);white-space:nowrap">บง.มช.</span>
-                <input type="text" id="fin-docno" placeholder="1/2569">
-              </div>
-            </div>
-            <div class="field">
-              <label for="fin-request-date">วันที่ขอเบิก</label>
-              <input type="date" id="fin-request-date">
-            </div>
-          </div>
-
+          <!-- 1. หมวดงบประมาณ -->
           <div class="field">
-            <label for="fin-requester">ผู้ขอเบิก</label>
-            <select id="fin-requester">
+            <label for="fin-category">หมวดงบประมาณ</label>
+            <select id="fin-category">
               <option value="">-- เลือก --</option>
-              <option>ไอยลดา</option>
-              <option>จิตรภณ</option>
-              <option>โรจนวัน</option>
+              <option>บริหารทั่วไป</option>
+              <option>กิจกรรม Real Engineer CMU</option>
+              <option>กิจกรรม CMU-CM Marathon</option>
+              <option>กิจกรรมปั่นเพื่อน้อง</option>
+              <option>กิจกรรมกอล์ฟการกุศล</option>
+              <option>กิจกรรมทอดผ้าป่าสามัคคี</option>
+              <option>กิจกรรม Tour de CMU</option>
+              <option>อื่นๆ</option>
             </select>
           </div>
 
+          <!-- 2. รายการ / เรื่อง -->
           <div class="field">
-            <label for="fin-title">รายการ / เรื่องที่ขอเบิก <span class="required">*</span></label>
+            <label for="fin-title">รายการ / เรื่อง <span class="required">*</span></label>
             <input type="text" id="fin-title" placeholder="เช่น ค่าจัดงานปั่นเพื่อน้อง">
           </div>
 
-          <div class="form-grid two">
-            <div class="field">
-              <label for="fin-amount-request">จำนวนเงินที่ขอเบิก (บาท)</label>
-              <input type="number" id="fin-amount-request" placeholder="0.00" step="0.01" min="0">
-            </div>
-            <div class="field">
-              <label for="fin-category">หมวดงบประมาณ</label>
-              <select id="fin-category">
-                <option value="">-- เลือก --</option>
-                <option>ค่าใช้จ่ายกิจกรรม</option>
-                <option>ค่าบริหารจัดการ</option>
-                <option>ทุนการศึกษา</option>
-                <option>อื่น ๆ</option>
-              </select>
+          <!-- รายละเอียดค่าใช้จ่าย -->
+          <div class="field">
+            <label for="fin-detail">รายละเอียดค่าใช้จ่าย</label>
+            <textarea id="fin-detail" placeholder="ระบุรายละเอียด เช่น&#10;- ค่าอาหาร 50 คน × 200 บาท = 10,000 บาท&#10;- ค่าเช่าสถานที่ = 5,000 บาท"></textarea>
+          </div>
+
+          <!-- 3. เลขที่ตั้งเบิก -->
+          <div class="field">
+            <label for="fin-docno">เลขที่ตั้งเบิก</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px;color:var(--text-sub);white-space:nowrap">บง.มช.</span>
+              <input type="text" id="fin-docno" placeholder="1/2569">
             </div>
           </div>
 
+          <!-- 4-5. วันที่ตั้งเบิก / ผู้ตั้งเบิก -->
           <div class="form-grid two">
             <div class="field">
-              <label for="fin-approver">ผู้อนุมัติ</label>
-              <select id="fin-approver">
+              <label for="fin-request-date">วันที่ตั้งเบิก</label>
+              <input type="date" id="fin-request-date">
+            </div>
+            <div class="field">
+              <label for="fin-requester">ผู้ตั้งเบิก</label>
+              <select id="fin-requester">
                 <option value="">-- เลือก --</option>
                 <option>ไอยลดา</option>
                 <option>จิตรภณ</option>
                 <option>โรจนวัน</option>
               </select>
             </div>
-            <div class="field">
-              <label for="fin-status">สถานะ</label>
-              <select id="fin-status">
-                <option value="pend">รออนุมัติ</option>
-                <option value="approved">อนุมัติแล้ว</option>
-                <option value="rejected">ไม่อนุมัติ</option>
-                <option value="paid">จ่ายแล้ว</option>
-              </select>
-            </div>
           </div>
 
-          <div class="section-hd" style="margin:8px 0 4px"><h2 id="fin-section-pay-title">ขั้นตอนจ่ายเงิน</h2></div>
+          <!-- 6. จำนวนเงินที่ตั้งเบิก -->
+          <div class="field">
+            <label for="fin-amount-request">จำนวนเงินที่ตั้งเบิก (บาท)</label>
+            <input type="number" id="fin-amount-request" placeholder="0.00" step="0.01" min="0">
+          </div>
 
-          <div class="form-grid two">
-            <div class="field">
-              <label for="fin-pay-date">วันที่จ่ายเงินจริง</label>
-              <input type="date" id="fin-pay-date">
-            </div>
-            <div class="field">
-              <label for="fin-pay-method">วิธีจ่าย</label>
-              <select id="fin-pay-method">
-                <option value="">-- เลือก --</option>
-                <option>โอนเงิน</option>
-                <option>เงินสด</option>
-                <option>เช็ค</option>
-              </select>
-            </div>
+          <!-- 7. ผู้อนุมัติ -->
+          <div class="field">
+            <label for="fin-approver">ผู้อนุมัติ</label>
+            <select id="fin-approver">
+              <option value="">-- เลือก --</option>
+              <option>นายกสมาคมฯ</option>
+              <option>เหรัญญิก</option>
+            </select>
+          </div>
+
+          <!-- 8. วันที่อนุมัติ -->
+          <div class="field">
+            <label for="fin-approve-date">วันที่อนุมัติ</label>
+            <input type="date" id="fin-approve-date">
           </div>
 
           <div class="field">
-            <label for="fin-payee">จ่ายให้ใคร (ชื่อผู้รับเงิน / หน่วยงาน)</label>
+            <label>หลักฐานการอนุมัติ (ไฟล์/รูป)</label>
+            <div class="file-area" onclick="document.getElementById('fin-approve-file').click()">
+              <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+              <p>แตะเพื่อแนบไฟล์</p>
+              <input type="file" id="fin-approve-file" accept=".pdf,.jpg,.png" onchange="document.getElementById('fin-approve-file-name').textContent = this.files[0]?.name || ''">
+            </div>
+            <div id="fin-approve-file-name" class="file-name"></div>
+          </div>
+
+          <!-- 6.5 สถานะการชำระ -->
+          <div class="field">
+            <label for="fin-status">สถานะการชำระ</label>
+            <select id="fin-status">
+              <option value="prepaid">มีคนชำระให้ก่อน</option>
+              <option value="pending">รอสมาคมชำระ</option>
+              <option value="refund">ต้องโอนคืน</option>
+            </select>
+          </div>
+
+          <div class="section-hd" style="margin:8px 0 4px"><h2>การชำระเงิน</h2></div>
+
+          <!-- 9. จำนวนเงินที่ชำระ -->
+          <div class="field">
+            <label for="fin-amount-paid">จำนวนเงินที่ชำระ (บาท)</label>
+            <input type="number" id="fin-amount-paid" placeholder="0.00" step="0.01" min="0">
+          </div>
+
+          <!-- 10. วันที่ทำรายการ -->
+          <div class="field">
+            <label for="fin-pay-date">วันที่ทำรายการ</label>
+            <input type="date" id="fin-pay-date">
+          </div>
+
+          <!-- 11. วิธีการชำระ -->
+          <div class="field">
+            <label for="fin-pay-method">วิธีการชำระ</label>
+            <select id="fin-pay-method">
+              <option value="">-- เลือก --</option>
+              <option>เงินสด</option>
+              <option>โอนเงิน</option>
+              <option>เช็คธนาคาร</option>
+            </select>
+          </div>
+
+          <!-- 12. ผู้รับเงิน -->
+          <div class="field">
+            <label for="fin-payee">ผู้รับเงิน</label>
             <input type="text" id="fin-payee" placeholder="ชื่อผู้รับเงินหรือหน่วยงาน">
           </div>
 
-          <div class="form-grid two">
-            <div class="field">
-              <label for="fin-bank-account">เลขบัญชีปลายทาง (ถ้าโอน)</label>
-              <input type="text" id="fin-bank-account" placeholder="เลขบัญชี + ชื่อธนาคาร">
-            </div>
-            <div class="field">
-              <label for="fin-amount-paid">จำนวนเงินที่จ่ายจริง (บาท)</label>
-              <input type="number" id="fin-amount-paid" placeholder="0.00" step="0.01" min="0">
-            </div>
+          <div class="field">
+            <label for="fin-bank-account">เลขบัญชีปลายทาง (ถ้าโอน)</label>
+            <input type="text" id="fin-bank-account" placeholder="เลขบัญชี + ชื่อธนาคาร">
           </div>
 
           <div class="field">

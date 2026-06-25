@@ -641,10 +641,10 @@ function formatMoney(n) {
 }
 
 function finStatusLabel(s) {
-  return { pend: 'รออนุมัติ', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ', paid: 'จ่ายแล้ว' }[s] || s;
+  return { prepaid: 'มีคนชำระให้ก่อน', pending: 'รอสมาคมชำระ', refund: 'ต้องโอนคืน' }[s] || s || '-';
 }
 function finStatusBadgeClass(s) {
-  return { pend: 'badge-pend', approved: 'badge-type', rejected: 'badge-urgent', paid: 'badge-done' }[s] || 'badge-type';
+  return { prepaid: 'badge-done', pending: 'badge-pend', refund: 'badge-urgent' }[s] || 'badge-type';
 }
 
 // ===== FINANCE: FORM =====
