@@ -1172,7 +1172,9 @@ function openCalEditForm(id) {
   const r = calState.records.find(x => x.id === id);
   if (!r) return;
   calEditingId = id;
-  openCalForm();
+  // เปิด overlay โดยไม่ reset calEditingId
+  document.getElementById('cal-form-overlay').classList.add('open');
+  document.getElementById('cal-form').reset();
   document.getElementById('cal-form-title').textContent = 'แก้ไขกิจกรรม';
   document.getElementById('cal-submit-btn').textContent = 'บันทึกการแก้ไข';
   setTimeout(() => {
