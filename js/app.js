@@ -995,12 +995,23 @@ function calTypeIcon(type) {
 
 function renderCalendar() {
   const today = new Date().toISOString().slice(0,10);
-  const todayDate = new Date();
-  document.getElementById('cal-today-label').textContent = todayDate.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  updateCalDayHeader();
   renderMiniCal();
   renderCalEvents();
   renderCalRight();
   renderCalPinned();
+}
+
+function updateCalDayHeader() {
+  const today = new Date().toISOString().slice(0,10);
+  const sel = calState.selectedDate;
+  const selDate = new Date(sel + 'T00:00:00');
+
+  const titleEl = document.getElementById('cal-day-title');
+  const subEl = document.getElementById('cal-today-label');
+
+  if (titleEl) titleEl.textContent = sel === today ? 'กิจกรรมวันนี้' : 'กิจกรรมวันที่เลือก';
+  if (subEl) subEl.textContent = selDate.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 function renderMiniCal() {
@@ -1036,6 +1047,7 @@ function calSelectDate(d) {
   calState.selectedDate = d;
   renderMiniCal();
   renderCalEvents();
+  updateCalDayHeader();
 }
 
 function renderCalEvents() {
