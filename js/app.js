@@ -1171,6 +1171,8 @@ function closeCalForm() {
 function openCalEditForm(id) {
   const r = calState.records.find(x => x.id === id);
   if (!r) return;
+  // ปิด detail ก่อน
+  document.getElementById('fin-detail-overlay').classList.remove('open');
   calEditingId = id;
   // เปิด overlay โดยไม่ reset calEditingId
   document.getElementById('cal-form-overlay').classList.add('open');
