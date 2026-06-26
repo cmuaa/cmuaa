@@ -1297,3 +1297,75 @@ async function syncCalFromSheets() {
     if (data.records) { calState.records = data.records; saveCalLocal(); if (state.page === 'calendar') renderCalendar(); }
   } catch(e) {}
 }
+
+// ===== CALENDAR ALL EVENTS =====
+function openCalAllEvents() {
+  // สร้าง month filter options
+  const months = new Set(calState.records.map(r => r.date_start?.slice(0,7)).filter(Boolean));
+  const sorted = Array.from(months).sort().reverse();
+  const sel = document.getElementById('cal-all-month-filter');
+  sel.innerHTML = '<option value="">ทุกเดือน</option>' + sorted.map(m => {
+    const d = new Date(m + '-01');
+    const label = d.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+    return `<option value="${m}">${label}</option>`;
+  }).join('');
+
+  renderCalAllEvents();
+  document.getElementById('cal-all-overlay').classList.add('open');
+}
+
+function renderCalAllEvents() {
+  const filterMonth = document.getElementById('cal-all-month-filter')?.value || '';
+  let items = [...calState.records];
+
+  if (filterMonth) {
+    items = items.filter(r => r.date_start?.slice(0,7) === filterMonth);
+  }
+
+  items.sort((a,b) => (a.date_start||'').localeCompare(b.date_start||''));
+
+  const countEl = document.getElementById('cal-all-count');
+  if (countEl) countEl.textContent = items.length + ' รายการ';
+
+  const container = document.getElementById('cal-all-list');
+  if (!items.length) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-calendar-off"></i><p>ไม่พบกิจกรรม</p></div>`;
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0,10);
+  let lastMonth = '';
+  let html = '';
+
+  items.forEach(r => {
+    const month = r.date_start?.slice(0,7) || '';
+    if (month !== lastMonth) {
+      const d = new Date(month + '-01');
+      const label = d.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+      html += `<div style="font-size:11px;font-weight:700;color:var(--text-hint);text-transform:uppercase;letter-spacing:.8px;padding:16px 0 8px;border-bottom:1px solid var(--border);margin-bottom:8px">${label}</div>`;
+      lastMonth = month;
+    }
+    const col = CAL_TYPE_COLOR[r.type] || CAL_TYPE_COLOR['อื่นๆ'];
+    const isPast = r.date_start?.slice(0,10) < today;
+    const timeStr = r.time_start ? r.time_start + (r.time_end ? '–' + r.time_end : '') : 'ทั้งวัน';
+    html += `
+      <div class="doc-card" onclick="openCalDetail('${r.id}')" style="margin-bottom:8px;opacity:${isPast?'0.65':'1'}">
+        <div class="doc-card-icon" style="background:${col.bg};color:${col.color};border-radius:12px">
+          <i class="ti ${calTypeIcon(r.type)}" aria-hidden="true"></i>
+        </div>
+        <div class="doc-card-body">
+          <div class="doc-card-row">
+            <div class="doc-card-title">${esc(r.title)}</div>
+            <span class="badge badge-type">${timeStr}</span>
+          </div>
+          <div class="doc-card-meta">${formatDate(r.date_start)}${r.location ? ' · ' + esc(r.location) : ''}</div>
+          <div class="doc-card-tags">
+            <span class="badge" style="background:${col.bg};color:${col.color}">${esc(r.type||'')}</span>
+            ${r.owner ? `<span class="badge badge-type">${esc(r.owner)}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}

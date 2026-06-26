@@ -129,7 +129,7 @@
               <div class="cal-pin-section">
                 <div class="cal-pin-header">
                   <span>กิจกรรมสำคัญ</span>
-                  <button class="text-btn" onclick="switchPage('calendar')">ดูทั้งหมด</button>
+                  <button class="text-btn" onclick="openCalAllEvents()">ดูทั้งหมด</button>
                 </div>
                 <div id="cal-pinned-list">
                   <div class="empty-state" style="padding:1rem 0"><i class="ti ti-calendar-off"></i><p>ยังไม่มีกิจกรรม</p></div>
@@ -480,6 +480,23 @@
 
       </form>
     </div>
+  </div>
+</div>
+
+<!-- CALENDAR ALL EVENTS OVERLAY -->
+<div class="detail-overlay" id="cal-all-overlay" role="dialog" aria-modal="true">
+  <div class="detail-header">
+    <button class="icon-btn" onclick="document.getElementById('cal-all-overlay').classList.remove('open')" aria-label="กลับ" style="background:var(--gray-100);color:var(--text)"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <h2 style="color:var(--text)">กิจกรรมทั้งหมด</h2>
+  </div>
+  <div style="padding:16px;max-width:700px;margin:0 auto">
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select id="cal-all-month-filter" onchange="renderCalAllEvents()" style="padding:8px 12px;border:1.5px solid var(--border-med);border-radius:var(--r-md);font-size:14px;font-family:inherit;color:var(--text);background:var(--white);outline:none">
+        <option value="">ทุกเดือน</option>
+      </select>
+      <span id="cal-all-count" style="font-size:13px;color:var(--text-hint);font-weight:500"></span>
+    </div>
+    <div id="cal-all-list"></div>
   </div>
 </div>
 
