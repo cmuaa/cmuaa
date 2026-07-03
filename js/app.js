@@ -994,24 +994,11 @@ function calTypeIcon(type) {
 }
 
 function renderCalendar() {
-  const today = new Date().toISOString().slice(0,10);
-  updateCalDayHeader();
+  updateCalMonthHeader();
   renderMiniCal();
-  renderCalEvents();
+  renderCalMainGrid();
   renderCalRight();
   renderCalPinned();
-}
-
-function updateCalDayHeader() {
-  const today = new Date().toISOString().slice(0,10);
-  const sel = calState.selectedDate;
-  const selDate = new Date(sel + 'T00:00:00');
-
-  const titleEl = document.getElementById('cal-day-title');
-  const subEl = document.getElementById('cal-today-label');
-
-  if (titleEl) titleEl.textContent = sel === today ? 'กิจกรรมวันนี้' : 'กิจกรรมวันที่เลือก';
-  if (subEl) subEl.textContent = selDate.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 function renderMiniCal() {
@@ -1036,42 +1023,99 @@ function renderMiniCal() {
   document.getElementById('cal-grid').innerHTML = html;
 }
 
+function updateCalMonthHeader() {
+  const y = calState.viewYear, m = calState.viewMonth;
+  const thaiYear = y + 543;
+  const titleEl = document.getElementById('cal-month-title');
+  const subEl = document.getElementById('cal-month-sub');
+  if (titleEl) titleEl.textContent = THAI_MONTHS[m] + ' ' + thaiYear;
+  if (subEl) subEl.textContent = new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
 function calNav(dir) {
   calState.viewMonth += dir;
   if (calState.viewMonth > 11) { calState.viewMonth = 0; calState.viewYear++; }
   if (calState.viewMonth < 0) { calState.viewMonth = 11; calState.viewYear--; }
   renderMiniCal();
+  renderCalMainGrid();
+  updateCalMonthHeader();
 }
 
 function calSelectDate(d) {
   calState.selectedDate = d;
+  const [y, m] = d.split('-').map(Number);
+  calState.viewYear = y;
+  calState.viewMonth = m - 1;
   renderMiniCal();
-  renderCalEvents();
-  updateCalDayHeader();
+  renderCalMainGrid();
+  updateCalMonthHeader();
+  calOpenDayDetail(d);
 }
 
-function renderCalEvents() {
-  const sel = calState.selectedDate;
-  const today = new Date().toISOString().slice(0,10);
-  const items = calState.records.filter(r => {
-    const s = r.date_start?.slice(0,10);
-    const e = r.date_end?.slice(0,10) || s;
-    return sel >= s && sel <= e;
-  }).sort((a,b) => (a.time_start||'').localeCompare(b.time_start||''));
+// ===== ตารางปฏิทินเต็มเดือน (CENTER PANEL) =====
+function renderCalMainGrid() {
+  const y = calState.viewYear, m = calState.viewMonth;
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
 
-  const container = document.getElementById('cal-event-list');
-  if (!items.length) {
-    container.innerHTML = `<div class="empty-state"><i class="ti ti-calendar-off"></i><p>ไม่มีกิจกรรมในวันนี้</p></div>`;
-    return;
+  const dowEl = document.getElementById('cal-main-dow');
+  if (dowEl && !dowEl.dataset.filled) {
+    dowEl.innerHTML = THAI_DAYS.map(d => `<div>${d}</div>`).join('');
+    dowEl.dataset.filled = '1';
   }
+
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-main-cell muted"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isToday = dateStr === today;
+    const dayEvents = calState.records.filter(r => {
+      const s = r.date_start?.slice(0, 10);
+      const e = r.date_end?.slice(0, 10) || s;
+      return s && dateStr >= s && dateStr <= e;
+    }).sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
+
+    const chips = dayEvents.slice(0, 2).map(ev => {
+      const col = CAL_TYPE_COLOR[ev.type] || CAL_TYPE_COLOR['อื่นๆ'];
+      return `<div class="cal-main-ev-chip" style="background:${col.bg};color:${col.color}">${esc(ev.title)}</div>`;
+    }).join('');
+    const more = dayEvents.length > 2 ? `<div class="cal-main-more">+${dayEvents.length - 2} อื่นๆ</div>` : '';
+
+    html += `<div class="cal-main-cell${isToday ? ' today' : ''}${dayEvents.length ? ' has-ev' : ''}" onclick="calOpenDayDetail('${dateStr}')">
+      <div class="cal-main-date">${d}</div>
+      <div class="cal-main-evs">${chips}${more}</div>
+    </div>`;
+  }
+
+  const totalCells = firstDay + daysInMonth;
+  const trailing = (7 - (totalCells % 7)) % 7;
+  for (let i = 0; i < trailing; i++) html += '<div class="cal-main-cell muted"></div>';
+
+  document.getElementById('cal-main-grid').innerHTML = html;
+}
+
+// เปิด popup รายละเอียดกิจกรรมเต็มของวันที่กดเลือก (จากตารางหลักหรือปฏิทินย่อย)
+function calOpenDayDetail(dateStr) {
+  calState.selectedDate = dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  const dateLabel = d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const items = calState.records.filter(r => {
+    const s = r.date_start?.slice(0, 10);
+    const e = r.date_end?.slice(0, 10) || s;
+    return s && dateStr >= s && dateStr <= e;
+  }).sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
+
   const c = CAL_TYPE_COLOR;
-  container.innerHTML = items.map((r, i) => {
+  const listHtml = items.length ? items.map(r => {
     const col = c[r.type] || c['อื่นๆ'];
     const oc = CAL_OWNER_COLOR[r.owner] || { bg: '#E6F1FB', color: '#0C447C' };
     const timeStr = r.time_start ? (r.time_start + (r.time_end ? '–' + r.time_end : '')) : 'ทั้งวัน';
     return `
-      <div class="cal-event-card${i===0?' active':''}" onclick="openCalDetail('${r.id}')">
-        <div class="cal-ev-icon" style="background:${i===0?'rgba(255,255,255,.15)':col.bg};color:${i===0?'#fff':col.color}">
+      <div class="cal-event-card" onclick="openCalDetail('${r.id}')">
+        <div class="cal-ev-icon" style="background:${col.bg};color:${col.color}">
           <i class="ti ${calTypeIcon(r.type)}" aria-hidden="true"></i>
         </div>
         <div class="cal-ev-body">
@@ -1081,12 +1125,21 @@ function renderCalEvents() {
           </div>
           ${r.location ? `<div class="cal-ev-sub">${esc(r.location)}</div>` : ''}
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-            ${r.owner ? `<div class="cal-av" style="background:${oc.bg};color:${oc.color}">${r.owner.slice(0,2)}</div>` : ''}
-            <span class="cal-ev-tag">${esc(r.type||'')}</span>
+            ${r.owner ? `<div class="cal-av" style="background:${oc.bg};color:${oc.color}">${r.owner.slice(0, 2)}</div>` : ''}
+            <span class="cal-ev-tag">${esc(r.type || '')}</span>
           </div>
         </div>
       </div>`;
-  }).join('');
+  }).join('') : `<div class="empty-state"><i class="ti ti-calendar-off"></i><p>ไม่มีกิจกรรมในวันนี้</p></div>`;
+
+  document.getElementById('fin-detail-title').textContent = dateLabel;
+  document.getElementById('fin-detail-body').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">${listHtml}</div>
+    <button class="btn-submit" onclick="closeFinDetail();openCalForm()" style="width:100%;background:var(--purple);color:#fff">
+      <i class="ti ti-plus" aria-hidden="true"></i> เพิ่มกิจกรรมวันนี้
+    </button>
+  `;
+  document.getElementById('fin-detail-overlay').classList.add('open');
 }
 
 function renderCalRight() {

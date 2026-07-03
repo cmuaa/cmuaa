@@ -152,14 +152,19 @@
             <div class="cal-center">
               <div class="cal-center-header">
                 <div>
-                  <div class="cal-day-title" id="cal-day-title">กิจกรรมวันนี้</div>
-                  <div class="cal-day-sub" id="cal-today-label"></div>
+                  <div class="cal-day-title" id="cal-month-title">กรกฎาคม 2569</div>
+                  <div class="cal-day-sub" id="cal-month-sub">July 2026</div>
                 </div>
-                <button class="fab" style="position:static;width:36px;height:36px;box-shadow:none" onclick="openCalForm()" aria-label="เพิ่มกิจกรรม">
-                  <i class="ti ti-plus" aria-hidden="true"></i>
-                </button>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <button class="icon-btn" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calNav(-1)" aria-label="เดือนก่อนหน้า"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                  <button class="icon-btn" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calNav(1)" aria-label="เดือนถัดไป"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+                  <button class="fab" style="position:static;width:36px;height:36px;box-shadow:none" onclick="openCalForm()" aria-label="เพิ่มกิจกรรม">
+                    <i class="ti ti-plus" aria-hidden="true"></i>
+                  </button>
+                </div>
               </div>
-              <div id="cal-event-list" class="doc-list"></div>
+              <div class="cal-main-dow" id="cal-main-dow"></div>
+              <div class="cal-main-grid" id="cal-main-grid"></div>
             </div>
 
             <!-- RIGHT PANEL -->

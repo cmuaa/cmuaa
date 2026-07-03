@@ -560,6 +560,39 @@ body {
 .cal-d.today.has-ev::after { background: var(--gold-light); }
 .cal-d.muted { color: var(--text-hint); opacity: .35; }
 
+.cal-main-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px; }
+.cal-main-dow > div { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-hint); text-transform: uppercase; letter-spacing: .5px; padding: 4px 0; }
+
+.cal-main-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(92px, 1fr); gap: 8px; }
+.cal-main-cell {
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 8px; cursor: pointer; transition: all .15s; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.cal-main-cell:hover { border-color: var(--purple); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.cal-main-cell.muted { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+.cal-main-date {
+  font-size: 13px; font-weight: 700; color: var(--text); width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0;
+}
+.cal-main-cell.today .cal-main-date { background: var(--purple); color: #fff; }
+.cal-main-cell.muted .cal-main-date { color: var(--text-hint); opacity: .4; }
+.cal-main-evs { display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.cal-main-ev-chip {
+  font-size: 10.5px; font-weight: 600; padding: 2px 6px; border-radius: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cal-main-more { font-size: 10px; color: var(--text-hint); font-weight: 600; padding: 0 6px; }
+
+@media (max-width: 860px) {
+  .cal-main-grid { grid-auto-rows: minmax(52px, 1fr); }
+  .cal-main-evs { display: none; }
+  .cal-main-cell { position: relative; align-items: center; }
+  .cal-main-cell.has-ev::after {
+    content: ''; position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%; background: var(--gold);
+  }
+}
+
 .cal-center-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
 .cal-day-title { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.03em; }
 .cal-day-sub { font-size: 14px; color: var(--gold); font-weight: 600; margin-top: 2px; }
