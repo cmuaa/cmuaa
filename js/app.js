@@ -994,11 +994,35 @@ function calTypeIcon(type) {
 }
 
 function renderCalendar() {
+  initCalPanelState();
   updateCalMonthHeader();
   renderMiniCal();
   renderCalMainGrid();
   renderCalRight();
   renderCalPinned();
+}
+
+// ===== ย่อ/ขยายเมนูซ้าย-ขวาของหน้าปฏิทิน (จำค่าไว้ใน localStorage) =====
+function initCalPanelState() {
+  const layout = document.querySelector('.cal-layout');
+  if (!layout) return;
+  try {
+    const hideLeft = localStorage.getItem('cmu_cal_hide_left') === '1';
+    const hideRight = localStorage.getItem('cmu_cal_hide_right') === '1';
+    layout.classList.toggle('hide-left', hideLeft);
+    layout.classList.toggle('hide-right', hideRight);
+    document.getElementById('cal-toggle-left')?.classList.toggle('active', hideLeft);
+    document.getElementById('cal-toggle-right')?.classList.toggle('active', hideRight);
+  } catch (e) {}
+}
+
+function calTogglePanel(side) {
+  const layout = document.querySelector('.cal-layout');
+  if (!layout) return;
+  const cls = side === 'left' ? 'hide-left' : 'hide-right';
+  const nowHidden = layout.classList.toggle(cls);
+  document.getElementById('cal-toggle-' + side)?.classList.toggle('active', nowHidden);
+  try { localStorage.setItem(side === 'left' ? 'cmu_cal_hide_left' : 'cmu_cal_hide_right', nowHidden ? '1' : '0'); } catch (e) {}
 }
 
 function renderMiniCal() {
