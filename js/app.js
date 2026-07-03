@@ -981,6 +981,15 @@ const CAL_TYPE_COLOR = {
   'งานเอกสาร': { bg: '#E6F1FB', color: '#0C447C', dot: '#185FA5' },
   'อื่นๆ': { bg: 'var(--gray-100)', color: 'var(--gray-600)', dot: '#888780' },
 };
+// ชุดสีไล่ตามลำดับกิจกรรมในวันเดียวกัน (ไม่ผูกกับประเภท) เพื่อให้แยกแยะแต่ละอันได้ง่าย
+// เลือกจากโทนสีที่มีอยู่แล้วในระบบ (ม่วง/ทอง/เขียว/ฟ้า/ม่วงอ่อน) ให้เข้ากับธีมเดิม
+const CAL_CHIP_PALETTE = [
+  { bg: '#EEEDFE', color: '#3C3489' }, // ม่วง (โทนหลัก)
+  { bg: '#FAEEDA', color: '#633806' }, // ทอง
+  { bg: '#E1F5EE', color: '#085041' }, // เขียว
+  { bg: '#E6F1FB', color: '#0C447C' }, // ฟ้า
+  { bg: '#F3E7FB', color: '#6B2FA0' }, // ม่วงอ่อน (เฉดเสริม)
+];
 const CAL_OWNER_COLOR = {
   'ไอยลดา': { bg: '#EEEDFE', color: '#3C3489' },
   'จิตรภณ': { bg: '#E1F5EE', color: '#085041' },
@@ -1101,8 +1110,8 @@ function renderCalMainGrid() {
       return s && dateStr >= s && dateStr <= e;
     }).sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
 
-    const chips = dayEvents.slice(0, 2).map(ev => {
-      const col = CAL_TYPE_COLOR[ev.type] || CAL_TYPE_COLOR['อื่นๆ'];
+    const chips = dayEvents.slice(0, 2).map((ev, idx) => {
+      const col = CAL_CHIP_PALETTE[idx % CAL_CHIP_PALETTE.length];
       return `<div class="cal-main-ev-chip" style="background:${col.bg};color:${col.color}">${esc(ev.title)}</div>`;
     }).join('');
     const more = dayEvents.length > 2 ? `<div class="cal-main-more">+${dayEvents.length - 2} อื่นๆ</div>` : '';
@@ -1132,9 +1141,8 @@ function calOpenDayDetail(dateStr) {
     return s && dateStr >= s && dateStr <= e;
   }).sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
 
-  const c = CAL_TYPE_COLOR;
-  const listHtml = items.length ? items.map(r => {
-    const col = c[r.type] || c['อื่นๆ'];
+  const listHtml = items.length ? items.map((r, idx) => {
+    const col = CAL_CHIP_PALETTE[idx % CAL_CHIP_PALETTE.length];
     const oc = CAL_OWNER_COLOR[r.owner] || { bg: '#E6F1FB', color: '#0C447C' };
     const timeStr = r.time_start ? (r.time_start + (r.time_end ? '–' + r.time_end : '')) : 'ทั้งวัน';
     return `

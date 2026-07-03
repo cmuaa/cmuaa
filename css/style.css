@@ -568,15 +568,18 @@ body {
 .cal-d.today.has-ev::after { background: var(--gold-light); }
 .cal-d.muted { color: var(--text-hint); opacity: .35; }
 
-/* วันหยุดสุดสัปดาห์ (อา = คอลัมน์ 1, ส = คอลัมน์ 7) เน้นสีแดงทั้งปฏิทินย่อยและตารางหลัก */
-.cal-grid-wrap > *:nth-child(7n+1),
-.cal-grid-wrap > *:nth-child(7n) { color: var(--red); }
-.cal-main-dow > div:first-child,
-.cal-main-dow > div:last-child { color: var(--red); }
-.cal-main-grid > .cal-main-cell:nth-child(7n+1):not(.muted),
-.cal-main-grid > .cal-main-cell:nth-child(7n):not(.muted) { background: var(--red-pale); }
-.cal-main-grid > .cal-main-cell:nth-child(7n+1):not(.muted) .cal-main-date,
-.cal-main-grid > .cal-main-cell:nth-child(7n):not(.muted) .cal-main-date { color: var(--red); }
+/* วันอาทิตย์ (คอลัมน์ 1) = สีแดง, วันเสาร์ (คอลัมน์ 7) = สีม่วง (โทนหลักของระบบ) */
+.cal-grid-wrap > *:nth-child(7n+1) { color: var(--red); }
+.cal-grid-wrap > *:nth-child(7n) { color: var(--purple-mid); }
+
+.cal-main-dow > div:first-child { color: var(--red); }
+.cal-main-dow > div:last-child { color: var(--purple-mid); }
+
+.cal-main-grid > .cal-main-cell:nth-child(7n+1):not(.muted) { background: var(--red-pale); }
+.cal-main-grid > .cal-main-cell:nth-child(7n+1):not(.muted) .cal-main-date { color: var(--red); }
+
+.cal-main-grid > .cal-main-cell:nth-child(7n):not(.muted) { background: var(--purple-pale); }
+.cal-main-grid > .cal-main-cell:nth-child(7n):not(.muted) .cal-main-date { color: var(--purple-mid); }
 
 .cal-main-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px; }
 .cal-main-dow > div { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-hint); text-transform: uppercase; letter-spacing: .5px; padding: 4px 0; }
