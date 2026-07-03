@@ -584,7 +584,7 @@ body {
 .cal-main-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px; }
 .cal-main-dow > div { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-hint); text-transform: uppercase; letter-spacing: .5px; padding: 4px 0; }
 
-.cal-main-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(92px, 1fr); gap: 8px; }
+.cal-main-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(92px, auto); gap: 8px; }
 .cal-main-cell {
   background: var(--white); border: 1px solid var(--border); border-radius: var(--r-md);
   padding: 8px; cursor: pointer; transition: all .15s; display: flex; flex-direction: column; gap: 4px; min-width: 0;

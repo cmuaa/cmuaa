@@ -1032,6 +1032,7 @@ function calTogglePanel(side) {
   const nowHidden = layout.classList.toggle(cls);
   document.getElementById('cal-toggle-' + side)?.classList.toggle('active', nowHidden);
   try { localStorage.setItem(side === 'left' ? 'cmu_cal_hide_left' : 'cmu_cal_hide_right', nowHidden ? '1' : '0'); } catch (e) {}
+  renderCalMainGrid();
 }
 
 function renderMiniCal() {
@@ -1085,12 +1086,25 @@ function calSelectDate(d) {
   calOpenDayDetail(d);
 }
 
+// จำนวน chip กิจกรรมสูงสุดที่โชว์ต่อวัน ปรับตามพื้นที่ที่เหลือ:
+// ย่อเมนูซ้ายหรือขวาออก 1 ฝั่ง = เห็นได้มากขึ้น, ย่อทั้งสองฝั่ง = เห็นได้มากที่สุด
+function calGetMaxChips() {
+  const layout = document.querySelector('.cal-layout');
+  if (!layout) return 2;
+  const hideLeft = layout.classList.contains('hide-left');
+  const hideRight = layout.classList.contains('hide-right');
+  if (hideLeft && hideRight) return 4;
+  if (hideLeft || hideRight) return 3;
+  return 2;
+}
+
 // ===== ตารางปฏิทินเต็มเดือน (CENTER PANEL) =====
 function renderCalMainGrid() {
   const y = calState.viewYear, m = calState.viewMonth;
   const firstDay = new Date(y, m, 1).getDay();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const today = new Date().toISOString().slice(0, 10);
+  const maxChips = calGetMaxChips();
 
   const dowEl = document.getElementById('cal-main-dow');
   if (dowEl && !dowEl.dataset.filled) {
@@ -1110,11 +1124,11 @@ function renderCalMainGrid() {
       return s && dateStr >= s && dateStr <= e;
     }).sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
 
-    const chips = dayEvents.slice(0, 2).map((ev, idx) => {
+    const chips = dayEvents.slice(0, maxChips).map((ev, idx) => {
       const col = CAL_CHIP_PALETTE[idx % CAL_CHIP_PALETTE.length];
       return `<div class="cal-main-ev-chip" style="background:${col.bg};color:${col.color}">${esc(ev.title)}</div>`;
     }).join('');
-    const more = dayEvents.length > 2 ? `<div class="cal-main-more">+${dayEvents.length - 2} อื่นๆ</div>` : '';
+    const more = dayEvents.length > maxChips ? `<div class="cal-main-more">+${dayEvents.length - maxChips} อื่นๆ</div>` : '';
 
     html += `<div class="cal-main-cell${isToday ? ' today' : ''}${dayEvents.length ? ' has-ev' : ''}" onclick="calOpenDayDetail('${dateStr}')">
       <div class="cal-main-date">${d}</div>
