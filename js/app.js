@@ -7,6 +7,7 @@ let state = {
   filter: 'all',
   search: '',
   loading: false,
+  syncing: false,
   detailId: null,
   editingType: 'recv',
   sigPad: null,
@@ -150,6 +151,10 @@ function renderList() {
     if (state.filter === 'send') items = items.filter(r => r.type === 'send');
     else if (state.filter === 'recv') items = items.filter(r => r.type === 'recv');
     else if (state.filter === 'pend') items = items.filter(r => r.status === 'pend');
+    else if (state.filter === 'overdue') {
+      const today = new Date().toISOString().slice(0, 10);
+      items = items.filter(r => r.deadline && r.deadline <= today && r.status === 'pend');
+    }
   }
   if (state.search) {
     items = items.filter(r =>
@@ -561,10 +566,17 @@ function checkDeadlines() {
   const el = document.getElementById('deadline-warn');
   if (warn.length) {
     el.style.display = 'flex';
-    el.querySelector('span').textContent = `มี ${warn.length} รายการที่ครบกำหนดหรือเกินกำหนดแล้ว`;
+    el.querySelector('span').textContent = `มี ${warn.length} รายการที่ครบกำหนดหรือเกินกำหนดแล้ว — แตะเพื่อดูรายการ`;
   } else {
     el.style.display = 'none';
   }
+}
+
+// กดที่ banner แจ้งเตือนเกินกำหนด → กระโดดไปหน้ารายการที่กรองเฉพาะรายการเกินกำหนดทันที
+function goOverdue() {
+  state.filter = 'overdue';
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(c => c.classList.remove('active'));
+  goPage('list');
 }
 
 // ===== SETTINGS =====
@@ -576,6 +588,9 @@ function saveApiUrl() {
 
 async function syncFromSheets() {
   if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
+  if (state.syncing) return; // กันกดซ้ำระหว่างกำลังซิงก์อยู่
+  state.syncing = true;
+  setSyncLoading(true);
   showToast('กำลังซิงก์...');
   try {
     const data = await API.getAll();
@@ -584,6 +599,23 @@ async function syncFromSheets() {
     await syncCalFromSheets();
     showToast('ซิงก์สำเร็จ');
   } catch(e) { showToast('ซิงก์ไม่สำเร็จ: ' + e.message); }
+  finally { state.syncing = false; setSyncLoading(false); }
+}
+
+// ควบคุม loading state ของปุ่มซิงก์ทั้ง 2 จุด (header + หน้าตั้งค่า)
+function setSyncLoading(isLoading) {
+  const headerBtn = document.getElementById('sync-header-btn');
+  const settingsRow = document.getElementById('sync-settings-row');
+  const settingsIcon = document.getElementById('sync-settings-icon');
+  const settingsLabel = document.getElementById('sync-settings-label');
+
+  if (headerBtn) {
+    headerBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    headerBtn.querySelector('i')?.classList.toggle('icon-spinning', isLoading);
+  }
+  if (settingsRow) settingsRow.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+  if (settingsIcon) settingsIcon.classList.toggle('icon-spinning', isLoading);
+  if (settingsLabel) settingsLabel.textContent = isLoading ? 'กำลังซิงก์ข้อมูล...' : 'ซิงก์ข้อมูลจาก Google Sheets';
 }
 
 
@@ -981,15 +1013,6 @@ const CAL_TYPE_COLOR = {
   'งานเอกสาร': { bg: '#E6F1FB', color: '#0C447C', dot: '#185FA5' },
   'อื่นๆ': { bg: 'var(--gray-100)', color: 'var(--gray-600)', dot: '#888780' },
 };
-// ชุดสีไล่ตามลำดับกิจกรรมในวันเดียวกัน (ไม่ผูกกับประเภท) เพื่อให้แยกแยะแต่ละอันได้ง่าย
-// เลือกจากโทนสีที่มีอยู่แล้วในระบบ (ม่วง/ทอง/เขียว/ฟ้า/ม่วงอ่อน) ให้เข้ากับธีมเดิม
-const CAL_CHIP_PALETTE = [
-  { bg: '#EEEDFE', color: '#3C3489' }, // ม่วง (โทนหลัก)
-  { bg: '#FAEEDA', color: '#633806' }, // ทอง
-  { bg: '#E1F5EE', color: '#085041' }, // เขียว
-  { bg: '#E6F1FB', color: '#0C447C' }, // ฟ้า
-  { bg: '#F3E7FB', color: '#6B2FA0' }, // ม่วงอ่อน (เฉดเสริม)
-];
 const CAL_OWNER_COLOR = {
   'ไอยลดา': { bg: '#EEEDFE', color: '#3C3489' },
   'จิตรภณ': { bg: '#E1F5EE', color: '#085041' },
@@ -1020,8 +1043,12 @@ function initCalPanelState() {
     const hideRight = localStorage.getItem('cmu_cal_hide_right') === '1';
     layout.classList.toggle('hide-left', hideLeft);
     layout.classList.toggle('hide-right', hideRight);
-    document.getElementById('cal-toggle-left')?.classList.toggle('active', hideLeft);
-    document.getElementById('cal-toggle-right')?.classList.toggle('active', hideRight);
+    const btnLeft = document.getElementById('cal-toggle-left');
+    const btnRight = document.getElementById('cal-toggle-right');
+    btnLeft?.classList.toggle('active', hideLeft);
+    btnRight?.classList.toggle('active', hideRight);
+    if (btnLeft) btnLeft.title = hideLeft ? 'ขยายเมนูซ้าย' : 'ย่อเมนูซ้าย';
+    if (btnRight) btnRight.title = hideRight ? 'ขยายเมนูขวา' : 'ย่อเมนูขวา';
   } catch (e) {}
 }
 
@@ -1030,7 +1057,12 @@ function calTogglePanel(side) {
   if (!layout) return;
   const cls = side === 'left' ? 'hide-left' : 'hide-right';
   const nowHidden = layout.classList.toggle(cls);
-  document.getElementById('cal-toggle-' + side)?.classList.toggle('active', nowHidden);
+  const btn = document.getElementById('cal-toggle-' + side);
+  btn?.classList.toggle('active', nowHidden);
+  if (btn) {
+    const sideLabel = side === 'left' ? 'ซ้าย' : 'ขวา';
+    btn.title = (nowHidden ? 'ขยายเมนู' : 'ย่อเมนู') + sideLabel;
+  }
   try { localStorage.setItem(side === 'left' ? 'cmu_cal_hide_left' : 'cmu_cal_hide_right', nowHidden ? '1' : '0'); } catch (e) {}
   renderCalMainGrid();
 }
@@ -1124,9 +1156,9 @@ function renderCalMainGrid() {
       return s && dateStr >= s && dateStr <= e;
     }).sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
 
-    const chips = dayEvents.slice(0, maxChips).map((ev, idx) => {
-      const col = CAL_CHIP_PALETTE[idx % CAL_CHIP_PALETTE.length];
-      return `<div class="cal-main-ev-chip" style="background:${col.bg};color:${col.color}">${esc(ev.title)}</div>`;
+    const chips = dayEvents.slice(0, maxChips).map(ev => {
+      const col = CAL_TYPE_COLOR[ev.type] || CAL_TYPE_COLOR['อื่นๆ'];
+      return `<div class="cal-main-ev-chip" style="background:${col.bg};color:${col.color}"><i class="ti ${calTypeIcon(ev.type)}" aria-hidden="true"></i><span>${esc(ev.title)}</span></div>`;
     }).join('');
     const more = dayEvents.length > maxChips ? `<div class="cal-main-more">+${dayEvents.length - maxChips} อื่นๆ</div>` : '';
 
@@ -1155,8 +1187,8 @@ function calOpenDayDetail(dateStr) {
     return s && dateStr >= s && dateStr <= e;
   }).sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
 
-  const listHtml = items.length ? items.map((r, idx) => {
-    const col = CAL_CHIP_PALETTE[idx % CAL_CHIP_PALETTE.length];
+  const listHtml = items.length ? items.map(r => {
+    const col = CAL_TYPE_COLOR[r.type] || CAL_TYPE_COLOR['อื่นๆ'];
     const oc = CAL_OWNER_COLOR[r.owner] || { bg: '#E6F1FB', color: '#0C447C' };
     const timeStr = r.time_start ? (r.time_start + (r.time_end ? '–' + r.time_end : '')) : 'ทั้งวัน';
     return `

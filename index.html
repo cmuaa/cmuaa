@@ -54,7 +54,7 @@
           <p>สมาคมนักศึกษาเก่า มช.</p>
         </div>
         <div class="header-actions">
-          <button class="icon-btn" onclick="syncFromSheets()" aria-label="ซิงก์ข้อมูล"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+          <button class="icon-btn" id="sync-header-btn" onclick="syncFromSheets()" aria-label="ซิงก์ข้อมูล" title="ซิงก์ข้อมูลจาก Google Sheets"><i class="ti ti-refresh" aria-hidden="true"></i></button>
         </div>
       </header>
 
@@ -70,9 +70,10 @@
             <div class="stat-card pend"><div class="n" id="s-pend">0</div><div class="l">รอดำเนินการ</div></div>
           </div>
 
-          <div class="deadline-warn" id="deadline-warn" style="display:none" role="alert">
+          <div class="deadline-warn" id="deadline-warn" style="display:none;cursor:pointer" role="alert" onclick="goOverdue()">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
             <span></span>
+            <i class="ti ti-chevron-right" aria-hidden="true" style="margin-left:auto"></i>
           </div>
 
           <div class="search-wrap">
@@ -152,7 +153,7 @@
             <div class="cal-center">
               <div class="cal-center-header">
                 <div style="display:flex;align-items:center;gap:10px">
-                  <button class="icon-btn cal-toggle-btn" id="cal-toggle-left" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calTogglePanel('left')" aria-label="ย่อ/ขยายเมนูซ้าย"><i class="ti ti-layout-sidebar" aria-hidden="true"></i></button>
+                  <button class="icon-btn cal-toggle-btn" id="cal-toggle-left" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calTogglePanel('left')" aria-label="ย่อ/ขยายเมนูซ้าย" title="ย่อ/ขยายเมนูซ้าย"><i class="ti ti-layout-sidebar" aria-hidden="true"></i></button>
                   <div>
                     <div class="cal-day-title" id="cal-month-title">กรกฎาคม 2569</div>
                     <div class="cal-day-sub" id="cal-month-sub">July 2026</div>
@@ -164,7 +165,7 @@
                   <button class="fab" style="position:static;width:36px;height:36px;box-shadow:none" onclick="openCalForm()" aria-label="เพิ่มกิจกรรม">
                     <i class="ti ti-plus" aria-hidden="true"></i>
                   </button>
-                  <button class="icon-btn cal-toggle-btn" id="cal-toggle-right" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calTogglePanel('right')" aria-label="ย่อ/ขยายเมนูขวา"><i class="ti ti-layout-sidebar-right" aria-hidden="true"></i></button>
+                  <button class="icon-btn cal-toggle-btn" id="cal-toggle-right" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calTogglePanel('right')" aria-label="ย่อ/ขยายเมนูขวา" title="ย่อ/ขยายเมนูขวา"><i class="ti ti-layout-sidebar-right" aria-hidden="true"></i></button>
                 </div>
               </div>
               <div class="cal-main-dow" id="cal-main-dow"></div>
@@ -216,9 +217,9 @@
             </div>
           </div>
           <div class="settings-card">
-            <div class="settings-row" style="cursor:pointer" onclick="syncFromSheets()">
-              <i class="ti ti-cloud-download" aria-hidden="true"></i>
-              <span class="sr-label">ซิงก์ข้อมูลจาก Google Sheets</span>
+            <div class="settings-row" id="sync-settings-row" style="cursor:pointer" onclick="syncFromSheets()">
+              <i class="ti ti-cloud-download" id="sync-settings-icon" aria-hidden="true"></i>
+              <span class="sr-label" id="sync-settings-label">ซิงก์ข้อมูลจาก Google Sheets</span>
               <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
             </div>
             <div class="settings-row" style="cursor:pointer" onclick="exportCSV()">
