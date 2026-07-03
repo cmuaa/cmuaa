@@ -54,7 +54,30 @@ document.addEventListener('DOMContentLoaded', () => {
   setupFab();
   setupSearch();
   checkDeadlines();
+  setupDateRolloverWatcher();
 });
+
+// ===== เช็ควันเปลี่ยนอัตโนมัติ กัน "วันนี้" ค้างข้ามเที่ยงคืนถ้าเปิดแท็บทิ้งไว้นาน =====
+// (การไฮไลต์ "วันนี้" ในปฏิทิน/แจ้งเตือนเกินกำหนด คำนวณตอน render เท่านั้น ถ้าไม่มีอะไรมา trigger re-render
+//  ข้ามเที่ยงคืนไป หน้าจอจะยังค้างของเดิมอยู่ ฟังก์ชันนี้คอยเช็คแล้วสั่ง render ใหม่ให้เมื่อวันที่เปลี่ยนจริง)
+let lastKnownDate = new Date().toISOString().slice(0, 10);
+
+function checkDateRollover() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (today === lastKnownDate) return;
+  lastKnownDate = today;
+  checkDeadlines();
+  if (state.currentPage === 'calendar') renderCalendar();
+}
+
+function setupDateRolloverWatcher() {
+  // เช็คทันทีตอนกลับมาที่แท็บ (สลับแท็บ/สลับแอพไปมาแล้วกลับมา) — ครอบคลุมเคสส่วนใหญ่แบบเบาที่สุด
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkDateRollover();
+  });
+  // เช็คเป็นระยะทุก 1 นาที เผื่อเปิดจอค้างไว้ตลอดโดยไม่สลับแท็บเลย (เช่น จอปฏิทินในออฟฟิศ)
+  setInterval(checkDateRollover, 60000);
+}
 
 // ===== NAVIGATION =====
 function setupNav() {
