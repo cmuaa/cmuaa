@@ -1051,10 +1051,22 @@ function calTypeIcon(type) {
 function renderCalendar() {
   initCalPanelState();
   updateCalMonthHeader();
+  renderCalLegend();
   renderMiniCal();
   renderCalMainGrid();
   renderCalRight();
   renderCalPinned();
+}
+
+// คำอธิบายสีของแต่ละประเภทกิจกรรม — เดิมไม่มี legend ผู้ใช้ต้องเดาความหมายสีของ chip เอง
+function renderCalLegend() {
+  const el = document.getElementById('cal-legend');
+  if (!el) return;
+  const types = Object.keys(CAL_TYPE_COLOR);
+  el.innerHTML = '<span class="cal-legend-label">ประเภท</span>' + types.map(t => {
+    const col = CAL_TYPE_COLOR[t];
+    return `<div class="cal-legend-item"><i class="ti ${calTypeIcon(t)}" style="color:${col.dot}" aria-hidden="true"></i>${esc(t)}</div>`;
+  }).join('');
 }
 
 // ===== ย่อ/ขยายเมนูซ้าย-ขวาของหน้าปฏิทิน (จำค่าไว้ใน localStorage) =====
