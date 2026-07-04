@@ -219,27 +219,37 @@ function renderList() {
   }
 
   container.innerHTML = pagedItems.map(r => `
-    <div class="doc-card" onclick="openDetail('${r.id}')">
-      <div class="doc-card-icon ${r.type}">
-        <i class="ti ti-${r.type === 'send' ? 'send' : 'inbox'}" aria-hidden="true"></i>
+    <div class="list-row" onclick="openDetail('${r.id}')">
+      <div class="list-col-icon"><div class="list-row-icon ${r.type}"><i class="ti ti-${r.type === 'send' ? 'send' : 'inbox'}" aria-hidden="true"></i></div></div>
+      <div class="list-col-main">
+        <div class="list-row-title">${esc(r.subject || '-')}</div>
+        <div class="list-row-sub">
+          ${r.docno ? `<span class="docno">${esc(r.docno)}</span><span class="dot"></span>` : ''}
+          <span>${esc(r.doc_type || '—')}</span>
+        </div>
       </div>
-      <div class="doc-card-body">
-        <div class="doc-card-row">
-          <div class="doc-card-title">${esc(r.subject || '-')}</div>
-          <span class="badge badge-${r.status === 'pend' ? 'pend' : 'done'}">${r.status === 'pend' ? 'รอ' : 'เสร็จ'}</span>
-        </div>
-        <div class="doc-card-meta">
-          ${r.docno ? `<strong>${esc(r.docno)}</strong> &nbsp;·&nbsp; ` : ''}${r.type === 'send' ? 'ถึง: ' + esc(r.to_org || '-') : 'จาก: ' + esc(r.from_org || '-')} &nbsp;·&nbsp; ${formatDate(r.type === 'send' ? r.issue_date : r.received_date)}
-        </div>
-        <div class="doc-card-tags">
-          <span class="badge badge-${r.type}">${r.type === 'send' ? 'ส่งออก' : 'รับเข้า'}</span>
-          ${r.docno && isNaN(new Date(r.docno)) ? `<span class="badge badge-type">${esc(r.docno)}</span>` : ''}
-          ${r.doc_type ? `<span class="badge badge-type">${esc(r.doc_type)}</span>` : ''}
-          ${r.deadline && isPast(r.deadline) && r.status === 'pend' ? `<span class="badge badge-urgent"><i class="ti ti-alert-triangle" aria-hidden="true"></i> ครบกำหนด</span>` : ''}
-        </div>
+      <div class="list-col-org list-row-org">${r.type === 'send' ? esc(r.to_org || '-') : esc(r.from_org || '-')}</div>
+      <div class="list-col-date list-row-date">${formatDate(r.type === 'send' ? r.issue_date : r.received_date)}</div>
+      <div class="list-col-deadline">${deadlineChipHtml(r)}</div>
+      <div class="list-col-status">
+        <span class="status-pill ${r.status === 'pend' ? 'pend' : 'done'}"><span class="dot"></span>${r.status === 'pend' ? 'รอดำเนินการ' : 'เสร็จสิ้น'}</span>
       </div>
     </div>
   `).join('');
+}
+
+// เดิม badge-urgent ขึ้นเฉพาะตอนเกินกำหนดแล้วเท่านั้น — เพิ่มสถานะ "ใกล้ครบกำหนด" (7 วัน) ให้เห็นล่วงหน้าตั้งแต่ในลิสต์
+function deadlineChipHtml(r) {
+  if (!r.deadline) return '<span class="deadline-none">—</span>';
+  const today = new Date().toISOString().slice(0, 10);
+  const diffDays = Math.round((new Date(r.deadline) - new Date(today)) / 86400000);
+  if (r.status === 'pend' && diffDays < 0) {
+    return `<span class="deadline-chip overdue"><i class="ti ti-alert-triangle" aria-hidden="true"></i>เกินกำหนด ${Math.abs(diffDays)} วัน</span>`;
+  }
+  if (r.status === 'pend' && diffDays <= 7) {
+    return `<span class="deadline-chip soon"><i class="ti ti-clock" aria-hidden="true"></i>${diffDays === 0 ? 'ครบกำหนดวันนี้' : 'ใกล้ครบกำหนด (' + diffDays + ' วัน)'}</span>`;
+  }
+  return `<span class="deadline-chip later"><i class="ti ti-calendar" aria-hidden="true"></i>${formatDate(r.deadline)}</span>`;
 }
 
 // ===== RENDER STATS =====

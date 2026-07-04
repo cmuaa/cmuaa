@@ -63,11 +63,23 @@
 
         <!-- PAGE: LIST -->
         <div class="page active" id="page-list">
-          <div class="stats-row" role="region" aria-label="สรุปสถิติ">
-            <div class="stat-card all"><div class="n" id="s-all">0</div><div class="l">ทั้งหมด</div></div>
-            <div class="stat-card send"><div class="n" id="s-send">0</div><div class="l">ส่งออก</div></div>
-            <div class="stat-card recv"><div class="n" id="s-recv">0</div><div class="l">รับเข้า</div></div>
-            <div class="stat-card pend"><div class="n" id="s-pend">0</div><div class="l">รอดำเนินการ</div></div>
+          <div class="list-stats-strip" role="region" aria-label="สรุปสถิติ">
+            <div class="list-stats-cell">
+              <div class="list-stats-top"><span class="list-stats-icon all"><i class="ti ti-files" aria-hidden="true"></i></span><span class="list-stats-label">ทั้งหมด</span></div>
+              <div class="n" id="s-all">0</div>
+            </div>
+            <div class="list-stats-cell">
+              <div class="list-stats-top"><span class="list-stats-icon send"><i class="ti ti-send" aria-hidden="true"></i></span><span class="list-stats-label">ส่งออก</span></div>
+              <div class="n" id="s-send">0</div>
+            </div>
+            <div class="list-stats-cell">
+              <div class="list-stats-top"><span class="list-stats-icon recv"><i class="ti ti-inbox" aria-hidden="true"></i></span><span class="list-stats-label">รับเข้า</span></div>
+              <div class="n" id="s-recv">0</div>
+            </div>
+            <div class="list-stats-cell">
+              <div class="list-stats-top"><span class="list-stats-icon pend"><i class="ti ti-clock" aria-hidden="true"></i></span><span class="list-stats-label">รอดำเนินการ</span></div>
+              <div class="n" id="s-pend">0</div>
+            </div>
           </div>
 
           <div class="deadline-warn" id="deadline-warn" style="display:none;cursor:pointer" role="alert" onclick="goOverdue()">
@@ -88,8 +100,18 @@
             <button class="filter-chip" data-filter="pend">รอดำเนินการ</button>
           </div>
 
-          <div class="doc-list" id="doc-list" role="list">
-            <div class="empty-state"><i class="ti ti-file-plus"></i><p>กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>
+          <div class="list-table" id="doc-list-wrap">
+            <div class="list-table-head">
+              <div class="list-col-icon"></div>
+              <div class="list-col-main">เรื่อง / เลขที่</div>
+              <div class="list-col-org">หน่วยงาน</div>
+              <div class="list-col-date">วันที่</div>
+              <div class="list-col-deadline">กำหนดตอบ</div>
+              <div class="list-col-status">สถานะ</div>
+            </div>
+            <div class="doc-list" id="doc-list" role="list">
+              <div class="empty-state"><i class="ti ti-file-plus"></i><p>กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>
+            </div>
           </div>
           <div id="pagination" class="pagination-wrap"></div>
         </div>

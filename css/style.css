@@ -502,6 +502,69 @@ body {
 }
 .save-url-btn:hover { opacity: .88; }
 
+/* ===== LIST PAGE: unified stats strip + table (redesign, page-list only — finance page keeps .stat-card/.doc-card) ===== */
+.list-stats-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm); margin-bottom: 22px; overflow: hidden;
+}
+.list-stats-cell { padding: 20px 24px; border-right: 1px solid var(--border); }
+.list-stats-cell:last-child { border-right: none; }
+.list-stats-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.list-stats-icon { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.list-stats-icon.all { background: var(--purple-pale); color: var(--purple); }
+.list-stats-icon.send { background: var(--blue-pale); color: var(--blue); }
+.list-stats-icon.recv { background: var(--teal-pale); color: var(--teal); }
+.list-stats-icon.pend { background: var(--amber-pale); color: var(--amber); }
+.list-stats-label { font-size: 12px; color: var(--text-hint); font-weight: 600; white-space: nowrap; }
+.list-stats-cell .n { font-size: 26px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; line-height: 1; }
+
+.list-table { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); overflow-x: auto; box-shadow: var(--shadow-sm); }
+.list-table-head, .list-row {
+  display: flex; align-items: center; padding: 12px 20px; gap: 12px; min-width: 760px;
+}
+.list-table-head { border-bottom: 1px solid var(--border); background: var(--gray-25); font-size: 11px; font-weight: 700; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.6px; }
+.list-table-head > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-row { padding: 14px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+.list-row:last-child { border-bottom: none; }
+.list-row:hover { background: var(--gray-25); }
+.list-col-icon { width: 40px; flex-shrink: 0; }
+.list-col-main { flex: 1 1 auto; min-width: 180px; }
+.list-col-org { width: 190px; flex-shrink: 0; }
+.list-col-date { width: 100px; flex-shrink: 0; }
+.list-col-deadline { width: 160px; flex-shrink: 0; }
+.list-col-status { width: 120px; flex-shrink: 0; text-align: right; }
+
+.list-row-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.list-row-icon.recv { background: var(--teal-pale); color: var(--teal); }
+.list-row-icon.send { background: var(--blue-pale); color: var(--blue); }
+.list-row-title { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-row-sub { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 11.5px; color: var(--text-hint); }
+.list-row-sub .docno { font-family: 'IBM Plex Mono', 'Sarabun', monospace; }
+.list-row-sub .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--gray-300); flex-shrink: 0; }
+.list-row-org, .list-row-date { font-size: 13px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.deadline-chip, .status-pill {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600;
+  padding: 4px 10px; border-radius: var(--r-full); white-space: nowrap;
+}
+.deadline-chip i { font-size: 12px; }
+.deadline-chip.overdue { background: var(--red-pale); color: var(--red); }
+.deadline-chip.soon { background: var(--amber-pale); color: var(--amber); }
+.deadline-chip.later { background: var(--gray-100); color: var(--gray-600); }
+.deadline-none { font-size: 12.5px; color: var(--gray-300); }
+.status-pill { font-size: 12px; padding: 5px 12px; }
+.status-pill .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: currentColor; }
+.status-pill.pend { background: var(--amber-pale); color: var(--amber); }
+.status-pill.done { background: var(--green-pale); color: var(--green); }
+
+@media (max-width: 640px) {
+  .list-stats-strip { grid-template-columns: repeat(2, 1fr); }
+  .list-stats-cell:nth-child(2) { border-right: none; }
+  .list-table-head { display: none; }
+  .list-col-org, .list-col-date, .list-col-deadline { display: none; }
+}
+
 /* ===== PAGINATION ===== */
 .pagination-wrap { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px 0 8px; flex-wrap: wrap; }
 .pg-btn {
