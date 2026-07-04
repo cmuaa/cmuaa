@@ -205,6 +205,9 @@ function renderList() {
   }
 
   // Pagination
+  // การ์ดกันพัง: ถ้า state.currentPage ดันไม่ใช่ตัวเลข (เช่นมีโค้ดจุดอื่นเผลอตั้งเป็น string) ให้รีเซ็ตเป็น 1 ทันที
+  // กันไม่ให้ (currentPage - 1) กลายเป็น NaN แล้วทำให้ items.slice(NaN, NaN) ได้ array ว่างเปล่าทั้งหน้า
+  if (!Number.isInteger(state.currentPage)) state.currentPage = 1;
   const totalPages = Math.ceil(items.length / state.pageSize);
   if (state.currentPage > totalPages) state.currentPage = 1;
   const pgStart = (state.currentPage - 1) * state.pageSize;
@@ -609,7 +612,9 @@ function checkDeadlines() {
 function goOverdue() {
   state.filter = 'overdue';
   document.querySelectorAll('.filter-chip[data-filter]').forEach(c => c.classList.remove('active'));
-  goPage('list');
+  state.currentPage = 1; // รีเซ็ตเลขหน้า pagination ให้เป็นตัวเลขเสมอ (ห้ามเป็น string เด็ดขาด)
+  switchPage('list'); // ใช้ switchPage (เปลี่ยน "หน้าแอพ") ไม่ใช่ goPage (เลขหน้า pagination) — คนละตัวแปรกัน
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ===== SETTINGS =====
@@ -916,6 +921,8 @@ function renderFinList() {
     return;
   }
 
+  // การ์ดกันพัง: กัน finState.currentPage ไม่ใช่ตัวเลข ด้วยหลักการเดียวกับหน้ารายการเอกสาร
+  if (!Number.isInteger(finState.currentPage)) finState.currentPage = 1;
   const totalPages = Math.ceil(items.length / finState.pageSize);
   if (finState.currentPage > totalPages) finState.currentPage = 1;
   const start = (finState.currentPage - 1) * finState.pageSize;
