@@ -356,7 +356,7 @@ function resetForm() {
   if (state.sigPad) state.sigPad.clear();
   // set today
   const today = new Date().toISOString().slice(0, 10);
-  ['f-issue-date', 'f-received-date', 'f-send-date'].forEach(id => {
+  ['f-issue-date', 'f-issue-date-send', 'f-received-date', 'f-send-date'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = today;
   });
@@ -420,7 +420,7 @@ async function submitForm() {
     type: currentFormType,
     status: get('f-status'),
     doc_type: get('f-doc-type'),
-    handler: get('f-handler'),
+    handler: get(currentFormType === 'send' ? 'f-handler-send' : 'f-handler'),
     note: get('f-note'),
     signature: (state.sigPad && !state.sigPad.isEmpty()) ? state.sigPad.toDataURL() : '',
     created_at: new Date().toISOString(),
@@ -464,7 +464,7 @@ async function submitForm() {
     record = { ...common,
       subject: get('f-subject-send'),
       docno: get('f-send-docno') ? ('สก.มช.' + get('f-send-docno')) : '',
-      issue_date: get('f-issue-date'),
+      issue_date: get('f-issue-date-send'),
       to_org: get('f-to-org'),
       detail: get('f-detail'),
       sender: get('f-sender'),
@@ -706,14 +706,16 @@ function openEditForm(id) {
       set('f-from-org', r.from_org); set('f-to-org-recv', r.to_org);
       set('f-subject', r.subject); set('f-receiver', r.receiver);
       set('f-deadline', r.deadline);
+      set('f-handler', r.handler);
     } else {
-      set('f-send-docno', (r.docno || '').replace('สก.มช.', '')); set('f-issue-date', r.issue_date);
+      set('f-send-docno', (r.docno || '').replace('สก.มช.', '')); set('f-issue-date-send', r.issue_date);
       set('f-to-org', r.to_org); set('f-subject-send', r.subject);
       set('f-detail', r.detail); set('f-sender', r.sender);
       set('f-receiver-name', r.receiver_name); set('f-send-date', r.send_date);
       set('f-send-channel', r.send_channel);
+      set('f-handler-send', r.handler);
     }
-    set('f-handler', r.handler); set('f-doc-type', r.doc_type);
+    set('f-doc-type', r.doc_type);
     set('f-status', r.status); set('f-note', r.note);
     if (r.file_url) document.getElementById('file-name').textContent = '📎 ไฟล์เดิมถูกแนบไว้แล้ว (แนบใหม่เพื่อเปลี่ยน)';
     document.getElementById('form-title').textContent = (r.type === 'recv' ? 'แก้ไขหนังสือรับ' : 'แก้ไขหนังสือส่ง');
