@@ -37,6 +37,7 @@
       <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
       <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
       <button class="desktop-nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
+      <button class="desktop-nav-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i>สต็อกเสื้อ</button>
       <button class="desktop-nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
       <button class="desktop-nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
       <button class="desktop-nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
@@ -183,6 +184,20 @@
           <div id="rent-pagination" class="pagination-wrap"></div>
         </div>
 
+        <!-- PAGE: SHIRT STOCK (สต็อกเสื้อ) -->
+        <div class="page" id="page-shirt">
+          <div class="search-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="search" id="shirt-search-input" placeholder="ค้นหาแบบเสื้อ, กิจกรรม, ไซส์..." aria-label="ค้นหาสต็อกเสื้อ">
+          </div>
+
+          <div class="filter-bar" role="group" aria-label="กรองตามกิจกรรม" id="shirt-event-chips"></div>
+
+          <div class="doc-list" id="shirt-list" role="list">
+            <div class="empty-state"><i class="ti ti-shirt"></i><p>กดปุ่ม + เพื่อเพิ่มแบบเสื้อแรก</p></div>
+          </div>
+        </div>
+
         <!-- PAGE: CALENDAR -->
         <div class="page" id="page-calendar">
           <div class="cal-layout">
@@ -322,6 +337,7 @@
     <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
     <button class="nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
     <button class="nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
+    <button class="nav-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i>สต็อกเสื้อ</button>
     <button class="nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
     <button class="nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
@@ -844,7 +860,7 @@
           <div class="form-grid two">
             <div class="field">
               <label for="rent-f-month">เดือนที่เรียกเก็บ <span class="required">*</span></label>
-              <input type="month" id="rent-f-month" onchange="updateRentPreview()">
+              <input type="month" id="rent-f-month" onchange="autofillMeterPrevious(); updateRentPreview()">
             </div>
             <div class="field">
               <label for="rent-f-lot">ล็อค</label>
@@ -886,7 +902,7 @@
           <div class="form-grid two">
             <div class="field">
               <label for="rent-f-meter-previous">เลขมิเตอร์ครั้งก่อน</label>
-              <input type="number" id="rent-f-meter-previous" placeholder="0" step="1" min="0" oninput="updateRentPreview()">
+              <input type="number" id="rent-f-meter-previous" placeholder="0" step="1" min="0" oninput="this.dataset.touched='1'; updateRentPreview()">
             </div>
             <div class="field">
               <label for="rent-f-meter-current">เลขมิเตอร์ครั้งนี้</label>
@@ -971,13 +987,13 @@
 
           <div class="field">
             <label for="mm-f-month">เดือน <span class="required">*</span></label>
-            <input type="month" id="mm-f-month">
+            <input type="month" id="mm-f-month" onchange="autofillMasterMeterFields()">
           </div>
 
           <div class="form-grid two">
             <div class="field">
               <label for="mm-f-meter-previous">เลขมิเตอร์กลางครั้งก่อน</label>
-              <input type="number" id="mm-f-meter-previous" placeholder="0" step="1" min="0" oninput="updateMasterMeterPreview()">
+              <input type="number" id="mm-f-meter-previous" placeholder="0" step="1" min="0" oninput="this.dataset.touched='1'; updateMasterMeterPreview()">
             </div>
             <div class="field">
               <label for="mm-f-meter-current">เลขมิเตอร์กลางครั้งนี้</label>
@@ -997,6 +1013,95 @@
 
           <button type="button" class="btn-submit recv" onclick="submitMasterMeter()">
             บันทึกมิเตอร์กลาง
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- SHIRT STOCK FORM OVERLAY (เพิ่ม/แก้ไขแบบเสื้อ) -->
+<div class="overlay" id="shirt-form-overlay" role="dialog" aria-modal="true" aria-labelledby="shirt-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="shirt-form-title">เพิ่มแบบเสื้อ/ไซส์ใหม่</h2>
+      <button class="drawer-close" onclick="closeShirtForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="shirt-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="field">
+            <label for="shirt-f-event">กิจกรรม</label>
+            <input type="text" id="shirt-f-event" list="shirt-event-list" placeholder="เช่น CMU Marathon 10, ปั่นเพื่อน้อง 9">
+            <datalist id="shirt-event-list"></datalist>
+          </div>
+
+          <div class="field">
+            <label for="shirt-f-design">แบบเสื้อ <span class="required">*</span></label>
+            <input type="text" id="shirt-f-design" placeholder="ชื่อ/ลายเสื้อ">
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="shirt-f-size">ไซส์</label>
+              <input type="text" id="shirt-f-size" placeholder="เช่น S, M, L, Free Size">
+            </div>
+            <div class="field">
+              <label for="shirt-f-qty">จำนวนเริ่มต้น (ตัว)</label>
+              <input type="number" id="shirt-f-qty" placeholder="0" min="0" step="1">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="shirt-f-note">หมายเหตุ</label>
+            <textarea id="shirt-f-note" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="shirt-submit-btn" onclick="submitShirtStockForm()">
+            บันทึกรายการ
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- SHIRT LOG FORM OVERLAY (บันทึกเบิกออก) -->
+<div class="overlay" id="shirt-log-overlay" role="dialog" aria-modal="true" aria-labelledby="shirt-log-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="shirt-log-form-title">บันทึกเบิกออก</h2>
+      <button class="drawer-close" onclick="closeShirtLogForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="shirt-log-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <input type="hidden" id="shirt-log-stock-id">
+
+          <div class="field">
+            <label for="shirt-log-date">วันที่</label>
+            <input type="date" id="shirt-log-date">
+          </div>
+
+          <div class="field">
+            <label for="shirt-log-qty">จำนวนที่เบิกออก (ตัว) <span class="required">*</span></label>
+            <input type="number" id="shirt-log-qty" placeholder="0" min="1" step="1">
+          </div>
+
+          <div class="field">
+            <label for="shirt-log-note">หมายเหตุ</label>
+            <input type="text" id="shirt-log-note" placeholder="เช่น แจกงานวิ่ง, ขายหน้างาน, แจกกรรมการ">
+          </div>
+
+          <button type="button" class="btn-submit recv" style="background:#085041" onclick="submitShirtLog()">
+            บันทึกเบิกออก
           </button>
 
         </div>

@@ -6,8 +6,9 @@ const API = {
     localStorage.setItem('cmu_api_url', this.url);
   },
 
-  // GET สำหรับ action ทั่วไป (JSONP)
-  call(params) {
+  // GET สำหรับ action ทั่วไป (JSONP) — timeoutMs ปรับได้ต่องาน (ค่า default 20 วิ พอสำหรับ action ทั่วไป
+  // แต่ action หนักๆ เช่นออกใบแจ้งหนี้/รวมไฟล์ ควรส่ง timeoutMs ที่นานกว่านี้เข้ามา)
+  call(params, timeoutMs = 20000) {
     return new Promise((resolve, reject) => {
       if (!this.url) return reject(new Error('ยังไม่ได้ตั้งค่า API URL'));
       const cbName = 'cb_' + Date.now();
@@ -16,7 +17,7 @@ const API = {
         delete window[cbName];
         if (script.parentNode) document.body.removeChild(script);
         reject(new Error('Request timeout'));
-      }, 10000);
+      }, timeoutMs);
       window[cbName] = (data) => {
         clearTimeout(timeout);
         delete window[cbName];

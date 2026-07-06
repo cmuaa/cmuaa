@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCalLocal();
   loadRentLocal();
   loadMasterMeterLocal();
+  loadShirtLocal();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
   render();
   setupNav();
@@ -151,6 +152,7 @@ function switchPage(p) {
   if (p === 'finance') renderFinList();
   if (p === 'calendar') renderCalendar();
   if (p === 'rent') renderRentList();
+  if (p === 'shirt') renderShirtList();
 }
 
 // ===== FAB =====
@@ -159,12 +161,14 @@ function setupFab() {
     if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
     else if (state.page === 'rent') openRentForm();
+    else if (state.page === 'shirt') openShirtStockForm();
     else openForm('recv');
   });
   document.getElementById('desktop-add-btn').addEventListener('click', () => {
     if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
     else if (state.page === 'rent') openRentForm();
+    else if (state.page === 'shirt') openShirtStockForm();
     else openForm('recv');
   });
 }
@@ -208,6 +212,14 @@ function setupSearch() {
       rentState.search = e.target.value.toLowerCase();
       rentState.currentPage = 1;
       renderRentList();
+    });
+  }
+
+  const shirtSearch = document.getElementById('shirt-search-input');
+  if (shirtSearch) {
+    shirtSearch.addEventListener('input', e => {
+      shirtState.search = e.target.value.toLowerCase();
+      renderShirtList();
     });
   }
   document.querySelectorAll('.filter-chip[data-rent-filter]').forEach(el => {
@@ -700,6 +712,7 @@ async function syncFromSheets() {
     await syncCalFromSheets();
     await syncRentFromSheets();
     await syncMasterMeterFromSheets();
+    await syncShirtFromSheets();
     showToast('ซิงก์สำเร็จ');
   } catch(e) { showToast('ซิงก์ไม่สำเร็จ: ' + e.message); }
   finally { state.syncing = false; setSyncLoading(false); }
@@ -1197,6 +1210,23 @@ function autofillRentLot() {
   if (!shopEl || !lotEl) return;
   const match = shopEl.value.match(/\((\d+)\)\s*$/);
   if (match) lotEl.value = match[1];
+  autofillMeterPrevious();
+}
+
+// เติมเลขมิเตอร์ "ครั้งก่อน" ให้อัตโนมัติ จากเลขมิเตอร์ "ครั้งนี้" ของร้านเดียวกันในเดือนก่อนหน้า
+// (ยังพิมพ์แก้เองได้เสมอ เผื่อมิเตอร์มีปัญหา/เปลี่ยนมิเตอร์ใหม่ — พอแก้เองแล้วจะไม่โดน auto ทับอีก)
+function autofillMeterPrevious() {
+  const prevEl = document.getElementById('rent-f-meter-previous');
+  if (!prevEl || prevEl.dataset.touched) return;
+  const shopName = document.getElementById('rent-f-shop')?.value?.trim();
+  const monthKey = document.getElementById('rent-f-month')?.value;
+  if (!shopName || !monthKey) return;
+  const prevMonthKey = getPrevMonthKey(monthKey);
+  const prevRecord = rentState.records.find(r => r.shop_name === shopName && r.month_key === prevMonthKey);
+  if (prevRecord) {
+    prevEl.value = prevRecord.meter_current;
+    updateRentPreview();
+  }
 }
 
 function openRentForm() {
@@ -1207,6 +1237,7 @@ function openRentForm() {
   document.getElementById('rent-submit-btn').textContent = 'บันทึกรายการค่าเช่า';
   document.getElementById('rent-f-security-fee').dataset.touched = '';
   document.getElementById('rent-f-donation').dataset.touched = '';
+  document.getElementById('rent-f-meter-previous').dataset.touched = '';
   const today = new Date();
   document.getElementById('rent-f-month').value = today.toISOString().slice(0, 7);
   document.getElementById('rent-f-rooms').value = 1;
@@ -1238,9 +1269,10 @@ function openRentEditForm(id) {
     set('rent-f-donation', r.donation);
     set('rent-f-status', r.status || 'unpaid');
     set('rent-f-note', r.note);
-    // ตอนแก้ไข ถือว่า รปภ./บริจาคของเดิมถูก "แตะ" แล้วเสมอ กันระบบไปเผลอ auto-overwrite ค่าที่เคยตั้งเองไว้
+    // ตอนแก้ไข ถือว่า รปภ./บริจาค/เลขมิเตอร์ครั้งก่อนของเดิมถูก "แตะ" แล้วเสมอ กันระบบไปเผลอ auto-overwrite ค่าที่บันทึกไว้แล้ว
     document.getElementById('rent-f-security-fee').dataset.touched = '1';
     document.getElementById('rent-f-donation').dataset.touched = '1';
+    document.getElementById('rent-f-meter-previous').dataset.touched = '1';
     updateRentPreview();
   }, 100);
 }
@@ -1463,7 +1495,7 @@ async function generateRentInvoice(id) {
   if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
   showToast('กำลังออกใบแจ้งหนี้... (อาจใช้เวลาสักครู่)');
   try {
-    const res = await API.call({ action: 'generateRentInvoice', id });
+    const res = await API.call({ action: 'generateRentInvoice', id }, 60000); // ให้เวลา 60 วิ เพราะต้อง copy+merge+export PDF
     if (res.ok) {
       const idx = rentState.records.findIndex(x => x.id === id);
       if (idx !== -1) {
@@ -1498,9 +1530,26 @@ function openMasterMeterForm() {
   // ถ้าไม่ได้เปิดจากฟอร์มร้านค้า ให้ default เป็นเดือนก่อนหน้าของเดือนปัจจุบัน
   const monthKey = getPrevMonthKey(rentMonthKey || new Date().toISOString().slice(0, 7));
   document.getElementById('mm-f-month').value = monthKey;
+  autofillMasterMeterFields();
+}
+
+// เติมข้อมูลฟอร์มมิเตอร์กลางตามเดือนที่เลือก: ถ้ามีข้อมูลเดือนนี้อยู่แล้วให้โหลดมาแก้ไข (ถือว่า "แตะ" แล้ว)
+// ถ้ายังไม่มี ให้ auto-fill เลขมิเตอร์ "ครั้งก่อน" จากเลขมิเตอร์ "ครั้งนี้" ของเดือนก่อนหน้า (ยังแก้เองได้เสมอ)
+function autofillMasterMeterFields() {
+  const monthKey = document.getElementById('mm-f-month')?.value;
+  const prevEl = document.getElementById('mm-f-meter-previous');
+  const curEl = document.getElementById('mm-f-meter-current');
   const existing = masterMeterState.records.find(m => m.month_key === monthKey);
-  document.getElementById('mm-f-meter-previous').value = existing ? existing.meter_previous : '';
-  document.getElementById('mm-f-meter-current').value = existing ? existing.meter_current : '';
+  if (existing) {
+    prevEl.value = existing.meter_previous;
+    prevEl.dataset.touched = '1';
+    curEl.value = existing.meter_current;
+  } else {
+    prevEl.dataset.touched = '';
+    curEl.value = '';
+    const prevMonthRecord = masterMeterState.records.find(m => m.month_key === getPrevMonthKey(monthKey));
+    prevEl.value = prevMonthRecord ? prevMonthRecord.meter_current : '';
+  }
   updateMasterMeterPreview();
 }
 
@@ -1562,6 +1611,308 @@ async function syncMasterMeterFromSheets() {
   } catch(e) {}
 }
 
+// ===== SHIRT STOCK (สต็อกเสื้อ) =====
+let shirtState = {
+  stockRecords: [],
+  logRecords: [],
+  activeEvent: 'ทั้งหมด',
+  search: '',
+  detailStockId: null,
+};
+
+function saveShirtLocal() {
+  try {
+    localStorage.setItem('cmu_shirt_stock', JSON.stringify(shirtState.stockRecords));
+    localStorage.setItem('cmu_shirt_log', JSON.stringify(shirtState.logRecords));
+  } catch(e) {}
+}
+function loadShirtLocal() {
+  try {
+    const s = localStorage.getItem('cmu_shirt_stock');
+    const l = localStorage.getItem('cmu_shirt_log');
+    if (s) shirtState.stockRecords = JSON.parse(s);
+    if (l) shirtState.logRecords = JSON.parse(l);
+  } catch(e) {}
+}
+
+// คำนวณยอดคงเหลือของรายการสต็อกหนึ่งรายการ = จำนวนเริ่มต้น - ผลรวม log ที่เบิกออกทั้งหมด
+function getShirtRemaining(stockId) {
+  const stock = shirtState.stockRecords.find(s => s.id === stockId);
+  if (!stock) return 0;
+  const usedOut = shirtState.logRecords
+    .filter(l => l.stock_id === stockId)
+    .reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+  return (Number(stock.initial_qty) || 0) - usedOut;
+}
+
+async function syncShirtFromSheets() {
+  if (!API.url) return;
+  try {
+    const [stockData, logData] = await Promise.all([
+      API.call({ action: 'getAllShirtStock' }),
+      API.call({ action: 'getAllShirtLog' }),
+    ]);
+    if (stockData.records) shirtState.stockRecords = stockData.records;
+    if (logData.records) shirtState.logRecords = logData.records;
+    saveShirtLocal();
+    renderShirtList();
+  } catch(e) {}
+}
+
+function renderShirtEventChips() {
+  const wrap = document.getElementById('shirt-event-chips');
+  if (!wrap) return;
+  const events = [...new Set(shirtState.stockRecords.map(s => s.event).filter(Boolean))].sort();
+  const chips = ['ทั้งหมด', ...events];
+  wrap.innerHTML = chips.map(ev => `
+    <button class="filter-chip${ev === shirtState.activeEvent ? ' active' : ''}" onclick="setShirtEvent('${esc(ev).replace(/'/g, "\\'")}')">${esc(ev)}</button>
+  `).join('');
+}
+
+function setShirtEvent(ev) {
+  shirtState.activeEvent = ev;
+  renderShirtList();
+}
+
+function renderShirtList() {
+  renderShirtEventChips();
+  const container = document.getElementById('shirt-list');
+  let items = [...shirtState.stockRecords];
+
+  if (shirtState.activeEvent !== 'ทั้งหมด') items = items.filter(s => s.event === shirtState.activeEvent);
+  if (shirtState.search) {
+    const q = shirtState.search;
+    items = items.filter(s => [s.design, s.event, s.size].some(v => v && String(v).toLowerCase().includes(q)));
+  }
+
+  if (!items.length) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-shirt"></i><p>ยังไม่มีข้อมูลสต็อกเสื้อ กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>`;
+    return;
+  }
+
+  // จัดกลุ่มตามกิจกรรม (เห็นชัดตอนดู "ทั้งหมด" ถ้าดูกิจกรรมเดียวอยู่แล้วก็จะมีกลุ่มเดียว)
+  const groups = {};
+  items.forEach(s => {
+    const key = s.event || 'ไม่ระบุกิจกรรม';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(s);
+  });
+
+  container.innerHTML = Object.keys(groups).sort().map(eventName => {
+    const cards = groups[eventName].map(s => {
+      const remaining = getShirtRemaining(s.id);
+      let stockClass = 'badge-done', stockLabel = remaining + ' ตัว';
+      if (remaining <= 0) { stockClass = 'badge-urgent'; stockLabel = 'หมดแล้ว'; }
+      else if (remaining <= 5) { stockClass = 'badge-urgent'; stockLabel = 'เหลือน้อย: ' + remaining + ' ตัว'; }
+      return `
+        <div class="doc-card" onclick="openShirtDetail('${s.id}')">
+          <div class="doc-card-icon" style="background:#EEEDFE;color:#3C3489">
+            <i class="ti ti-shirt" aria-hidden="true"></i>
+          </div>
+          <div class="doc-card-body">
+            <div class="doc-card-row">
+              <div class="doc-card-title">${esc(s.design || '-')}</div>
+              <span class="badge ${stockClass}">${stockLabel}</span>
+            </div>
+            <div class="doc-card-meta">ไซส์ ${esc(s.size || '-')}</div>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div style="margin-bottom:16px">
+        ${shirtState.activeEvent === 'ทั้งหมด' ? `<div style="font-weight:700;color:var(--purple);margin:12px 0 8px;font-size:14px">${esc(eventName)}</div>` : ''}
+        ${cards}
+      </div>`;
+  }).join('');
+}
+
+let shirtEditingId = null;
+
+function openShirtStockForm() {
+  shirtEditingId = null;
+  document.getElementById('shirt-form-overlay').classList.add('open');
+  document.getElementById('shirt-form-title').textContent = 'เพิ่มแบบเสื้อ/ไซส์ใหม่';
+  document.getElementById('shirt-submit-btn').textContent = 'บันทึกรายการ';
+  document.getElementById('shirt-form').reset();
+  renderShirtEventDatalist();
+}
+
+function renderShirtEventDatalist() {
+  const dl = document.getElementById('shirt-event-list');
+  if (!dl) return;
+  const events = [...new Set(shirtState.stockRecords.map(s => s.event).filter(Boolean))].sort();
+  dl.innerHTML = events.map(ev => `<option value="${esc(ev)}">`).join('');
+}
+
+function openShirtEditForm(id) {
+  const s = shirtState.stockRecords.find(x => x.id === id);
+  if (!s) return;
+  shirtEditingId = id;
+  closeFinDetail();
+  document.getElementById('shirt-form-overlay').classList.add('open');
+  document.getElementById('shirt-form-title').textContent = 'แก้ไขแบบเสื้อ/ไซส์';
+  document.getElementById('shirt-submit-btn').textContent = 'บันทึกการแก้ไข';
+  renderShirtEventDatalist();
+  setTimeout(() => {
+    document.getElementById('shirt-f-event').value = s.event || '';
+    document.getElementById('shirt-f-design').value = s.design || '';
+    document.getElementById('shirt-f-size').value = s.size || '';
+    document.getElementById('shirt-f-qty').value = s.initial_qty || 0;
+    document.getElementById('shirt-f-note').value = s.note || '';
+  }, 50);
+}
+
+function closeShirtForm() {
+  document.getElementById('shirt-form-overlay').classList.remove('open');
+}
+
+async function submitShirtStockForm() {
+  const get = id => document.getElementById(id)?.value?.trim() || '';
+  const design = get('shirt-f-design');
+  if (!design) { showToast('กรุณากรอกชื่อแบบเสื้อ'); return; }
+
+  const isEdit = !!shirtEditingId;
+  const record = {
+    id: isEdit ? shirtEditingId : Date.now().toString(),
+    event: get('shirt-f-event'),
+    design: design,
+    size: get('shirt-f-size'),
+    initial_qty: Number(document.getElementById('shirt-f-qty').value) || 0,
+    note: get('shirt-f-note'),
+  };
+
+  if (isEdit) {
+    const idx = shirtState.stockRecords.findIndex(x => x.id === shirtEditingId);
+    if (idx !== -1) shirtState.stockRecords[idx] = record;
+  } else {
+    shirtState.stockRecords.unshift(record);
+  }
+  saveShirtLocal();
+  renderShirtList();
+  closeShirtForm();
+  showToast(isEdit ? 'แก้ไขสำเร็จ' : 'เพิ่มรายการสำเร็จ');
+
+  if (API.url) {
+    try {
+      if (isEdit) await API.call({ action: 'updateShirtStock', row: JSON.stringify(record) });
+      else await API.call({ action: 'addShirtStock', row: JSON.stringify(record) });
+    } catch(e) { showToast('บันทึก offline — จะซิงก์เมื่อออนไลน์'); }
+  }
+  shirtEditingId = null;
+}
+
+function deleteShirtStockRecord(id) {
+  if (!confirm('ลบรายการนี้ทั้งหมด (รวมประวัติเบิกออกที่ผูกอยู่ด้วย)?')) return;
+  shirtState.stockRecords = shirtState.stockRecords.filter(x => x.id !== id);
+  shirtState.logRecords = shirtState.logRecords.filter(x => x.stock_id !== id);
+  saveShirtLocal();
+  closeFinDetail();
+  renderShirtList();
+  showToast('ลบรายการแล้ว');
+  if (API.url) API.call({ action: 'deleteShirtStock', id }).catch(()=>{});
+}
+
+// ===== รายละเอียด + ประวัติเบิกออก =====
+function openShirtDetail(id) {
+  const s = shirtState.stockRecords.find(x => x.id === id);
+  if (!s) return;
+  shirtState.detailStockId = id;
+  const remaining = getShirtRemaining(id);
+  const logs = shirtState.logRecords.filter(l => l.stock_id === id).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+  document.getElementById('fin-detail-title').textContent = 'รายละเอียดสต็อกเสื้อ';
+  document.getElementById('fin-detail-body').innerHTML = `
+    <div class="detail-section">
+      <h3>ข้อมูลเสื้อ</h3>
+      <div class="detail-row"><span class="dk">กิจกรรม</span><span class="dv">${esc(s.event || '-')}</span></div>
+      <div class="detail-row"><span class="dk">แบบเสื้อ</span><span class="dv">${esc(s.design || '-')}</span></div>
+      <div class="detail-row"><span class="dk">ไซส์</span><span class="dv">${esc(s.size || '-')}</span></div>
+      <div class="detail-row"><span class="dk">จำนวนเริ่มต้น</span><span class="dv">${s.initial_qty || 0} ตัว</span></div>
+      ${s.note ? `<div class="detail-row"><span class="dk">หมายเหตุ</span><span class="dv">${esc(s.note)}</span></div>` : ''}
+    </div>
+    <div class="field" style="background:${remaining <= 5 ? 'var(--red-pale)' : 'var(--purple-pale)'};border-radius:var(--r-md);padding:12px 16px;margin:12px 0">
+      <label style="color:${remaining <= 5 ? 'var(--red)' : 'var(--purple)'};font-weight:700">ยอดคงเหลือ</label>
+      <div style="font-size:22px;font-weight:800;color:${remaining <= 5 ? 'var(--red)' : 'var(--purple)'}">${remaining} ตัว</div>
+    </div>
+    <div class="detail-section">
+      <h3>ประวัติเบิกออก (${logs.length} รายการ)</h3>
+      ${logs.length ? logs.map(l => `
+        <div class="detail-row">
+          <span class="dk">${formatDate(l.date)}</span>
+          <span class="dv">−${l.qty} ตัว ${l.note ? '(' + esc(l.note) + ')' : ''}
+            <i class="ti ti-trash" style="cursor:pointer;color:var(--red);margin-left:8px" onclick="deleteShirtLogEntry('${l.id}')" title="ลบรายการนี้"></i>
+          </span>
+        </div>
+      `).join('') : '<div class="empty-state" style="padding:12px 0"><p style="margin:0;font-size:13px">ยังไม่มีประวัติเบิกออก</p></div>'}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn-submit" onclick="openShirtLogForm('${s.id}')" style="flex:1;min-width:140px;background:#085041;color:#fff">
+        <i class="ti ti-minus" aria-hidden="true"></i> บันทึกเบิกออก
+      </button>
+      <button class="btn-submit" onclick="openShirtEditForm('${s.id}')" style="flex:1;min-width:100px;background:var(--purple);color:#fff">
+        <i class="ti ti-edit" aria-hidden="true"></i> แก้ไข
+      </button>
+      <button onclick="deleteShirtStockRecord('${s.id}')" style="padding:12px 16px;border:1px solid var(--border-med);border-radius:var(--radius);background:#fff;cursor:pointer;font-size:18px;color:var(--text-sub)">
+        <i class="ti ti-trash" aria-hidden="true"></i>
+      </button>
+    </div>
+  `;
+  document.getElementById('fin-detail-overlay').classList.add('open');
+}
+
+// ===== ฟอร์มบันทึกเบิกออก =====
+function openShirtLogForm(stockId) {
+  closeFinDetail();
+  document.getElementById('shirt-log-stock-id').value = stockId;
+  document.getElementById('shirt-log-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('shirt-log-qty').value = '';
+  document.getElementById('shirt-log-note').value = '';
+  const s = shirtState.stockRecords.find(x => x.id === stockId);
+  document.getElementById('shirt-log-form-title').textContent = 'บันทึกเบิกออก: ' + (s ? s.design + ' (' + s.size + ')' : '');
+  document.getElementById('shirt-log-overlay').classList.add('open');
+}
+
+function closeShirtLogForm() {
+  document.getElementById('shirt-log-overlay').classList.remove('open');
+}
+
+async function submitShirtLog() {
+  const stockId = document.getElementById('shirt-log-stock-id').value;
+  const qty = Number(document.getElementById('shirt-log-qty').value) || 0;
+  if (qty <= 0) { showToast('กรุณากรอกจำนวนที่เบิกออก'); return; }
+
+  const record = {
+    id: Date.now().toString(),
+    stock_id: stockId,
+    date: document.getElementById('shirt-log-date').value || new Date().toISOString().slice(0, 10),
+    qty: qty,
+    note: document.getElementById('shirt-log-note').value.trim(),
+  };
+
+  shirtState.logRecords.unshift(record);
+  saveShirtLocal();
+  closeShirtLogForm();
+  renderShirtList();
+  showToast('บันทึกเบิกออกสำเร็จ');
+  openShirtDetail(stockId); // เปิดกลับไปดูยอดคงเหลือใหม่ทันที
+
+  if (API.url) {
+    try { await API.call({ action: 'addShirtLog', row: JSON.stringify(record) }); }
+    catch(e) { showToast('บันทึก offline — จะซิงก์เมื่อออนไลน์'); }
+  }
+}
+
+function deleteShirtLogEntry(logId) {
+  if (!confirm('ลบประวัติการเบิกออกรายการนี้?')) return;
+  const log = shirtState.logRecords.find(l => l.id === logId);
+  shirtState.logRecords = shirtState.logRecords.filter(l => l.id !== logId);
+  saveShirtLocal();
+  showToast('ลบประวัติแล้ว');
+  if (log) openShirtDetail(log.stock_id);
+  renderShirtList();
+  if (API.url) API.call({ action: 'deleteShirtLog', id: logId }).catch(()=>{});
+}
+
 // รวมใบแจ้งหนี้ค่าเช่าทั้งเดือนเป็น PDF ไฟล์เดียว แล้วเปิดให้ปริ้นทีเดียวจบ
 async function generateMonthlyBundle() {
   const monthKey = document.getElementById('rent-bundle-month')?.value;
@@ -1570,7 +1921,7 @@ async function generateMonthlyBundle() {
 
   showToast('กำลังรวมไฟล์ทั้งเดือน... (อาจใช้เวลาสักครู่ถ้ามีหลายร้าน)');
   try {
-    const res = await API.call({ action: 'generateMonthlyInvoiceBundle', month_key: monthKey });
+    const res = await API.call({ action: 'generateMonthlyInvoiceBundle', month_key: monthKey }, 240000); // ให้เวลา 4 นาที เพราะต้องออกใบแจ้งหนี้ทุกร้านในเดือนนั้นใหม่ทั้งหมดก่อนรวม
     if (res.ok) {
       showToast(`รวมไฟล์สำเร็จ (${res.count} ร้าน)` + (res.failed && res.failed.length ? ` — ล้มเหลว: ${res.failed.join(', ')}` : ''));
       await syncRentFromSheets(); // แต่ละร้านจะมีลิงก์ใบแจ้งหนี้เดี่ยวใหม่ด้วย เพราะฟังก์ชันนี้ออกใบแจ้งหนี้ให้ทุกร้านใหม่ก่อนรวม
