@@ -14,8 +14,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+
+<!-- AUTH GATE (หน้า login ด้วย Google Account) — แสดงก่อนเข้าแอพเสมอ -->
+<div id="auth-gate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-logo">มช.</div>
+    <h1 class="auth-title">บันทึกรับ-ส่งเอกสาร</h1>
+    <p class="auth-subtitle">สมาคมนักศึกษาเก่า มช.</p>
+    <p class="auth-hint">เข้าสู่ระบบด้วยบัญชี Google ที่ได้รับสิทธิ์เท่านั้น</p>
+
+    <div id="google-signin-btn" class="auth-google-btn"></div>
+
+    <div id="auth-loading" class="auth-loading" style="display:none">
+      <i class="ti ti-loader-2 rb-spin" aria-hidden="true"></i>
+      <span>กำลังตรวจสอบสิทธิ์...</span>
+    </div>
+
+    <div id="auth-error" class="auth-error" style="display:none"></div>
+  </div>
+</div>
 
 <div id="app">
 
@@ -302,6 +322,18 @@
 
         <!-- PAGE: SETTINGS -->
         <div class="page" id="page-settings">
+          <div class="section-hd"><h2>บัญชีผู้ใช้</h2></div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <i class="ti ti-user-circle" aria-hidden="true"></i>
+              <span class="sr-label">เข้าสู่ระบบด้วย: <strong id="auth-user-email">-</strong></span>
+            </div>
+            <div class="settings-row" style="cursor:pointer" onclick="signOutCMU()">
+              <i class="ti ti-logout" aria-hidden="true" style="color:var(--red)"></i>
+              <span class="sr-label" style="color:var(--red)">ออกจากระบบ</span>
+            </div>
+          </div>
+
           <div class="section-hd"><h2>ตั้งค่าระบบ</h2></div>
           <div class="settings-card">
             <div class="settings-row">
@@ -1187,6 +1219,18 @@
         </div>
       </form>
     </div>
+  </div>
+</div>
+
+
+<!-- GLOBAL LOADING OVERLAY (ใช้กับงานที่ใช้เวลานาน เช่น ออกใบแจ้งหนี้/รวมไฟล์) -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-card">
+    <div class="loading-icon-wrap loading-neutral" id="loading-icon-wrap">
+      <i class="ti ti-loader-2 rb-spin" id="loading-icon" aria-hidden="true"></i>
+    </div>
+    <div class="loading-message" id="loading-message">กรุณารอสักครู่...</div>
+    <button type="button" class="loading-close-btn" id="loading-close-btn" style="display:none" onclick="hideLoadingOverlay()">ปิด</button>
   </div>
 </div>
 
