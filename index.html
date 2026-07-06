@@ -847,7 +847,20 @@
 
           <div class="field">
             <label for="rent-f-shop">ชื่อร้าน / กิจการ <span class="required">*</span></label>
-            <input type="text" id="rent-f-shop" placeholder="ชื่อร้านค้า">
+            <input type="text" id="rent-f-shop" list="rent-shop-list" placeholder="ชื่อร้านค้า (เลือกจากลิสต์ หรือพิมพ์ชื่อใหม่)" onchange="autofillRentLot()">
+            <datalist id="rent-shop-list">
+              <option value="ร้านน้ำผลไม้ ป้าน้อง - ลูกชิ้นทอด (1)">
+              <option value="ร้านน้ำผลไม้ ป้าน้อง - ลูกชิ้นทอด (2)">
+              <option value="ร้านลุงเล็ก อาหารตามสั่ง (3)">
+              <option value="ร้านลุงเล็ก อาหารตามสั่ง (4)">
+              <option value="ครัวจันทร์เจ้า (5)">
+              <option value="ร้านสหายกาแฟ (6)">
+              <option value="ร้านสหายกาแฟ (7)">
+              <option value="ร้านอากงเยาวราช 9 (8)">
+              <option value="ร้านชงไก่ (9)">
+              <option value="ร้านชงไก่ (10)">
+              <option value="ร้าน Hair Made">
+            </datalist>
           </div>
 
           <div class="form-grid two">
@@ -942,7 +955,9 @@
     <div class="drawer-body">
       <p style="font-size:13px;color:var(--text-sub);margin:0 0 12px">
         กปภ. คิดค่าน้ำแบบขั้นบันไดจาก<strong>ยอดรวมที่มิเตอร์กลางอ่านได้</strong> ระบบจะคำนวณราคาเฉลี่ยต่อหน่วยของเดือนนี้ให้อัตโนมัติ
-        แล้วนำไปคูณกับหน่วยที่แต่ละร้านใช้จริงจากมิเตอร์ย่อยของร้าน
+        แล้วนำไปคูณกับหน่วยที่แต่ละร้านใช้จริงจากมิเตอร์ย่อยของร้าน<br><br>
+        <strong>หมายเหตุ:</strong> รอบบิลค่าน้ำล่าช้ากว่ารอบเก็บค่าเช่า 1 เดือนเสมอ (เช่น บิลค่าเช่าเดือนกรกฎาคม ใช้ค่าน้ำของเดือนมิถุนายน) —
+        ระบบจะเลือกเดือนให้อัตโนมัติเมื่อเปิดจากฟอร์มร้านค้า
       </p>
       <form id="mm-form" onsubmit="return false">
         <div class="form-grid" style="gap:12px">

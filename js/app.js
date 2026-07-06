@@ -50,6 +50,14 @@ function getAvgRateForMonth(monthKey) {
   const rec = masterMeterState.records.find(m => m.month_key === monthKey);
   return rec ? Number(rec.avg_rate) : null;
 }
+// ค่าน้ำของบิลเดือนนี้ อ้างอิงมิเตอร์กลางของ "เดือนก่อนหน้า" เสมอ (รอบบิลค่าน้ำล่าช้ากว่ารอบเก็บค่าเช่า 1 เดือน)
+function getPrevMonthKey(monthKey) {
+  const [y, m] = (monthKey || '').split('-').map(Number);
+  if (!y || !m) return '';
+  let py = y, pm = m - 1;
+  if (pm < 1) { pm = 12; py -= 1; }
+  return py + '-' + String(pm).padStart(2, '0');
+}
 
 function saveRentLocal() { try { localStorage.setItem('cmu_rent_records', JSON.stringify(rentState.records)); } catch(e){} }
 function loadRentLocal() {
@@ -1157,7 +1165,8 @@ function updateRentPreview() {
   const monthKey = document.getElementById('rent-f-month')?.value || '';
 
   const units = Math.max(meterCur - meterPrev, 0);
-  const avgRate = getAvgRateForMonth(monthKey);
+  const waterMonthKey = getPrevMonthKey(monthKey);
+  const avgRate = getAvgRateForMonth(waterMonthKey);
   const waterFee = avgRate != null ? Math.round(units * avgRate * 100) / 100 : 0;
 
   document.getElementById('rent-f-units').value = units;
@@ -1166,6 +1175,9 @@ function updateRentPreview() {
   const warnEl = document.getElementById('rent-f-water-warn');
   if (warnEl) {
     warnEl.style.display = (avgRate == null && monthKey) ? 'block' : 'none';
+    if (avgRate == null && monthKey) {
+      warnEl.querySelector('span').textContent = '⚠️ ยังไม่ได้ตั้งค่ามิเตอร์น้ำกลางของเดือน ' + (waterMonthKey || '-') + ' (เดือนก่อนหน้า) — ค่าน้ำจะเป็น 0 ไปก่อน กด "ตั้งค่ามิเตอร์น้ำกลาง" จากหน้ารายการก่อนบันทึกจริง';
+    }
   }
 
   // เสนอค่า รปภ./บริจาคให้อัตโนมัติ "เฉพาะตอนที่ยังไม่เคยแก้เอง" (เช็คจาก data-touched)
@@ -1176,6 +1188,15 @@ function updateRentPreview() {
 
   const total = rent + waterFee + Number(secEl.value || 0) + Number(donEl.value || 0);
   document.getElementById('rent-f-total-preview').textContent = formatMoney(total);
+}
+
+// ดึงเลขล็อคจากชื่อร้านที่มีวงเล็บท้าย เช่น "ร้านชงไก่ (9)" → เติมช่อง "ล็อค" เป็น "9" ให้อัตโนมัติ
+function autofillRentLot() {
+  const shopEl = document.getElementById('rent-f-shop');
+  const lotEl = document.getElementById('rent-f-lot');
+  if (!shopEl || !lotEl) return;
+  const match = shopEl.value.match(/\((\d+)\)\s*$/);
+  if (match) lotEl.value = match[1];
 }
 
 function openRentForm() {
@@ -1235,15 +1256,16 @@ async function submitRentForm() {
   const monthKey = get('rent-f-month'); // yyyy-mm จาก <input type="month">
   const [y, m] = monthKey.split('-').map(Number);
   const monthLabel = (y && m) ? (THAI_MONTHS[m - 1] + ' ' + (y + 543)) : '';
+  const waterMonthKey = getPrevMonthKey(monthKey); // ค่าน้ำอ้างอิงมิเตอร์กลางของเดือนก่อนหน้าเสมอ
 
-  if (getAvgRateForMonth(monthKey) == null) {
-    if (!confirm('ยังไม่ได้ตั้งค่ามิเตอร์กลางของเดือนนี้ — ค่าน้ำจะถูกบันทึกเป็น 0 บาทไปก่อน แล้วค่อยกลับมาแก้ทีหลังได้ ต้องการดำเนินการต่อไหม?')) return;
+  if (getAvgRateForMonth(waterMonthKey) == null) {
+    if (!confirm('ยังไม่ได้ตั้งค่ามิเตอร์กลางของเดือน ' + waterMonthKey + ' (เดือนก่อนหน้า) — ค่าน้ำจะถูกบันทึกเป็น 0 บาทไปก่อน แล้วค่อยกลับมาแก้ทีหลังได้ ต้องการดำเนินการต่อไหม?')) return;
   }
 
   const meterCur = getNum('rent-f-meter-current');
   const meterPrev = getNum('rent-f-meter-previous');
   const units = Math.max(meterCur - meterPrev, 0);
-  const avgRate = getAvgRateForMonth(monthKey);
+  const avgRate = getAvgRateForMonth(waterMonthKey);
   const waterFee = avgRate != null ? Math.round(units * avgRate * 100) / 100 : 0;
   const rent = getNum('rent-f-rent');
   const securityFee = getNum('rent-f-security-fee');
@@ -1469,7 +1491,10 @@ async function syncRentFromSheets() {
 // ===== มิเตอร์น้ำกลาง (ตั้งค่าราคาเฉลี่ยต่อหน่วยของแต่ละเดือน) =====
 function openMasterMeterForm() {
   document.getElementById('mm-form-overlay').classList.add('open');
-  const monthKey = document.getElementById('rent-f-month')?.value || new Date().toISOString().slice(0, 7);
+  const rentMonthKey = document.getElementById('rent-f-month')?.value;
+  // ถ้าเปิดจากฟอร์มร้านค้าที่กำลังกรอกอยู่ ให้ default เป็น "เดือนก่อนหน้า" ของบิลนั้น (ค่าน้ำอ้างอิงเดือนก่อนเสมอ)
+  // ถ้าไม่ได้เปิดจากฟอร์มร้านค้า ให้ default เป็นเดือนก่อนหน้าของเดือนปัจจุบัน
+  const monthKey = getPrevMonthKey(rentMonthKey || new Date().toISOString().slice(0, 7));
   document.getElementById('mm-f-month').value = monthKey;
   const existing = masterMeterState.records.find(m => m.month_key === monthKey);
   document.getElementById('mm-f-meter-previous').value = existing ? existing.meter_previous : '';
