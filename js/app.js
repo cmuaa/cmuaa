@@ -1770,13 +1770,14 @@ function triggerShirtPhotoUpload(eventName, design) {
     try {
       const res = await API.upload('shirt', file);
       if (res.ok) {
+        const embedUrl = res.imgUrl || ('https://lh3.googleusercontent.com/d/' + res.id); // เผื่อ backend เก่ายังไม่มี imgUrl
         shirtState.stockRecords.forEach(s => {
-          if (s.event === eventName && s.design === design) s.photo_url = res.url;
+          if (s.event === eventName && s.design === design) s.photo_url = embedUrl;
         });
         saveShirtLocal();
         renderShirtList();
         showToast('อัปโหลดรูปสำเร็จ');
-        await API.call({ action: 'updateShirtPhoto', event: eventName, design: design, photo_url: res.url }, 30000);
+        await API.call({ action: 'updateShirtPhoto', event: eventName, design: design, photo_url: embedUrl }, 30000);
       } else {
         showToast('อัปโหลดไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
       }
