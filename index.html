@@ -986,6 +986,64 @@
   </div>
 </div>
 
+<!-- RENT BATCH FORM OVERLAY (กรอกค่าเช่าทั้งเดือนทีเดียว ครบทุกร้าน) -->
+<div class="overlay" id="rent-batch-overlay" role="dialog" aria-modal="true" aria-labelledby="rent-batch-title">
+  <div class="drawer" style="max-width:1200px;width:96vw">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="rent-batch-title">กรอกค่าเช่าทั้งเดือน (<span id="rent-batch-shop-count">0 ร้าน</span>)</h2>
+      <button class="drawer-close" onclick="closeRentBatchForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+
+      <div class="form-grid two" style="max-width:400px;margin-bottom:12px">
+        <div class="field">
+          <label for="rent-batch-month">เดือนที่เรียกเก็บ</label>
+          <input type="month" id="rent-batch-month" onchange="loadRentBatchRows(this.value)">
+        </div>
+      </div>
+
+      <div id="rent-batch-water-warn" class="field" style="display:none;background:var(--red-pale);border-radius:var(--r-md);padding:10px 14px;margin-bottom:12px">
+        <span style="color:var(--red);font-size:13px"></span>
+      </div>
+
+      <div style="overflow-x:auto;border:1px solid var(--border-med);border-radius:var(--r-md)">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap">
+          <thead>
+            <tr style="background:var(--gray-100);text-align:left">
+              <th style="padding:10px 8px">ชื่อร้าน</th>
+              <th style="padding:10px 8px">ล็อค</th>
+              <th style="padding:10px 8px">ห้อง</th>
+              <th style="padding:10px 8px">ค่าเช่า</th>
+              <th style="padding:10px 8px">มิเตอร์ก่อน</th>
+              <th style="padding:10px 8px">มิเตอร์หลัง</th>
+              <th style="padding:10px 8px">หน่วยใช้</th>
+              <th style="padding:10px 8px">ค่าน้ำ</th>
+              <th style="padding:10px 8px">รปภ.</th>
+              <th style="padding:10px 8px">บริจาค</th>
+              <th style="padding:10px 8px">รวม</th>
+              <th style="padding:10px 8px"></th>
+            </tr>
+          </thead>
+          <tbody id="rent-batch-tbody"></tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0">
+        <button type="button" onclick="addRentBatchRow()" style="border:1px dashed var(--border-med);background:none;color:var(--purple);font-family:inherit;font-size:13.5px;font-weight:600;padding:10px 16px;border-radius:var(--radius);cursor:pointer">
+          <i class="ti ti-plus" aria-hidden="true"></i> เพิ่มร้าน
+        </button>
+        <div style="font-size:15px">รวมทั้งหมด: <strong id="rent-batch-grandtotal" style="color:var(--purple);font-size:20px">฿0</strong></div>
+      </div>
+
+      <button type="button" class="btn-submit recv" onclick="submitRentBatchAll()">
+        บันทึกทั้งหมด
+      </button>
+
+    </div>
+  </div>
+</div>
+
 <!-- MASTER METER FORM OVERLAY (มิเตอร์น้ำกลาง) -->
 <div class="overlay" id="mm-form-overlay" role="dialog" aria-modal="true" aria-labelledby="mm-form-title">
   <div class="drawer">

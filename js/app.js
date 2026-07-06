@@ -160,14 +160,14 @@ function setupFab() {
   document.getElementById('fab').addEventListener('click', () => {
     if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
-    else if (state.page === 'rent') openRentForm();
+    else if (state.page === 'rent') openRentBatchForm();
     else if (state.page === 'shirt') openShirtStockForm();
     else openForm('recv');
   });
   document.getElementById('desktop-add-btn').addEventListener('click', () => {
     if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
-    else if (state.page === 'rent') openRentForm();
+    else if (state.page === 'rent') openRentBatchForm();
     else if (state.page === 'shirt') openShirtStockForm();
     else openForm('recv');
   });
@@ -1429,6 +1429,216 @@ function goRentPage(p) {
   rentState.currentPage = p;
   renderRentList();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== RENT: กรอกทั้งเดือนทีเดียว (แทนที่ฟอร์มเดิมที่เปิดทีละร้าน) =====
+let rentBatchRows = []; // แต่ละแถว: { lot, shop_name, rooms, rent, meter_previous, meter_current, security_fee, donation, status, note, _secTouched, _donTouched }
+let rentBatchMonthKey = '';
+
+function openRentBatchForm() {
+  document.getElementById('rent-batch-overlay').classList.add('open');
+  const monthKey = new Date().toISOString().slice(0, 7);
+  document.getElementById('rent-batch-month').value = monthKey;
+  loadRentBatchRows(monthKey);
+}
+
+function closeRentBatchForm() {
+  document.getElementById('rent-batch-overlay').classList.remove('open');
+}
+
+// ดึงรายชื่อร้านจากเดือนก่อนหน้ามาเติมเป็นแถวเริ่มต้นให้อัตโนมัติ (ค่าเช่า/รปภ/บริจาคคงเดิม, เลขมิเตอร์ก่อน = เลขมิเตอร์หลังของเดือนที่แล้ว, เลขมิเตอร์หลังเว้นว่างไว้ให้กรอกใหม่)
+function loadRentBatchRows(monthKey) {
+  rentBatchMonthKey = monthKey;
+  const prevMonthKey = getPrevMonthKey(monthKey);
+  const prevShops = rentState.records.filter(r => r.month_key === prevMonthKey);
+
+  rentBatchRows = prevShops.map(r => ({
+    lot: r.lot || '',
+    shop_name: r.shop_name || '',
+    rooms: r.rooms || 1,
+    rent: r.rent || 0,
+    meter_previous: r.meter_current || 0, // เลขมิเตอร์หลังของเดือนที่แล้ว = เลขมิเตอร์ก่อนของเดือนนี้
+    meter_current: '',
+    security_fee: r.security_fee || 0,
+    donation: r.donation || 0,
+    status: 'unpaid',
+    note: '',
+    _secTouched: true, _donTouched: true, // ค่าที่ดึงมาจากเดือนก่อน ถือว่า "แตะ" แล้ว ไม่ auto-เปลี่ยนตามค่าเช่าใหม่จนกว่าจะแก้เอง
+  }));
+
+  renderRentBatchTable();
+}
+
+function addRentBatchRow() {
+  rentBatchRows.push({
+    lot: '', shop_name: '', rooms: 1, rent: 0,
+    meter_previous: 0, meter_current: '',
+    security_fee: 0, donation: 0, status: 'unpaid', note: '',
+    _secTouched: false, _donTouched: false,
+  });
+  renderRentBatchTable();
+}
+
+function removeRentBatchRow(idx) {
+  rentBatchRows.splice(idx, 1);
+  renderRentBatchTable();
+}
+
+// คำนวณค่าน้ำของ 1 แถว (อ้างอิงราคาเฉลี่ยจากมิเตอร์กลางของเดือนก่อนหน้า เหมือนฟอร์มเดี่ยวเดิม)
+function calcRentBatchRowWater(row) {
+  const units = Math.max((Number(row.meter_current) || 0) - (Number(row.meter_previous) || 0), 0);
+  const waterMonthKey = getPrevMonthKey(rentBatchMonthKey);
+  const avgRate = getAvgRateForMonth(waterMonthKey);
+  const waterFee = avgRate != null ? Math.round(units * avgRate * 100) / 100 : 0;
+  return { units, waterFee, avgRateSet: avgRate != null };
+}
+
+// อัปเดตค่าฟิลด์ของแถว โดย "ไม่ re-render ทั้งตาราง" (กัน cursor กระโดดออกจากช่องตอนพิมพ์)
+// จะอัปเดตแค่ cell ผลลัพธ์ที่เกี่ยวข้อง (หน่วยที่ใช้/ค่าน้ำ/รวม) ผ่าน DOM ตรงๆ แทน
+function updateRentBatchField(idx, field, value) {
+  const row = rentBatchRows[idx];
+  if (!row) return;
+  const tr = document.querySelector(`#rent-batch-tbody tr[data-idx="${idx}"]`);
+
+  if (field === 'shop_name') {
+    row.shop_name = value;
+    const match = value.match(/\((\d+)\)\s*$/);
+    if (match) {
+      row.lot = match[1];
+      const lotInput = tr?.querySelector('.rb-lot-input');
+      if (lotInput) lotInput.value = row.lot;
+    }
+    return; // ไม่กระทบยอดเงิน ไม่ต้องคำนวณใหม่
+  }
+  if (field === 'lot' || field === 'note' || field === 'status') { row[field] = value; return; }
+
+  if (field === 'security_fee') {
+    row.security_fee = Number(value) || 0;
+    row._secTouched = true;
+  } else if (field === 'donation') {
+    row.donation = Number(value) || 0;
+    row._donTouched = true;
+  } else if (['rooms', 'rent', 'meter_previous', 'meter_current'].includes(field)) {
+    row[field] = value === '' ? '' : Number(value) || 0;
+    // เสนอค่า รปภ./บริจาคอัตโนมัติถ้ายังไม่เคยแก้เอง (เฉพาะตอนแก้ ห้อง/ค่าเช่า)
+    if (field === 'rooms' && !row._secTouched) {
+      row.security_fee = RENT_SECURITY_FEE_PER_ROOM * (Number(row.rooms) || 1);
+      const secInput = tr?.querySelector('.rb-sec-input');
+      if (secInput) secInput.value = row.security_fee;
+    }
+    if (field === 'rent' && !row._donTouched) {
+      row.donation = (Number(row.rent) || 0) * RENT_DONATION_RATE;
+      const donInput = tr?.querySelector('.rb-don-input');
+      if (donInput) donInput.value = row.donation;
+    }
+  }
+
+  updateRentBatchRowCalc(idx);
+}
+
+// อัปเดตแค่ cell ผลลัพธ์ (หน่วยที่ใช้/ค่าน้ำ/รวม) ของแถวเดียว ผ่าน textContent ตรงๆ ไม่แตะ input เลย
+function updateRentBatchRowCalc(idx) {
+  const row = rentBatchRows[idx];
+  if (!row) return;
+  const { units, waterFee } = calcRentBatchRowWater(row);
+  const total = (Number(row.rent) || 0) + waterFee + (Number(row.security_fee) || 0) + (Number(row.donation) || 0);
+  const tr = document.querySelector(`#rent-batch-tbody tr[data-idx="${idx}"]`);
+  if (tr) {
+    tr.querySelector('.rb-units').textContent = units;
+    tr.querySelector('.rb-water').textContent = waterFee.toFixed(2);
+    tr.querySelector('.rb-total').textContent = formatMoney(total);
+  }
+  updateRentBatchGrandTotal();
+}
+
+function updateRentBatchGrandTotal() {
+  let grand = 0;
+  rentBatchRows.forEach(row => {
+    const { waterFee } = calcRentBatchRowWater(row);
+    grand += (Number(row.rent) || 0) + waterFee + (Number(row.security_fee) || 0) + (Number(row.donation) || 0);
+  });
+  const el = document.getElementById('rent-batch-grandtotal');
+  if (el) el.textContent = formatMoney(grand);
+}
+
+// สร้าง/rebuild ตารางทั้งหมด — เรียกเฉพาะตอนโครงสร้างแถวเปลี่ยน (เพิ่ม/ลบแถว/โหลดเดือนใหม่) ไม่ใช่ทุกครั้งที่พิมพ์
+function renderRentBatchTable() {
+  document.getElementById('rent-batch-shop-count').textContent = rentBatchRows.length + ' ร้าน';
+
+  const waterMonthKey = getPrevMonthKey(rentBatchMonthKey);
+  const avgRateSet = getAvgRateForMonth(waterMonthKey) != null;
+  const warnEl = document.getElementById('rent-batch-water-warn');
+  if (warnEl) {
+    warnEl.style.display = (!avgRateSet && rentBatchMonthKey) ? 'block' : 'none';
+    warnEl.querySelector('span').textContent = '⚠️ ยังไม่ได้ตั้งค่ามิเตอร์น้ำกลางของเดือน ' + waterMonthKey + ' (เดือนก่อนหน้า) — ค่าน้ำทุกแถวจะเป็น 0 ไปก่อน';
+  }
+
+  const tbody = document.getElementById('rent-batch-tbody');
+  tbody.innerHTML = rentBatchRows.map((row, idx) => {
+    const { units, waterFee } = calcRentBatchRowWater(row);
+    const total = (Number(row.rent) || 0) + waterFee + (Number(row.security_fee) || 0) + (Number(row.donation) || 0);
+    return `
+      <tr data-idx="${idx}">
+        <td><input list="rent-shop-list" value="${esc(row.shop_name)}" oninput="updateRentBatchField(${idx},'shop_name',this.value)" style="min-width:170px" placeholder="ชื่อร้าน"></td>
+        <td><input type="text" class="rb-lot-input" value="${esc(row.lot)}" oninput="updateRentBatchField(${idx},'lot',this.value)" style="width:50px" placeholder="ล็อค"></td>
+        <td><input type="number" value="${row.rooms}" min="1" oninput="updateRentBatchField(${idx},'rooms',this.value)" style="width:55px"></td>
+        <td><input type="number" value="${row.rent}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'rent',this.value)" style="width:85px"></td>
+        <td><input type="number" value="${row.meter_previous}" min="0" oninput="updateRentBatchField(${idx},'meter_previous',this.value)" style="width:75px"></td>
+        <td><input type="number" value="${row.meter_current}" min="0" oninput="updateRentBatchField(${idx},'meter_current',this.value)" style="width:75px" placeholder="กรอกใหม่"></td>
+        <td class="rb-units" style="text-align:center;color:var(--text-hint)">${units}</td>
+        <td class="rb-water" style="text-align:right;color:var(--text-hint)">${waterFee.toFixed(2)}</td>
+        <td><input type="number" class="rb-sec-input" value="${row.security_fee}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'security_fee',this.value)" style="width:75px"></td>
+        <td><input type="number" class="rb-don-input" value="${row.donation}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'donation',this.value)" style="width:75px"></td>
+        <td class="rb-total" style="text-align:right;font-weight:700;color:var(--purple)">${formatMoney(total)}</td>
+        <td><i class="ti ti-trash" style="cursor:pointer;color:var(--red)" onclick="removeRentBatchRow(${idx})" title="ลบแถวนี้"></i></td>
+      </tr>`;
+  }).join('');
+
+  updateRentBatchGrandTotal();
+}
+
+async function submitRentBatchAll() {
+  if (!rentBatchRows.length) { showToast('ยังไม่มีร้านในตารางเลย'); return; }
+  const monthKey = document.getElementById('rent-batch-month').value;
+  if (!monthKey) { showToast('กรุณาเลือกเดือน'); return; }
+  const [y, m] = monthKey.split('-').map(Number);
+  const monthLabel = (y && m) ? (THAI_MONTHS[m - 1] + ' ' + (y + 543)) : '';
+
+  const invalidRows = rentBatchRows.filter(r => !r.shop_name || !r.shop_name.trim());
+  if (invalidRows.length) { showToast('มี ' + invalidRows.length + ' แถวที่ยังไม่ได้กรอกชื่อร้าน'); return; }
+
+  showToast('กำลังบันทึกทั้งหมด ' + rentBatchRows.length + ' ร้าน...');
+
+  const records = rentBatchRows.map(row => {
+    const { units, waterFee } = calcRentBatchRowWater(row);
+    const total = (Number(row.rent) || 0) + waterFee + (Number(row.security_fee) || 0) + (Number(row.donation) || 0);
+    return {
+      id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 7),
+      month_key: monthKey, month: monthLabel,
+      lot: row.lot, shop_name: row.shop_name.trim(), rooms: row.rooms || 1,
+      rent: Number(row.rent) || 0,
+      meter_previous: Number(row.meter_previous) || 0, meter_current: Number(row.meter_current) || 0,
+      units, water_fee: waterFee,
+      security_fee: Number(row.security_fee) || 0, donation: Number(row.donation) || 0, total,
+      status: row.status || 'unpaid', note: row.note || '', file_url: '', issue_date: '',
+      created_at: new Date().toISOString(),
+    };
+  });
+
+  records.forEach(r => rentState.records.unshift(r));
+  saveRentLocal();
+  renderRentList();
+
+  if (API.url) {
+    const results = await Promise.allSettled(records.map(r => API.call({ action: 'addRent', row: JSON.stringify(r) }, 30000)));
+    const failCount = results.filter(x => x.status === 'rejected').length;
+    if (failCount) showToast(`บันทึกสำเร็จ ${records.length - failCount}/${records.length} ร้าน (${failCount} ร้านพลาด ลองซิงก์ใหม่ทีหลัง)`);
+    else showToast(`บันทึกสำเร็จครบทุกร้าน (${records.length} ร้าน) 🎉`);
+  } else {
+    showToast('บันทึก offline ครบ ' + records.length + ' ร้าน — จะซิงก์เมื่อออนไลน์');
+  }
+
+  closeRentBatchForm();
 }
 
 // ===== RENT: DETAIL =====
