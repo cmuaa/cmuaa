@@ -1022,3 +1022,26 @@ body {
   .rb-table { font-size: 13px; min-width: 900px; }
   .rb-table td, .rb-table th { padding: 10px 8px; }
 }
+
+/* แถบสถานะผลการบันทึกตารางค่าเช่า (ค้างแสดงจนกว่าจะกดปิดเอง แทนการใช้ toast ที่หายเร็วเกินไป) */
+.rb-status {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  border-radius: var(--r-lg); padding: 14px 18px; margin: 14px 0; font-size: 14px; font-weight: 500;
+}
+.rb-status i { font-size: 20px; flex-shrink: 0; }
+.rb-status span { flex: 1; line-height: 1.5; }
+.rb-status-loading { background: var(--purple-pale); color: var(--purple); }
+.rb-status-loading i { color: var(--purple); }
+.rb-status-success { background: #E1F5EE; color: #085041; }
+.rb-status-success i { color: #085041; }
+.rb-status-warn { background: var(--red-pale); color: var(--red); }
+.rb-status-warn i { color: var(--red); }
+.rb-status-close {
+  border: none; background: rgba(0,0,0,0.08); color: inherit; font-family: inherit;
+  font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  white-space: nowrap;
+}
+.rb-status-close:hover { background: rgba(0,0,0,0.14); }
+
+.rb-spin { animation: rb-spin-anim .8s linear infinite; }
+@keyframes rb-spin-anim { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
