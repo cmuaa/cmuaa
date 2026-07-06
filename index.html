@@ -158,11 +158,18 @@
             <input type="search" id="rent-search-input" placeholder="ค้นหาชื่อร้าน, ล็อค, เดือน..." aria-label="ค้นหารายการค่าเช่า">
           </div>
 
-          <button class="settings-row" style="cursor:pointer;width:100%;text-align:left;border:1px solid var(--border-med);border-radius:var(--radius);background:#fff;margin-bottom:12px;font-family:inherit;font-size:14px" onclick="openMasterMeterForm()">
+          <button class="settings-row" style="cursor:pointer;width:100%;text-align:left;border:1px solid var(--border-med);border-radius:var(--radius);background:#fff;margin-bottom:8px;font-family:inherit;font-size:14px" onclick="openMasterMeterForm()">
             <i class="ti ti-droplet" aria-hidden="true"></i>
             <span class="sr-label">ตั้งค่ามิเตอร์น้ำกลางประจำเดือน</span>
             <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
           </button>
+
+          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+            <input type="month" id="rent-bundle-month" style="flex:1;min-width:140px;padding:10px 12px;border:1px solid var(--border-med);border-radius:var(--radius);font-family:inherit;font-size:14px">
+            <button class="btn-submit recv" style="width:auto;padding:10px 16px;margin:0" onclick="generateMonthlyBundle()">
+              <i class="ti ti-printer" aria-hidden="true"></i> รวมไฟล์ + ปริ้นทั้งเดือน
+            </button>
+          </div>
 
           <div class="filter-bar" role="group" aria-label="กรองรายการค่าเช่า">
             <button class="filter-chip active" data-rent-filter="all">ทั้งหมด</button>

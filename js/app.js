@@ -1320,6 +1320,8 @@ async function submitRentForm() {
 // ===== RENT: RENDER LIST =====
 function renderRentList() {
   const container = document.getElementById('rent-list');
+  const bundleMonthEl = document.getElementById('rent-bundle-month');
+  if (bundleMonthEl && !bundleMonthEl.value) bundleMonthEl.value = new Date().toISOString().slice(0, 7);
   let items = [...rentState.records];
 
   // เรียงตามเดือน ล่าสุดก่อน แล้วตามชื่อร้าน
@@ -1558,6 +1560,27 @@ async function syncMasterMeterFromSheets() {
     const data = await API.call({ action: 'getAllMasterMeter' });
     if (data.records) { masterMeterState.records = data.records; saveMasterMeterLocal(); }
   } catch(e) {}
+}
+
+// รวมใบแจ้งหนี้ค่าเช่าทั้งเดือนเป็น PDF ไฟล์เดียว แล้วเปิดให้ปริ้นทีเดียวจบ
+async function generateMonthlyBundle() {
+  const monthKey = document.getElementById('rent-bundle-month')?.value;
+  if (!monthKey) { showToast('กรุณาเลือกเดือนที่จะรวมไฟล์'); return; }
+  if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
+
+  showToast('กำลังรวมไฟล์ทั้งเดือน... (อาจใช้เวลาสักครู่ถ้ามีหลายร้าน)');
+  try {
+    const res = await API.call({ action: 'generateMonthlyInvoiceBundle', month_key: monthKey });
+    if (res.ok) {
+      showToast(`รวมไฟล์สำเร็จ (${res.count} ร้าน)` + (res.failed && res.failed.length ? ` — ล้มเหลว: ${res.failed.join(', ')}` : ''));
+      await syncRentFromSheets(); // แต่ละร้านจะมีลิงก์ใบแจ้งหนี้เดี่ยวใหม่ด้วย เพราะฟังก์ชันนี้ออกใบแจ้งหนี้ให้ทุกร้านใหม่ก่อนรวม
+      window.open(res.pdfUrl, '_blank');
+    } else {
+      showToast('รวมไฟล์ไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+    }
+  } catch (e) {
+    showToast('รวมไฟล์ไม่สำเร็จ: ' + e.message);
+  }
 }
 
 // ===== CALENDAR =====
