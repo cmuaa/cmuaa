@@ -1190,6 +1190,18 @@
   </div>
 </div>
 
+
+<!-- GLOBAL LOADING OVERLAY (ใช้กับงานที่ใช้เวลานาน เช่น ออกใบแจ้งหนี้/รวมไฟล์) -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-card">
+    <div class="loading-icon-wrap loading-neutral" id="loading-icon-wrap">
+      <i class="ti ti-loader-2 rb-spin" id="loading-icon" aria-hidden="true"></i>
+    </div>
+    <div class="loading-message" id="loading-message">กรุณารอสักครู่...</div>
+    <button type="button" class="loading-close-btn" id="loading-close-btn" style="display:none" onclick="hideLoadingOverlay()">ปิด</button>
+  </div>
+</div>
+
 <!-- FINANCE DETAIL OVERLAY -->
 <div class="detail-overlay" id="fin-detail-overlay" role="dialog" aria-modal="true">
   <div class="detail-header">
