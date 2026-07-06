@@ -26,6 +26,39 @@ let finState = {
 };
 let finEditingId = null;
 
+// ===== RENT STATE (ค่าเช่า) =====
+let rentState = {
+  records: [],
+  filter: 'all',
+  search: '',
+  detailId: null,
+  currentPage: 1,
+  pageSize: 20,
+};
+let rentEditingId = null;
+
+// ===== MASTER METER STATE (มิเตอร์น้ำกลาง — 1 ตัวต่อเดือน ใช้อ้างอิงราคาเฉลี่ยต่อหน่วย) =====
+let masterMeterState = { records: [] };
+function saveMasterMeterLocal() { try { localStorage.setItem('cmu_master_meter', JSON.stringify(masterMeterState.records)); } catch(e){} }
+function loadMasterMeterLocal() {
+  try {
+    const d = localStorage.getItem('cmu_master_meter');
+    if (d) masterMeterState.records = JSON.parse(d);
+  } catch(e) {}
+}
+function getAvgRateForMonth(monthKey) {
+  const rec = masterMeterState.records.find(m => m.month_key === monthKey);
+  return rec ? Number(rec.avg_rate) : null;
+}
+
+function saveRentLocal() { try { localStorage.setItem('cmu_rent_records', JSON.stringify(rentState.records)); } catch(e){} }
+function loadRentLocal() {
+  try {
+    const d = localStorage.getItem('cmu_rent_records');
+    if (d) rentState.records = JSON.parse(d);
+  } catch(e) {}
+}
+
 // ===== STORAGE (offline fallback) =====
 function saveLocal() { try { localStorage.setItem('cmu_records', JSON.stringify(state.records)); } catch(e){} }
 function loadLocal() {
@@ -48,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLocal();
   loadFinLocal();
   loadCalLocal();
+  loadRentLocal();
+  loadMasterMeterLocal();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
   render();
   setupNav();
@@ -107,6 +142,7 @@ function switchPage(p) {
   if (p === 'stats') renderStats();
   if (p === 'finance') renderFinList();
   if (p === 'calendar') renderCalendar();
+  if (p === 'rent') renderRentList();
 }
 
 // ===== FAB =====
@@ -114,11 +150,13 @@ function setupFab() {
   document.getElementById('fab').addEventListener('click', () => {
     if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
+    else if (state.page === 'rent') openRentForm();
     else openForm('recv');
   });
   document.getElementById('desktop-add-btn').addEventListener('click', () => {
     if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
+    else if (state.page === 'rent') openRentForm();
     else openForm('recv');
   });
 }
@@ -153,6 +191,23 @@ function setupSearch() {
       finState.currentPage = 1;
       document.querySelectorAll('.filter-chip[data-fin-filter]').forEach(c => c.classList.toggle('active', c.dataset.finFilter === finState.filter));
       renderFinList();
+    });
+  });
+
+  const rentSearch = document.getElementById('rent-search-input');
+  if (rentSearch) {
+    rentSearch.addEventListener('input', e => {
+      rentState.search = e.target.value.toLowerCase();
+      rentState.currentPage = 1;
+      renderRentList();
+    });
+  }
+  document.querySelectorAll('.filter-chip[data-rent-filter]').forEach(el => {
+    el.addEventListener('click', () => {
+      rentState.filter = el.dataset.rentFilter;
+      rentState.currentPage = 1;
+      document.querySelectorAll('.filter-chip[data-rent-filter]').forEach(c => c.classList.toggle('active', c.dataset.rentFilter === rentState.filter));
+      renderRentList();
     });
   });
 }
@@ -635,6 +690,8 @@ async function syncFromSheets() {
     if (data.records) { state.records = data.records; saveLocal(); renderList(); }
     await syncFinFromSheets();
     await syncCalFromSheets();
+    await syncRentFromSheets();
+    await syncMasterMeterFromSheets();
     showToast('ซิงก์สำเร็จ');
   } catch(e) { showToast('ซิงก์ไม่สำเร็จ: ' + e.message); }
   finally { state.syncing = false; setSyncLoading(false); }
@@ -973,6 +1030,7 @@ function openFinDetail(id) {
   const r = finState.records.find(x => x.id === id);
   if (!r) return;
   finState.detailId = id;
+  document.getElementById('fin-detail-title').textContent = 'รายละเอียดรายการเบิก-จ่ายเงิน';
 
   const rows = [
     ['เลขที่เบิก', r.docno],
@@ -1044,6 +1102,436 @@ async function syncFinFromSheets() {
   try {
     const data = await API.call({ action: 'getAllFinance' });
     if (data.records) { finState.records = data.records; saveFinLocal(); renderFinList(); }
+  } catch(e) {}
+}
+
+// ===== RENT (ค่าเช่า) =====
+
+// ตารางเรทค่าน้ำแบบขั้นบันได (กปภ. ตารางหมายเลข 3 ประเภท 2: ราชการและธุรกิจขนาดเล็ก)
+// แก้ตัวเลขตรงนี้ได้เลยถ้า กปภ. ปรับอัตราในอนาคต ไม่ต้องแตะสูตรคำนวณ
+const WATER_RATE_TIERS = [
+  { upTo: 10, rate: 16.00 },
+  { upTo: 20, rate: 19.00 },
+  { upTo: 30, rate: 20.00 },
+  { upTo: 50, rate: 21.50 },
+  { upTo: 80, rate: 21.60 },
+  { upTo: 100, rate: 21.65 },
+  { upTo: 300, rate: 21.70 },
+  { upTo: 1000, rate: 21.75 },
+  { upTo: 2000, rate: 21.80 },
+  { upTo: 3000, rate: 21.85 },
+  { upTo: Infinity, rate: 21.90 },
+];
+const WATER_MIN_CHARGE = 150;
+const RENT_SECURITY_FEE_PER_ROOM = 400;
+const RENT_DONATION_RATE = 0.05; // บริจาคช่วยภาษี 5% ของค่าเช่า (ค่าเริ่มต้น แก้ไขต่อรายการได้)
+
+// คำนวณค่าน้ำแบบขั้นบันได (เหมือนกับฝั่ง Apps Script เป๊ะ ใช้พรีวิวในฟอร์มแบบสด ๆ)
+function calcWaterFee(units) {
+  units = Number(units) || 0;
+  if (units <= 0) return WATER_MIN_CHARGE;
+  let remaining = units, prev = 0, total = 0;
+  for (const tier of WATER_RATE_TIERS) {
+    if (remaining <= 0) break;
+    const size = tier.upTo - prev;
+    const use = Math.min(remaining, size);
+    total += use * tier.rate;
+    remaining -= use;
+    prev = tier.upTo;
+  }
+  return Math.max(Math.round(total * 100) / 100, WATER_MIN_CHARGE);
+}
+
+function rentStatusLabel(s) { return s === 'paid' ? 'จ่ายแล้ว' : 'ค้างชำระ'; }
+function rentStatusBadgeClass(s) { return s === 'paid' ? 'badge-done' : 'badge-urgent'; }
+
+function saveRentLocal2() {} // เผื่อเรียกผิดชื่อในอนาคต (no-op safeguard)
+
+// อัปเดตพรีวิวยอดเงินแบบสดในฟอร์ม ตอนผู้ใช้พิมพ์ค่าเช่า/เลขมิเตอร์
+function updateRentPreview() {
+  const getNum = id => Number(document.getElementById(id)?.value) || 0;
+  const meterCur = getNum('rent-f-meter-current');
+  const meterPrev = getNum('rent-f-meter-previous');
+  const rooms = getNum('rent-f-rooms') || 1;
+  const rent = getNum('rent-f-rent');
+  const monthKey = document.getElementById('rent-f-month')?.value || '';
+
+  const units = Math.max(meterCur - meterPrev, 0);
+  const avgRate = getAvgRateForMonth(monthKey);
+  const waterFee = avgRate != null ? Math.round(units * avgRate * 100) / 100 : 0;
+
+  document.getElementById('rent-f-units').value = units;
+  document.getElementById('rent-f-water-fee').value = waterFee.toFixed(2);
+
+  const warnEl = document.getElementById('rent-f-water-warn');
+  if (warnEl) {
+    warnEl.style.display = (avgRate == null && monthKey) ? 'block' : 'none';
+  }
+
+  // เสนอค่า รปภ./บริจาคให้อัตโนมัติ "เฉพาะตอนที่ยังไม่เคยแก้เอง" (เช็คจาก data-touched)
+  const secEl = document.getElementById('rent-f-security-fee');
+  if (!secEl.dataset.touched) secEl.value = (RENT_SECURITY_FEE_PER_ROOM * rooms).toFixed(2);
+  const donEl = document.getElementById('rent-f-donation');
+  if (!donEl.dataset.touched) donEl.value = (rent * RENT_DONATION_RATE).toFixed(2);
+
+  const total = rent + waterFee + Number(secEl.value || 0) + Number(donEl.value || 0);
+  document.getElementById('rent-f-total-preview').textContent = formatMoney(total);
+}
+
+function openRentForm() {
+  rentEditingId = null;
+  document.getElementById('rent-form-overlay').classList.add('open');
+  document.getElementById('rent-form').reset();
+  document.getElementById('rent-form-title').textContent = 'บันทึกค่าเช่าประจำเดือน';
+  document.getElementById('rent-submit-btn').textContent = 'บันทึกรายการค่าเช่า';
+  document.getElementById('rent-f-security-fee').dataset.touched = '';
+  document.getElementById('rent-f-donation').dataset.touched = '';
+  const today = new Date();
+  document.getElementById('rent-f-month').value = today.toISOString().slice(0, 7);
+  document.getElementById('rent-f-rooms').value = 1;
+  updateRentPreview();
+}
+
+function closeRentForm() {
+  document.getElementById('rent-form-overlay').classList.remove('open');
+}
+
+function openRentEditForm(id) {
+  const r = rentState.records.find(x => x.id === id);
+  if (!r) return;
+  rentEditingId = id;
+  closeFinDetail();
+  document.getElementById('rent-form-overlay').classList.add('open');
+  document.getElementById('rent-form-title').textContent = 'แก้ไขรายการค่าเช่า';
+  document.getElementById('rent-submit-btn').textContent = 'บันทึกการแก้ไข';
+  setTimeout(() => {
+    const set = (elId, val) => { const el = document.getElementById(elId); if (el && val !== undefined) el.value = val; };
+    set('rent-f-month', r.month_key || '');
+    set('rent-f-lot', r.lot);
+    set('rent-f-shop', r.shop_name);
+    set('rent-f-rooms', r.rooms || 1);
+    set('rent-f-rent', r.rent);
+    set('rent-f-meter-previous', r.meter_previous);
+    set('rent-f-meter-current', r.meter_current);
+    set('rent-f-security-fee', r.security_fee);
+    set('rent-f-donation', r.donation);
+    set('rent-f-status', r.status || 'unpaid');
+    set('rent-f-note', r.note);
+    // ตอนแก้ไข ถือว่า รปภ./บริจาคของเดิมถูก "แตะ" แล้วเสมอ กันระบบไปเผลอ auto-overwrite ค่าที่เคยตั้งเองไว้
+    document.getElementById('rent-f-security-fee').dataset.touched = '1';
+    document.getElementById('rent-f-donation').dataset.touched = '1';
+    updateRentPreview();
+  }, 100);
+}
+
+async function submitRentForm() {
+  const get = id => document.getElementById(id)?.value?.trim() || '';
+  const getNum = id => Number(document.getElementById(id)?.value) || 0;
+  const isEdit = !!rentEditingId;
+
+  const shopName = get('rent-f-shop');
+  if (!shopName) { showToast('กรุณากรอกชื่อร้าน'); return; }
+
+  const monthKey = get('rent-f-month'); // yyyy-mm จาก <input type="month">
+  const [y, m] = monthKey.split('-').map(Number);
+  const monthLabel = (y && m) ? (THAI_MONTHS[m - 1] + ' ' + (y + 543)) : '';
+
+  if (getAvgRateForMonth(monthKey) == null) {
+    if (!confirm('ยังไม่ได้ตั้งค่ามิเตอร์กลางของเดือนนี้ — ค่าน้ำจะถูกบันทึกเป็น 0 บาทไปก่อน แล้วค่อยกลับมาแก้ทีหลังได้ ต้องการดำเนินการต่อไหม?')) return;
+  }
+
+  const meterCur = getNum('rent-f-meter-current');
+  const meterPrev = getNum('rent-f-meter-previous');
+  const units = Math.max(meterCur - meterPrev, 0);
+  const avgRate = getAvgRateForMonth(monthKey);
+  const waterFee = avgRate != null ? Math.round(units * avgRate * 100) / 100 : 0;
+  const rent = getNum('rent-f-rent');
+  const securityFee = getNum('rent-f-security-fee');
+  const donation = getNum('rent-f-donation');
+  const total = rent + waterFee + securityFee + donation;
+
+  const oldRecord = isEdit ? rentState.records.find(x => x.id === rentEditingId) : null;
+
+  const record = {
+    id: isEdit ? rentEditingId : Date.now().toString(),
+    month_key: monthKey,
+    month: monthLabel,
+    lot: get('rent-f-lot'),
+    shop_name: shopName,
+    rooms: getNum('rent-f-rooms') || 1,
+    rent,
+    meter_previous: meterPrev,
+    meter_current: meterCur,
+    units,
+    water_fee: waterFee,
+    security_fee: securityFee,
+    donation,
+    total,
+    status: get('rent-f-status') || 'unpaid',
+    note: get('rent-f-note'),
+    file_url: oldRecord ? (oldRecord.file_url || '') : '',
+    issue_date: oldRecord ? (oldRecord.issue_date || '') : '',
+    created_at: new Date().toISOString(),
+  };
+
+  if (isEdit) {
+    const idx = rentState.records.findIndex(x => x.id === rentEditingId);
+    if (idx !== -1) rentState.records[idx] = record;
+  } else {
+    rentState.records.unshift(record);
+  }
+  saveRentLocal();
+  renderRentList();
+  closeRentForm();
+  showToast(isEdit ? 'แก้ไขสำเร็จ' : 'บันทึกสำเร็จ');
+
+  if (API.url) {
+    try {
+      if (isEdit) await API.call({ action: 'updateRent', row: JSON.stringify(record) });
+      else await API.call({ action: 'addRent', row: JSON.stringify(record) });
+    } catch(e) { showToast('บันทึก offline — จะซิงก์เมื่อออนไลน์'); }
+  }
+
+  rentEditingId = null;
+}
+
+// ===== RENT: RENDER LIST =====
+function renderRentList() {
+  const container = document.getElementById('rent-list');
+  let items = [...rentState.records];
+
+  // เรียงตามเดือน ล่าสุดก่อน แล้วตามชื่อร้าน
+  items.sort((a, b) => {
+    const ma = a.month_key || '', mb = b.month_key || '';
+    if (mb !== ma) return mb > ma ? 1 : -1;
+    return (a.shop_name || '').localeCompare(b.shop_name || '');
+  });
+
+  if (rentState.filter !== 'all') items = items.filter(r => r.status === rentState.filter);
+  if (rentState.search) {
+    items = items.filter(r =>
+      [r.shop_name, r.lot, r.month].some(v => v && String(v).toLowerCase().includes(rentState.search))
+    );
+  }
+
+  const totalAll = rentState.records.length;
+  const unpaidCount = rentState.records.filter(r => r.status !== 'paid').length;
+  const totalAmt = rentState.records.reduce((s, r) => s + (Number(r.total) || 0), 0);
+  const unpaidAmt = rentState.records.filter(r => r.status !== 'paid').reduce((s, r) => s + (Number(r.total) || 0), 0);
+
+  const elTotal = document.getElementById('rent-total');
+  const elUnpaid = document.getElementById('rent-unpaid');
+  const elTotalAmt = document.getElementById('rent-total-amt');
+  const elUnpaidAmt = document.getElementById('rent-unpaid-amt');
+  if (elTotal) elTotal.textContent = totalAll;
+  if (elUnpaid) elUnpaid.textContent = unpaidCount;
+  if (elTotalAmt) elTotalAmt.textContent = formatMoney(totalAmt);
+  if (elUnpaidAmt) elUnpaidAmt.textContent = formatMoney(unpaidAmt);
+
+  if (!items.length) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-building-store"></i><p>ยังไม่มีรายการค่าเช่า กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>`;
+    document.getElementById('rent-pagination').innerHTML = '';
+    return;
+  }
+
+  if (!Number.isInteger(rentState.currentPage)) rentState.currentPage = 1;
+  const totalPages = Math.ceil(items.length / rentState.pageSize);
+  if (rentState.currentPage > totalPages) rentState.currentPage = 1;
+  const start = (rentState.currentPage - 1) * rentState.pageSize;
+  const paged = items.slice(start, start + rentState.pageSize);
+
+  const pg = document.getElementById('rent-pagination');
+  if (pg) {
+    let btns = '';
+    if (rentState.currentPage > 1) btns += `<button class="pg-btn" onclick="goRentPage(${rentState.currentPage-1})">← ก่อนหน้า</button>`;
+    btns += `<span class="pg-info">หน้า ${rentState.currentPage} / ${totalPages} (${items.length} รายการ)</span>`;
+    if (rentState.currentPage < totalPages) btns += `<button class="pg-btn" onclick="goRentPage(${rentState.currentPage+1})">ถัดไป →</button>`;
+    pg.innerHTML = btns;
+  }
+
+  container.innerHTML = paged.map(r => `
+    <div class="doc-card" onclick="openRentDetail('${r.id}')">
+      <div class="doc-card-icon" style="background:#E1F5EE;color:#085041">
+        <i class="ti ti-building-store" aria-hidden="true"></i>
+      </div>
+      <div class="doc-card-body">
+        <div class="doc-card-row">
+          <div class="doc-card-title">${esc(r.shop_name || '-')}${r.lot ? ' (ล็อค ' + esc(r.lot) + ')' : ''}</div>
+          <span class="badge ${rentStatusBadgeClass(r.status)}">${rentStatusLabel(r.status)}</span>
+        </div>
+        <div class="doc-card-meta">${esc(r.month || '-')} &nbsp;·&nbsp; หน่วยน้ำใช้ ${r.units || 0}</div>
+        <div class="doc-card-tags">
+          <span class="badge badge-type">รวม ${formatMoney(r.total)}</span>
+          ${r.file_url ? `<span class="badge badge-done">มีใบแจ้งหนี้แล้ว</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function goRentPage(p) {
+  rentState.currentPage = p;
+  renderRentList();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== RENT: DETAIL =====
+function openRentDetail(id) {
+  const r = rentState.records.find(x => x.id === id);
+  if (!r) return;
+  rentState.detailId = id;
+  document.getElementById('fin-detail-title').textContent = 'รายละเอียดค่าเช่า';
+
+  const rows = [
+    ['เดือน', r.month],
+    ['ล็อค', r.lot],
+    ['ชื่อร้าน', r.shop_name],
+    ['จำนวนห้องเช่า', r.rooms],
+    ['ค่าเช่า', formatMoney(r.rent)],
+    ['เลขมิเตอร์ก่อน', r.meter_previous],
+    ['เลขมิเตอร์หลัง', r.meter_current],
+    ['จำนวนหน่วยที่ใช้', r.units],
+    ['ค่าน้ำ', formatMoney(r.water_fee)],
+    ['ค่า รปภ.', formatMoney(r.security_fee)],
+    ['บริจาคช่วยภาษี', formatMoney(r.donation)],
+    ['รวมเงินที่ต้องชำระ', formatMoney(r.total)],
+    ['สถานะ', rentStatusLabel(r.status)],
+    ['วันที่ออกใบแจ้งหนี้', r.issue_date ? formatDate(r.issue_date) : ''],
+    ['หมายเหตุ', r.note],
+  ];
+
+  document.getElementById('fin-detail-body').innerHTML = `
+    <div class="detail-section">
+      <h3>ข้อมูลค่าเช่า</h3>
+      ${rows.filter(([,v]) => v !== undefined && v !== '').map(([k,v]) => `
+        <div class="detail-row"><span class="dk">${k}</span><span class="dv">${esc(String(v))}</span></div>
+      `).join('')}
+      ${r.file_url ? `<div class="detail-row"><span class="dk">ใบแจ้งหนี้ (PDF)</span><span class="dv"><a href="${r.file_url}" target="_blank" style="color:var(--purple)">🔗 เปิดไฟล์</a></span></div>` : ''}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+      <button class="btn-submit" onclick="generateRentInvoice('${r.id}')" style="flex:1;min-width:160px;background:#085041;color:#fff">
+        <i class="ti ti-file-invoice" aria-hidden="true"></i> ${r.file_url ? 'ออกใบแจ้งหนี้ใหม่' : 'ออกใบแจ้งหนี้'}
+      </button>
+      <button class="btn-submit" onclick="openRentEditForm('${r.id}')" style="flex:1;min-width:100px;background:var(--purple);color:#fff">
+        <i class="ti ti-edit" aria-hidden="true"></i> แก้ไข
+      </button>
+      <button onclick="deleteRentRecord('${r.id}')" style="padding:12px 16px;border:1px solid var(--border-med);border-radius:var(--radius);background:#fff;cursor:pointer;font-size:18px;color:var(--text-sub)">
+        <i class="ti ti-trash" aria-hidden="true"></i>
+      </button>
+    </div>
+  `;
+
+  document.getElementById('fin-detail-overlay').classList.add('open');
+}
+
+function deleteRentRecord(id) {
+  if (!confirm('ลบรายการค่าเช่านี้?')) return;
+  rentState.records = rentState.records.filter(x => x.id !== id);
+  saveRentLocal();
+  closeFinDetail();
+  renderRentList();
+  showToast('ลบรายการแล้ว');
+  if (API.url) API.call({ action: 'deleteRent', id }).catch(()=>{});
+}
+
+// สั่งออกใบแจ้งหนี้ (Apps Script จะ merge เข้า Slides template แล้ว export PDF ให้)
+async function generateRentInvoice(id) {
+  if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
+  showToast('กำลังออกใบแจ้งหนี้... (อาจใช้เวลาสักครู่)');
+  try {
+    const res = await API.call({ action: 'generateRentInvoice', id });
+    if (res.ok) {
+      const idx = rentState.records.findIndex(x => x.id === id);
+      if (idx !== -1) {
+        rentState.records[idx].file_url = res.pdfUrl;
+        rentState.records[idx].issue_date = res.issueDate;
+        saveRentLocal();
+      }
+      showToast('ออกใบแจ้งหนี้สำเร็จ');
+      openRentDetail(id);
+      window.open(res.pdfUrl, '_blank');
+    } else {
+      showToast('ออกใบแจ้งหนี้ไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+    }
+  } catch (e) {
+    showToast('ออกใบแจ้งหนี้ไม่สำเร็จ: ' + e.message);
+  }
+}
+
+async function syncRentFromSheets() {
+  if (!API.url) return;
+  try {
+    const data = await API.call({ action: 'getAllRent' });
+    if (data.records) { rentState.records = data.records; saveRentLocal(); renderRentList(); }
+  } catch(e) {}
+}
+
+// ===== มิเตอร์น้ำกลาง (ตั้งค่าราคาเฉลี่ยต่อหน่วยของแต่ละเดือน) =====
+function openMasterMeterForm() {
+  document.getElementById('mm-form-overlay').classList.add('open');
+  const monthKey = document.getElementById('rent-f-month')?.value || new Date().toISOString().slice(0, 7);
+  document.getElementById('mm-f-month').value = monthKey;
+  const existing = masterMeterState.records.find(m => m.month_key === monthKey);
+  document.getElementById('mm-f-meter-previous').value = existing ? existing.meter_previous : '';
+  document.getElementById('mm-f-meter-current').value = existing ? existing.meter_current : '';
+  updateMasterMeterPreview();
+}
+
+function closeMasterMeterForm() {
+  document.getElementById('mm-form-overlay').classList.remove('open');
+}
+
+function updateMasterMeterPreview() {
+  const getNum = id => Number(document.getElementById(id)?.value) || 0;
+  const units = Math.max(getNum('mm-f-meter-current') - getNum('mm-f-meter-previous'), 0);
+  const totalBill = calcWaterFee(units);
+  const avgRate = units > 0 ? Math.round((totalBill / units) * 100) / 100 : 0;
+  document.getElementById('mm-f-units-preview').textContent = units;
+  document.getElementById('mm-f-total-preview').textContent = formatMoney(totalBill);
+  document.getElementById('mm-f-avgrate-preview').textContent = avgRate.toFixed(2) + ' บาท/หน่วย';
+}
+
+async function submitMasterMeter() {
+  const get = id => document.getElementById(id)?.value?.trim() || '';
+  const getNum = id => Number(document.getElementById(id)?.value) || 0;
+
+  const monthKey = get('mm-f-month');
+  if (!monthKey) { showToast('กรุณาเลือกเดือน'); return; }
+  const [y, m] = monthKey.split('-').map(Number);
+  const monthLabel = (y && m) ? (THAI_MONTHS[m - 1] + ' ' + (y + 543)) : '';
+
+  const record = {
+    month_key: monthKey, month: monthLabel,
+    meter_previous: getNum('mm-f-meter-previous'),
+    meter_current: getNum('mm-f-meter-current'),
+  };
+
+  if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
+  showToast('กำลังบันทึกมิเตอร์กลาง...');
+  try {
+    const res = await API.call({ action: 'setMasterMeter', row: JSON.stringify(record) });
+    if (res.ok) {
+      const idx = masterMeterState.records.findIndex(x => x.month_key === monthKey);
+      const updated = { month_key: monthKey, month: monthLabel, meter_previous: record.meter_previous, meter_current: record.meter_current, units: res.units, total_bill: res.totalBill, avg_rate: res.avgRate };
+      if (idx !== -1) masterMeterState.records[idx] = updated;
+      else masterMeterState.records.unshift(updated);
+      saveMasterMeterLocal();
+      showToast('บันทึกมิเตอร์กลางสำเร็จ — ราคาเฉลี่ย ' + res.avgRate.toFixed(2) + ' บาท/หน่วย');
+      closeMasterMeterForm();
+      updateRentPreview(); // อัปเดตพรีวิวค่าน้ำในฟอร์มร้านค้าทันที ถ้าเปิดอยู่
+    } else {
+      showToast('บันทึกไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+    }
+  } catch (e) {
+    showToast('บันทึกไม่สำเร็จ: ' + e.message);
+  }
+}
+
+async function syncMasterMeterFromSheets() {
+  if (!API.url) return;
+  try {
+    const data = await API.call({ action: 'getAllMasterMeter' });
+    if (data.records) { masterMeterState.records = data.records; saveMasterMeterLocal(); }
   } catch(e) {}
 }
 

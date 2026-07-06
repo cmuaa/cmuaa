@@ -36,6 +36,7 @@
       </button>
       <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
       <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
+      <button class="desktop-nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
       <button class="desktop-nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
       <button class="desktop-nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
       <button class="desktop-nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
@@ -141,6 +142,38 @@
             <div class="empty-state"><i class="ti ti-receipt"></i><p>กดปุ่ม + เพื่อเพิ่มรายการเบิก-จ่ายแรก</p></div>
           </div>
           <div id="fin-pagination" class="pagination-wrap"></div>
+        </div>
+
+        <!-- PAGE: RENT (ค่าเช่า) -->
+        <div class="page" id="page-rent">
+          <div class="stats-row" role="region" aria-label="สรุปค่าเช่า">
+            <div class="stat-card all"><div class="n" id="rent-total">0</div><div class="l">รายการทั้งหมด</div></div>
+            <div class="stat-card pend"><div class="n" id="rent-unpaid">0</div><div class="l">ค้างชำระ</div></div>
+            <div class="stat-card recv"><div class="n" id="rent-total-amt">฿0</div><div class="l">ยอดรวมทั้งหมด</div></div>
+            <div class="stat-card send"><div class="n" id="rent-unpaid-amt">฿0</div><div class="l">ยอดค้างชำระ</div></div>
+          </div>
+
+          <div class="search-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="search" id="rent-search-input" placeholder="ค้นหาชื่อร้าน, ล็อค, เดือน..." aria-label="ค้นหารายการค่าเช่า">
+          </div>
+
+          <button class="settings-row" style="cursor:pointer;width:100%;text-align:left;border:1px solid var(--border-med);border-radius:var(--radius);background:#fff;margin-bottom:12px;font-family:inherit;font-size:14px" onclick="openMasterMeterForm()">
+            <i class="ti ti-droplet" aria-hidden="true"></i>
+            <span class="sr-label">ตั้งค่ามิเตอร์น้ำกลางประจำเดือน</span>
+            <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
+          </button>
+
+          <div class="filter-bar" role="group" aria-label="กรองรายการค่าเช่า">
+            <button class="filter-chip active" data-rent-filter="all">ทั้งหมด</button>
+            <button class="filter-chip" data-rent-filter="unpaid">ค้างชำระ</button>
+            <button class="filter-chip" data-rent-filter="paid">จ่ายแล้ว</button>
+          </div>
+
+          <div class="doc-list" id="rent-list" role="list">
+            <div class="empty-state"><i class="ti ti-building-store"></i><p>กดปุ่ม + เพื่อเพิ่มรายการค่าเช่าแรก</p></div>
+          </div>
+          <div id="rent-pagination" class="pagination-wrap"></div>
         </div>
 
         <!-- PAGE: CALENDAR -->
@@ -281,6 +314,7 @@
   <nav class="bottom-nav" aria-label="เมนูล่าง">
     <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
     <button class="nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
+    <button class="nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
     <button class="nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
     <button class="nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
@@ -780,6 +814,167 @@
 
           <button type="button" class="btn-submit recv" id="fin-submit-btn" onclick="submitFinForm()">
             บันทึกรายการเบิก-จ่ายเงิน
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- RENT FORM OVERLAY (ค่าเช่า) -->
+<div class="overlay" id="rent-form-overlay" role="dialog" aria-modal="true" aria-labelledby="rent-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="rent-form-title">บันทึกค่าเช่าประจำเดือน</h2>
+      <button class="drawer-close" onclick="closeRentForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="rent-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-month">เดือนที่เรียกเก็บ <span class="required">*</span></label>
+              <input type="month" id="rent-f-month" onchange="updateRentPreview()">
+            </div>
+            <div class="field">
+              <label for="rent-f-lot">ล็อค</label>
+              <input type="text" id="rent-f-lot" placeholder="เช่น 4">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="rent-f-shop">ชื่อร้าน / กิจการ <span class="required">*</span></label>
+            <input type="text" id="rent-f-shop" placeholder="ชื่อร้านค้า">
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-rooms">จำนวนห้องที่เช่า</label>
+              <input type="number" id="rent-f-rooms" value="1" min="1" step="1" oninput="updateRentPreview()">
+            </div>
+            <div class="field">
+              <label for="rent-f-rent">ค่าเช่า (บาท) <span class="required">*</span></label>
+              <input type="number" id="rent-f-rent" placeholder="0.00" step="0.01" min="0" oninput="updateRentPreview()">
+            </div>
+          </div>
+
+          <div class="section-hd" style="margin:8px 0 4px"><h2>มิเตอร์น้ำประปา</h2></div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-meter-previous">เลขมิเตอร์ครั้งก่อน</label>
+              <input type="number" id="rent-f-meter-previous" placeholder="0" step="1" min="0" oninput="updateRentPreview()">
+            </div>
+            <div class="field">
+              <label for="rent-f-meter-current">เลขมิเตอร์ครั้งนี้</label>
+              <input type="number" id="rent-f-meter-current" placeholder="0" step="1" min="0" oninput="updateRentPreview()">
+            </div>
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-units">จำนวนหน่วยที่ใช้</label>
+              <input type="number" id="rent-f-units" readonly style="background:var(--gray-100)">
+            </div>
+            <div class="field">
+              <label for="rent-f-water-fee">ค่าน้ำ (คำนวณจากเรทเฉลี่ยมิเตอร์กลาง)</label>
+              <input type="number" id="rent-f-water-fee" readonly style="background:var(--gray-100)">
+            </div>
+          </div>
+          <div id="rent-f-water-warn" class="field" style="display:none;background:var(--red-pale);border-radius:var(--r-md);padding:10px 14px">
+            <span style="color:var(--red);font-size:13px">⚠️ ยังไม่ได้ตั้งค่ามิเตอร์น้ำกลางของเดือนนี้ — ค่าน้ำจะเป็น 0 ไปก่อน กด "ตั้งค่ามิเตอร์น้ำกลาง" จากหน้ารายการก่อนบันทึกจริง</span>
+          </div>
+
+          <div class="section-hd" style="margin:8px 0 4px"><h2>ค่าใช้จ่ายอื่น</h2></div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-security-fee">ค่า รปภ. (แก้ไขได้)</label>
+              <input type="number" id="rent-f-security-fee" placeholder="0.00" step="0.01" min="0"
+                oninput="this.dataset.touched='1'; updateRentPreview()">
+            </div>
+            <div class="field">
+              <label for="rent-f-donation">บริจาคช่วยภาษี (แก้ไขได้)</label>
+              <input type="number" id="rent-f-donation" placeholder="0.00" step="0.01" min="0"
+                oninput="this.dataset.touched='1'; updateRentPreview()">
+            </div>
+          </div>
+
+          <div class="field" style="background:var(--purple-pale);border-radius:var(--r-md);padding:12px 16px">
+            <label style="color:var(--purple);font-weight:700">รวมเงินที่ต้องชำระทั้งสิ้น</label>
+            <div id="rent-f-total-preview" style="font-size:22px;font-weight:800;color:var(--purple)">฿0</div>
+          </div>
+
+          <div class="field">
+            <label for="rent-f-status">สถานะการชำระ</label>
+            <select id="rent-f-status">
+              <option value="unpaid">ค้างชำระ</option>
+              <option value="paid">จ่ายแล้ว</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="rent-f-note">หมายเหตุ</label>
+            <textarea id="rent-f-note" placeholder="บันทึกเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="rent-submit-btn" onclick="submitRentForm()">
+            บันทึกรายการค่าเช่า
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MASTER METER FORM OVERLAY (มิเตอร์น้ำกลาง) -->
+<div class="overlay" id="mm-form-overlay" role="dialog" aria-modal="true" aria-labelledby="mm-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="mm-form-title">ตั้งค่ามิเตอร์น้ำกลางประจำเดือน</h2>
+      <button class="drawer-close" onclick="closeMasterMeterForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <p style="font-size:13px;color:var(--text-sub);margin:0 0 12px">
+        กปภ. คิดค่าน้ำแบบขั้นบันไดจาก<strong>ยอดรวมที่มิเตอร์กลางอ่านได้</strong> ระบบจะคำนวณราคาเฉลี่ยต่อหน่วยของเดือนนี้ให้อัตโนมัติ
+        แล้วนำไปคูณกับหน่วยที่แต่ละร้านใช้จริงจากมิเตอร์ย่อยของร้าน
+      </p>
+      <form id="mm-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="field">
+            <label for="mm-f-month">เดือน <span class="required">*</span></label>
+            <input type="month" id="mm-f-month">
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="mm-f-meter-previous">เลขมิเตอร์กลางครั้งก่อน</label>
+              <input type="number" id="mm-f-meter-previous" placeholder="0" step="1" min="0" oninput="updateMasterMeterPreview()">
+            </div>
+            <div class="field">
+              <label for="mm-f-meter-current">เลขมิเตอร์กลางครั้งนี้</label>
+              <input type="number" id="mm-f-meter-current" placeholder="0" step="1" min="0" oninput="updateMasterMeterPreview()">
+            </div>
+          </div>
+
+          <div class="field" style="background:var(--gray-100);border-radius:var(--r-md);padding:12px 16px">
+            <div class="detail-row"><span class="dk">หน่วยรวมทั้งหมด</span><span class="dv" id="mm-f-units-preview">0</span></div>
+            <div class="detail-row"><span class="dk">ค่าน้ำรวม (คิดขั้นบันได)</span><span class="dv" id="mm-f-total-preview">฿0</span></div>
+          </div>
+
+          <div class="field" style="background:var(--purple-pale);border-radius:var(--r-md);padding:12px 16px">
+            <label style="color:var(--purple);font-weight:700">ราคาเฉลี่ยต่อหน่วย</label>
+            <div id="mm-f-avgrate-preview" style="font-size:22px;font-weight:800;color:var(--purple)">0.00 บาท/หน่วย</div>
+          </div>
+
+          <button type="button" class="btn-submit recv" onclick="submitMasterMeter()">
+            บันทึกมิเตอร์กลาง
           </button>
 
         </div>
