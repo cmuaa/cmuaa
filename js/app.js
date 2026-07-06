@@ -1569,8 +1569,8 @@ function renderRentBatchTable() {
   const avgRateSet = getAvgRateForMonth(waterMonthKey) != null;
   const warnEl = document.getElementById('rent-batch-water-warn');
   if (warnEl) {
-    warnEl.style.display = (!avgRateSet && rentBatchMonthKey) ? 'block' : 'none';
-    warnEl.querySelector('span').textContent = '⚠️ ยังไม่ได้ตั้งค่ามิเตอร์น้ำกลางของเดือน ' + waterMonthKey + ' (เดือนก่อนหน้า) — ค่าน้ำทุกแถวจะเป็น 0 ไปก่อน';
+    warnEl.style.display = (!avgRateSet && rentBatchMonthKey) ? 'flex' : 'none';
+    warnEl.querySelector('span').textContent = 'ยังไม่ได้ตั้งค่ามิเตอร์น้ำกลางของเดือน ' + waterMonthKey + ' (เดือนก่อนหน้า) — ค่าน้ำทุกแถวจะเป็น 0 ไปก่อน';
   }
 
   const tbody = document.getElementById('rent-batch-tbody');
@@ -1579,18 +1579,18 @@ function renderRentBatchTable() {
     const total = (Number(row.rent) || 0) + waterFee + (Number(row.security_fee) || 0) + (Number(row.donation) || 0);
     return `
       <tr data-idx="${idx}">
-        <td><input list="rent-shop-list" value="${esc(row.shop_name)}" oninput="updateRentBatchField(${idx},'shop_name',this.value)" style="min-width:170px" placeholder="ชื่อร้าน"></td>
-        <td><input type="text" class="rb-lot-input" value="${esc(row.lot)}" oninput="updateRentBatchField(${idx},'lot',this.value)" style="width:50px" placeholder="ล็อค"></td>
-        <td><input type="number" value="${row.rooms}" min="1" oninput="updateRentBatchField(${idx},'rooms',this.value)" style="width:55px"></td>
-        <td><input type="number" value="${row.rent}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'rent',this.value)" style="width:85px"></td>
-        <td><input type="number" value="${row.meter_previous}" min="0" oninput="updateRentBatchField(${idx},'meter_previous',this.value)" style="width:75px"></td>
-        <td><input type="number" value="${row.meter_current}" min="0" oninput="updateRentBatchField(${idx},'meter_current',this.value)" style="width:75px" placeholder="กรอกใหม่"></td>
-        <td class="rb-units" style="text-align:center;color:var(--text-hint)">${units}</td>
-        <td class="rb-water" style="text-align:right;color:var(--text-hint)">${waterFee.toFixed(2)}</td>
-        <td><input type="number" class="rb-sec-input" value="${row.security_fee}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'security_fee',this.value)" style="width:75px"></td>
-        <td><input type="number" class="rb-don-input" value="${row.donation}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'donation',this.value)" style="width:75px"></td>
-        <td class="rb-total" style="text-align:right;font-weight:700;color:var(--purple)">${formatMoney(total)}</td>
-        <td><i class="ti ti-trash" style="cursor:pointer;color:var(--red)" onclick="removeRentBatchRow(${idx})" title="ลบแถวนี้"></i></td>
+        <td class="rb-col-shop"><input list="rent-shop-list" value="${esc(row.shop_name)}" oninput="updateRentBatchField(${idx},'shop_name',this.value)" placeholder="ชื่อร้าน"></td>
+        <td class="rb-col-sm"><input type="text" class="rb-lot-input" value="${esc(row.lot)}" oninput="updateRentBatchField(${idx},'lot',this.value)" placeholder="—"></td>
+        <td class="rb-col-sm"><input type="number" value="${row.rooms}" min="1" oninput="updateRentBatchField(${idx},'rooms',this.value)"></td>
+        <td class="rb-col-md"><input type="number" value="${row.rent}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'rent',this.value)"></td>
+        <td class="rb-col-md"><input type="number" value="${row.meter_previous}" min="0" oninput="updateRentBatchField(${idx},'meter_previous',this.value)"></td>
+        <td class="rb-col-md"><input type="number" value="${row.meter_current}" min="0" oninput="updateRentBatchField(${idx},'meter_current',this.value)" placeholder="กรอกใหม่"></td>
+        <td class="rb-col-sm rb-readonly-col rb-units">${units}</td>
+        <td class="rb-col-md rb-readonly-col rb-water">${waterFee.toFixed(2)}</td>
+        <td class="rb-col-md"><input type="number" class="rb-sec-input" value="${row.security_fee}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'security_fee',this.value)"></td>
+        <td class="rb-col-md"><input type="number" class="rb-don-input" value="${row.donation}" min="0" step="0.01" oninput="updateRentBatchField(${idx},'donation',this.value)"></td>
+        <td class="rb-col-total rb-total">${formatMoney(total)}</td>
+        <td class="rb-col-del"><button type="button" class="rb-del-btn" onclick="removeRentBatchRow(${idx})" title="ลบแถวนี้"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
       </tr>`;
   }).join('');
 
