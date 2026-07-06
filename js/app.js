@@ -1,5 +1,84 @@
 /* app.js — CMU Alumni Document Tracker */
 
+// ===== AUTH STATE (ระบบ login ด้วย Google Account) =====
+const GOOGLE_CLIENT_ID = '500666390436-ac1o4jdd8n6j41j0t684e421asj1m17e.apps.googleusercontent.com';
+let authState = { idToken: null, email: null, verified: false };
+
+function initGoogleSignIn() {
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+  });
+  google.accounts.id.renderButton(document.getElementById('google-signin-btn'), {
+    theme: 'filled_blue', size: 'large', shape: 'pill', text: 'signin_with', width: 280,
+  });
+
+  // ถ้ามี session เดิมที่เก็บไว้ (ยังไม่หมดอายุ) ลองเข้าใช้งานต่อแบบเงียบๆ โดยไม่ต้องกดล็อกอินซ้ำ
+  const savedToken = sessionStorage.getItem('cmu_id_token');
+  if (savedToken) verifyAndEnter(savedToken, true);
+}
+
+async function handleGoogleCredential(response) {
+  await verifyAndEnter(response.credential, false);
+}
+
+// ส่ง token ไปเช็คกับ backend ก่อนเสมอ (backend เป็นคนตัดสินใจจริง ไม่ใช่แค่เช็คฝั่งเว็บ)
+async function verifyAndEnter(idToken, isSilentRetry) {
+  const errEl = document.getElementById('auth-error');
+  const loadingEl = document.getElementById('auth-loading');
+  if (errEl) errEl.style.display = 'none';
+  if (loadingEl) loadingEl.style.display = isSilentRetry ? 'flex' : 'none';
+
+  try {
+    const res = await API.call({ action: 'verifyAuth', id_token: idToken }, 20000);
+    if (res.ok) {
+      authState.idToken = idToken;
+      authState.email = res.email;
+      authState.verified = true;
+      sessionExpiredShown = false;
+      sessionStorage.setItem('cmu_id_token', idToken);
+      document.getElementById('auth-gate').classList.add('auth-hidden');
+      document.getElementById('auth-user-email').textContent = res.email;
+      if (!window.__appStarted) { window.__appStarted = true; startAppAfterAuth(); }
+    } else {
+      sessionStorage.removeItem('cmu_id_token');
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (!isSilentRetry && errEl) {
+        errEl.textContent = '⚠️ เข้าสู่ระบบไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ');
+        errEl.style.display = 'block';
+      }
+    }
+  } catch (e) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (!isSilentRetry && errEl) {
+      errEl.textContent = '⚠️ เชื่อมต่อไม่สำเร็จ: ' + e.message;
+      errEl.style.display = 'block';
+    }
+  }
+}
+
+function signOutCMU() {
+  if (!confirm('ออกจากระบบ?')) return;
+  sessionStorage.removeItem('cmu_id_token');
+  location.reload();
+}
+
+// เรียกอัตโนมัติเมื่อ backend ตอบกลับว่า token หมดอายุ/ไม่ผ่านสิทธิ์ระหว่างใช้งาน (ไม่ใช่ตอน login ครั้งแรก)
+let sessionExpiredShown = false;
+function handleSessionExpired(errorMsg) {
+  if (sessionExpiredShown) return; // กันเด้งซ้ำหลายรอบถ้ามีหลาย request พร้อมกันพัง
+  sessionExpiredShown = true;
+  authState.idToken = null;
+  authState.verified = false;
+  sessionStorage.removeItem('cmu_id_token');
+  const errEl = document.getElementById('auth-error');
+  if (errEl) {
+    errEl.textContent = '⚠️ เซสชันหมดอายุหรือไม่ได้รับสิทธิ์แล้ว กรุณาเข้าสู่ระบบใหม่ (' + errorMsg + ')';
+    errEl.style.display = 'block';
+  }
+  document.getElementById('auth-gate').classList.remove('auth-hidden');
+}
+
 // ===== STATE =====
 let state = {
   records: [],
@@ -86,6 +165,11 @@ function loadFinLocal() {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
+  initGoogleSignIn(); // แสดงหน้า login ก่อนเสมอ แอพจริงจะเริ่มทำงานหลังยืนยันตัวตนผ่านแล้วเท่านั้น (ดู startAppAfterAuth)
+});
+
+// เรียกครั้งเดียวหลังยืนยันตัวตนกับ backend สำเร็จแล้วเท่านั้น (ย้ายมาจาก DOMContentLoaded เดิม)
+function startAppAfterAuth() {
   loadLocal();
   loadFinLocal();
   loadCalLocal();
@@ -99,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSearch();
   checkDeadlines();
   setupDateRolloverWatcher();
-});
+}
 
 // ===== เช็ควันเปลี่ยนอัตโนมัติ กัน "วันนี้" ค้างข้ามเที่ยงคืนถ้าเปิดแท็บทิ้งไว้นาน =====
 // (การไฮไลต์ "วันนี้" ในปฏิทิน/แจ้งเตือนเกินกำหนด คำนวณตอน render เท่านั้น ถ้าไม่มีอะไรมา trigger re-render
