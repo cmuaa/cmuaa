@@ -184,18 +184,37 @@
           <div id="rent-pagination" class="pagination-wrap"></div>
         </div>
 
-        <!-- PAGE: SHIRT STOCK (สต็อกเสื้อ) -->
+        <!-- PAGE: SHIRT STOCK (สต็อกเสื้อ) — ดีไซน์แยกอิสระ (TeeStock style) -->
         <div class="page" id="page-shirt">
-          <div class="search-wrap">
-            <i class="ti ti-search" aria-hidden="true"></i>
-            <input type="search" id="shirt-search-input" placeholder="ค้นหาแบบเสื้อ, กิจกรรม, ไซส์..." aria-label="ค้นหาสต็อกเสื้อ">
+          <div class="ts-header">
+            <div>
+              <div class="ts-title"><i class="ti ti-shirt" aria-hidden="true"></i> สต็อกเสื้อ</div>
+              <div class="ts-subtitle">ตรวจสอบจำนวนเสื้อคงเหลือในสต็อก</div>
+            </div>
+            <div class="ts-total-card">
+              <i class="ti ti-package" aria-hidden="true"></i>
+              <div>
+                <div class="ts-total-label">รวมทั้งหมด</div>
+                <div class="ts-total-num" id="ts-total-count">0<span>ตัว</span></div>
+              </div>
+            </div>
           </div>
 
-          <div class="filter-bar" role="group" aria-label="กรองตามกิจกรรม" id="shirt-event-chips"></div>
-
-          <div class="doc-list" id="shirt-list" role="list">
-            <div class="empty-state"><i class="ti ti-shirt"></i><p>กดปุ่ม + เพื่อเพิ่มแบบเสื้อแรก</p></div>
+          <div class="ts-toolbar">
+            <div class="ts-event-tabs" id="shirt-event-chips"></div>
+            <div class="ts-search-wrap">
+              <i class="ti ti-search" aria-hidden="true"></i>
+              <input type="search" id="shirt-search-input" placeholder="ค้นหาแบบเสื้อ...">
+            </div>
           </div>
+
+          <div class="ts-grid" id="shirt-list">
+            <div class="ts-empty"><i class="ti ti-shirt" aria-hidden="true"></i><p>กดปุ่ม + เพื่อเพิ่มแบบเสื้อแรก</p></div>
+          </div>
+
+          <div class="ts-footer" id="shirt-last-updated"></div>
+
+          <input type="file" id="shirt-photo-input" accept="image/*" style="display:none">
         </div>
 
         <!-- PAGE: CALENDAR -->

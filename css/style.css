@@ -795,3 +795,124 @@ body {
   .filter-chip { background: var(--white); }
   .desktop-nav { background: var(--gray-50); border-color: var(--border); }
 }
+
+/* ===================================================================
+   TEESTOCK — หน้าสต็อกเสื้อ (ดีไซน์แยกอิสระจากธีมหลักของแอพ)
+   ใช้ prefix "ts-" ทั้งหมด กันชนกับ class อื่นในแอพ
+   =================================================================== */
+#page-shirt {
+  background: #F7F8FA;
+  margin: -20px -16px 0;
+  padding: 24px 16px 40px;
+  min-height: calc(100dvh - 64px);
+}
+@media (min-width: 900px) {
+  #page-shirt { padding: 32px; }
+}
+
+.ts-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 16px; margin-bottom: 24px;
+}
+.ts-title {
+  font-size: 28px; font-weight: 800; color: #1A1A1A;
+  display: flex; align-items: center; gap: 10px; letter-spacing: -0.02em;
+}
+.ts-title i { font-size: 26px; }
+.ts-subtitle { font-size: 14px; color: #8A8A8E; margin-top: 4px; }
+
+.ts-total-card {
+  background: #fff; border: 1px solid #ECECEE; border-radius: 16px;
+  padding: 14px 22px; display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+.ts-total-card i { font-size: 24px; color: #1A1A1A; }
+.ts-total-label { font-size: 12px; color: #8A8A8E; font-weight: 600; }
+.ts-total-num { font-size: 24px; font-weight: 800; color: #1A1A1A; }
+.ts-total-num span { font-size: 13px; font-weight: 500; color: #8A8A8E; margin-left: 3px; }
+
+.ts-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+}
+.ts-event-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.ts-event-tabs button {
+  border: none; background: #fff; color: #6B6B70; font-family: inherit;
+  font-size: 13.5px; font-weight: 600; padding: 9px 16px; border-radius: 10px;
+  cursor: pointer; transition: all .15s; border: 1px solid #ECECEE;
+}
+.ts-event-tabs button:hover { background: #F0F0F2; }
+.ts-event-tabs button.active { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
+
+.ts-search-wrap { position: relative; min-width: 220px; }
+.ts-search-wrap i {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: #B5B5B8; font-size: 16px;
+}
+.ts-search-wrap input {
+  width: 100%; padding: 10px 14px 10px 38px; border-radius: 10px;
+  border: 1px solid #ECECEE; background: #fff; font-family: inherit; font-size: 13.5px;
+  outline: none; color: #1A1A1A;
+}
+.ts-search-wrap input:focus { border-color: #1A1A1A; }
+
+.ts-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.ts-card {
+  background: #fff; border-radius: 18px; overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04); border: 1px solid #F0F0F2;
+  display: flex; flex-direction: column;
+}
+
+.ts-card-photo {
+  position: relative; aspect-ratio: 1 / 1; background: #F5F5F6;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  overflow: hidden;
+}
+.ts-card-photo img { width: 100%; height: 100%; object-fit: cover; }
+.ts-card-photo i { font-size: 56px; color: #D5D5D8; }
+.ts-card-photo-edit {
+  position: absolute; bottom: 8px; right: 8px; width: 32px; height: 32px;
+  background: rgba(26,26,26,0.75); border-radius: 50%; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+  backdrop-filter: blur(4px);
+}
+.ts-badge-low {
+  position: absolute; top: 10px; left: 10px; background: #DC2626; color: #fff;
+  font-size: 10.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  letter-spacing: .02em;
+}
+
+.ts-card-body { padding: 16px 18px 18px; }
+.ts-card-name { font-size: 16px; font-weight: 700; color: #1A1A1A; margin-bottom: 2px; }
+.ts-card-code { font-size: 12px; color: #A8A8AC; margin-bottom: 12px; }
+
+.ts-size-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ts-size-table th {
+  text-align: left; color: #A8A8AC; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .03em; padding: 0 0 8px; border-bottom: 1px solid #F0F0F2;
+}
+.ts-size-table th:last-child, .ts-size-table td:last-child { text-align: right; }
+.ts-size-table td { padding: 7px 0; color: #4A4A4E; border-bottom: 1px solid #F7F7F8; cursor: pointer; }
+.ts-size-table tr:hover td { background: #FAFAFB; }
+.ts-size-table tr.ts-low td:last-child { color: #DC2626; font-weight: 700; }
+.ts-size-table tfoot td {
+  padding-top: 10px; border-bottom: none; font-weight: 700; color: #1A1A1A; cursor: default;
+}
+.ts-size-table tfoot tr:hover td { background: transparent; }
+.ts-size-table tfoot td:last-child { color: #3C3489; font-size: 15px; }
+
+.ts-add-size-row {
+  margin-top: 10px; text-align: center; font-size: 12.5px; font-weight: 600;
+  color: #3C3489; cursor: pointer; padding: 6px 0;
+}
+
+.ts-footer { text-align: center; font-size: 12.5px; color: #A8A8AC; margin-top: 28px; }
+
+.ts-empty {
+  grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #A8A8AC;
+}
+.ts-empty i { font-size: 40px; margin-bottom: 10px; display: block; color: #D5D5D8; }

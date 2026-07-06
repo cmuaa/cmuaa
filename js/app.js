@@ -1486,8 +1486,12 @@ function deleteRentRecord(id) {
   saveRentLocal();
   closeFinDetail();
   renderRentList();
-  showToast('ลบรายการแล้ว');
-  if (API.url) API.call({ action: 'deleteRent', id }).catch(()=>{});
+  showToast('ลบรายการแล้ว (กำลังลบข้อมูลใน Sheet...)');
+  if (API.url) {
+    API.call({ action: 'deleteRent', id })
+      .then(() => showToast('ลบข้อมูลใน Sheet สำเร็จ'))
+      .catch(e => showToast('⚠️ ลบใน Sheet ไม่สำเร็จ: ' + e.message + ' — ต้องลบแถวในชีทเองด้วยมือ'));
+  }
 }
 
 // สั่งออกใบแจ้งหนี้ (Apps Script จะ merge เข้า Slides template แล้ว export PDF ให้)
@@ -1665,7 +1669,7 @@ function renderShirtEventChips() {
   const events = [...new Set(shirtState.stockRecords.map(s => s.event).filter(Boolean))].sort();
   const chips = ['ทั้งหมด', ...events];
   wrap.innerHTML = chips.map(ev => `
-    <button class="filter-chip${ev === shirtState.activeEvent ? ' active' : ''}" onclick="setShirtEvent('${esc(ev).replace(/'/g, "\\'")}')">${esc(ev)}</button>
+    <button class="${ev === shirtState.activeEvent ? 'active' : ''}" onclick="setShirtEvent('${esc(ev).replace(/'/g, "\\'")}')">${esc(ev)}</button>
   `).join('');
 }
 
@@ -1674,6 +1678,7 @@ function setShirtEvent(ev) {
   renderShirtList();
 }
 
+// จัดกลุ่ม stock records ตาม "กิจกรรม+แบบเสื้อ" ให้เป็น 1 การ์ด แสดงทุกไซส์ในตารางเดียว (แบบ TeeStock)
 function renderShirtList() {
   renderShirtEventChips();
   const container = document.getElementById('shirt-list');
@@ -1685,56 +1690,114 @@ function renderShirtList() {
     items = items.filter(s => [s.design, s.event, s.size].some(v => v && String(v).toLowerCase().includes(q)));
   }
 
+  // สรุปยอดรวมทั้งหมด (ตามตัวกรองปัจจุบัน) ไปโชว์การ์ดมุมขวาบน
+  const grandTotal = items.reduce((sum, s) => sum + getShirtRemaining(s.id), 0);
+  document.getElementById('ts-total-count').innerHTML = grandTotal + '<span>ตัว</span>';
+
   if (!items.length) {
-    container.innerHTML = `<div class="empty-state"><i class="ti ti-shirt"></i><p>ยังไม่มีข้อมูลสต็อกเสื้อ กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>`;
+    container.innerHTML = `<div class="ts-empty"><i class="ti ti-shirt" aria-hidden="true"></i><p>ยังไม่มีข้อมูลสต็อกเสื้อ กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>`;
+    document.getElementById('shirt-last-updated').textContent = '';
     return;
   }
 
-  // จัดกลุ่มตามกิจกรรม (เห็นชัดตอนดู "ทั้งหมด" ถ้าดูกิจกรรมเดียวอยู่แล้วก็จะมีกลุ่มเดียว)
+  // จัดกลุ่มเป็น { "กิจกรรม||แบบเสื้อ": [รายการไซส์ทั้งหมด] }
   const groups = {};
   items.forEach(s => {
-    const key = s.event || 'ไม่ระบุกิจกรรม';
+    const key = (s.event || '') + '||' + (s.design || '');
     if (!groups[key]) groups[key] = [];
     groups[key].push(s);
   });
 
-  container.innerHTML = Object.keys(groups).sort().map(eventName => {
-    const cards = groups[eventName].map(s => {
-      const remaining = getShirtRemaining(s.id);
-      let stockClass = 'badge-done', stockLabel = remaining + ' ตัว';
-      if (remaining <= 0) { stockClass = 'badge-urgent'; stockLabel = 'หมดแล้ว'; }
-      else if (remaining <= 5) { stockClass = 'badge-urgent'; stockLabel = 'เหลือน้อย: ' + remaining + ' ตัว'; }
-      return `
-        <div class="doc-card" onclick="openShirtDetail('${s.id}')">
-          <div class="doc-card-icon" style="background:#EEEDFE;color:#3C3489">
-            <i class="ti ti-shirt" aria-hidden="true"></i>
-          </div>
-          <div class="doc-card-body">
-            <div class="doc-card-row">
-              <div class="doc-card-title">${esc(s.design || '-')}</div>
-              <span class="badge ${stockClass}">${stockLabel}</span>
-            </div>
-            <div class="doc-card-meta">ไซส์ ${esc(s.size || '-')}</div>
-          </div>
-        </div>`;
-    }).join('');
+  const sortedKeys = Object.keys(groups).sort((a, b) => {
+    const da = groups[a][0].design || '', db = groups[b][0].design || '';
+    return da.localeCompare(db);
+  });
+
+  container.innerHTML = sortedKeys.map(key => {
+    const group = groups[key];
+    const first = group[0];
+    const photoUrl = group.find(s => s.photo_url)?.photo_url || '';
+    const sizeRows = group
+      .slice()
+      .sort((a, b) => String(a.size || '').localeCompare(String(b.size || '')))
+      .map(s => {
+        const remaining = getShirtRemaining(s.id);
+        return `<tr class="${remaining <= 5 ? 'ts-low' : ''}" onclick="openShirtDetail('${s.id}')">
+          <td>${esc(s.size || '-')}</td><td>${remaining}</td>
+        </tr>`;
+      }).join('');
+    const groupTotal = group.reduce((sum, s) => sum + getShirtRemaining(s.id), 0);
+    const anyLow = group.some(s => getShirtRemaining(s.id) <= 0);
+
+    const eventEsc = esc(first.event || '').replace(/'/g, "\\'");
+    const designEsc = esc(first.design || '').replace(/'/g, "\\'");
+
     return `
-      <div style="margin-bottom:16px">
-        ${shirtState.activeEvent === 'ทั้งหมด' ? `<div style="font-weight:700;color:var(--purple);margin:12px 0 8px;font-size:14px">${esc(eventName)}</div>` : ''}
-        ${cards}
+      <div class="ts-card">
+        <div class="ts-card-photo" onclick="triggerShirtPhotoUpload('${eventEsc}', '${designEsc}')">
+          ${anyLow ? '<span class="ts-badge-low">สินค้าใกล้หมด</span>' : ''}
+          ${photoUrl ? `<img src="${photoUrl}" alt="${esc(first.design)}">` : `<i class="ti ti-shirt" aria-hidden="true"></i>`}
+          <div class="ts-card-photo-edit"><i class="ti ti-camera" aria-hidden="true"></i></div>
+        </div>
+        <div class="ts-card-body">
+          <div class="ts-card-name">${esc(first.design || '-')}</div>
+          <div class="ts-card-code">${esc(first.event || 'ไม่ระบุกิจกรรม')}</div>
+          <table class="ts-size-table">
+            <thead><tr><th>SIZE</th><th>จำนวนคงเหลือ (ตัว)</th></tr></thead>
+            <tbody>${sizeRows}</tbody>
+            <tfoot><tr><td>รวม</td><td>${groupTotal} ตัว</td></tr></tfoot>
+          </table>
+          <div class="ts-add-size-row" onclick="openShirtStockForm('${eventEsc}', '${designEsc}')">+ เพิ่มไซส์ใหม่</div>
+        </div>
       </div>`;
   }).join('');
+
+  const lastLog = shirtState.logRecords.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0];
+  document.getElementById('shirt-last-updated').textContent = lastLog
+    ? 'อัปเดตล่าสุด: ' + formatDate(lastLog.date)
+    : '';
+}
+
+// อัปโหลด/เปลี่ยนรูปภาพของแบบเสื้อ (ใช้ร่วมกันทุกไซส์ในแบบเดียวกัน)
+function triggerShirtPhotoUpload(eventName, design) {
+  const input = document.getElementById('shirt-photo-input');
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    input.value = '';
+    if (!file) return;
+    if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
+    showToast('กำลังอัปโหลดรูป...');
+    try {
+      const res = await API.upload('shirt', file);
+      if (res.ok) {
+        shirtState.stockRecords.forEach(s => {
+          if (s.event === eventName && s.design === design) s.photo_url = res.url;
+        });
+        saveShirtLocal();
+        renderShirtList();
+        showToast('อัปโหลดรูปสำเร็จ');
+        await API.call({ action: 'updateShirtPhoto', event: eventName, design: design, photo_url: res.url }, 30000);
+      } else {
+        showToast('อัปโหลดไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+      }
+    } catch (err) {
+      showToast('อัปโหลดไม่สำเร็จ: ' + err.message);
+    }
+  };
+  input.click();
 }
 
 let shirtEditingId = null;
 
-function openShirtStockForm() {
+function openShirtStockForm(prefillEvent, prefillDesign) {
   shirtEditingId = null;
   document.getElementById('shirt-form-overlay').classList.add('open');
-  document.getElementById('shirt-form-title').textContent = 'เพิ่มแบบเสื้อ/ไซส์ใหม่';
+  document.getElementById('shirt-form-title').textContent = prefillDesign ? ('เพิ่มไซส์ใหม่: ' + prefillDesign) : 'เพิ่มแบบเสื้อ/ไซส์ใหม่';
   document.getElementById('shirt-submit-btn').textContent = 'บันทึกรายการ';
   document.getElementById('shirt-form').reset();
   renderShirtEventDatalist();
+  if (prefillEvent) document.getElementById('shirt-f-event').value = prefillEvent;
+  if (prefillDesign) document.getElementById('shirt-f-design').value = prefillDesign;
 }
 
 function renderShirtEventDatalist() {
@@ -1772,6 +1835,7 @@ async function submitShirtStockForm() {
   if (!design) { showToast('กรุณากรอกชื่อแบบเสื้อ'); return; }
 
   const isEdit = !!shirtEditingId;
+  const existing = isEdit ? shirtState.stockRecords.find(x => x.id === shirtEditingId) : null;
   const record = {
     id: isEdit ? shirtEditingId : Date.now().toString(),
     event: get('shirt-f-event'),
@@ -1779,6 +1843,7 @@ async function submitShirtStockForm() {
     size: get('shirt-f-size'),
     initial_qty: Number(document.getElementById('shirt-f-qty').value) || 0,
     note: get('shirt-f-note'),
+    photo_url: existing ? existing.photo_url : '', // เก็บรูปเดิมไว้ ถ้าเป็นรายการใหม่จะให้ backend สืบทอดจากไซส์อื่นแทน
   };
 
   if (isEdit) {
@@ -1794,8 +1859,15 @@ async function submitShirtStockForm() {
 
   if (API.url) {
     try {
-      if (isEdit) await API.call({ action: 'updateShirtStock', row: JSON.stringify(record) });
-      else await API.call({ action: 'addShirtStock', row: JSON.stringify(record) });
+      if (isEdit) {
+        await API.call({ action: 'updateShirtStock', row: JSON.stringify(record) });
+      } else {
+        const res = await API.call({ action: 'addShirtStock', row: JSON.stringify(record) });
+        if (res.ok && res.photo_url) {
+          const idx = shirtState.stockRecords.findIndex(x => x.id === record.id);
+          if (idx !== -1) { shirtState.stockRecords[idx].photo_url = res.photo_url; saveShirtLocal(); renderShirtList(); }
+        }
+      }
     } catch(e) { showToast('บันทึก offline — จะซิงก์เมื่อออนไลน์'); }
   }
   shirtEditingId = null;
@@ -1809,7 +1881,11 @@ function deleteShirtStockRecord(id) {
   closeFinDetail();
   renderShirtList();
   showToast('ลบรายการแล้ว');
-  if (API.url) API.call({ action: 'deleteShirtStock', id }).catch(()=>{});
+  if (API.url) {
+    API.call({ action: 'deleteShirtStock', id })
+      .then(() => showToast('ลบข้อมูลใน Sheet สำเร็จ'))
+      .catch(e => showToast('⚠️ ลบใน Sheet ไม่สำเร็จ: ' + e.message));
+  }
 }
 
 // ===== รายละเอียด + ประวัติเบิกออก =====
@@ -1910,7 +1986,11 @@ function deleteShirtLogEntry(logId) {
   showToast('ลบประวัติแล้ว');
   if (log) openShirtDetail(log.stock_id);
   renderShirtList();
-  if (API.url) API.call({ action: 'deleteShirtLog', id: logId }).catch(()=>{});
+  if (API.url) {
+    API.call({ action: 'deleteShirtLog', id: logId })
+      .then(() => showToast('ลบข้อมูลใน Sheet สำเร็จ'))
+      .catch(e => showToast('⚠️ ลบใน Sheet ไม่สำเร็จ: ' + e.message));
+  }
 }
 
 // รวมใบแจ้งหนี้ค่าเช่าทั้งเดือนเป็น PDF ไฟล์เดียว แล้วเปิดให้ปริ้นทีเดียวจบ
