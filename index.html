@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#351F5D">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="เอกสาร มช.">
+  <title>บันทึกรับ-ส่งเอกสาร — สมาคมนักศึกษาเก่า มช.</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<!-- AUTH GATE (หน้า login ด้วย Google Account) — แสดงก่อนเข้าแอพเสมอ -->
+<div id="auth-gate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-logo">มช.</div>
+    <h1 class="auth-title">บันทึกรับ-ส่งเอกสาร</h1>
+    <p class="auth-subtitle">สมาคมนักศึกษาเก่า มช.</p>
+    <p class="auth-hint">เข้าสู่ระบบด้วยบัญชี Google ที่ได้รับสิทธิ์เท่านั้น</p>
+
+    <div id="google-signin-btn" class="auth-google-btn"></div>
+
+    <div id="auth-loading" class="auth-loading" style="display:none">
+      <i class="ti ti-loader-2 rb-spin" aria-hidden="true"></i>
+      <span>กำลังตรวจสอบสิทธิ์...</span>
+    </div>
+
+    <div id="auth-error" class="auth-error" style="display:none"></div>
+  </div>
+</div>
+
+<div id="app">
+
+  <!-- DESKTOP LAYOUT -->
+  <div class="desktop-layout">
+
+    <!-- DESKTOP SIDEBAR NAV -->
+    <nav class="desktop-nav" aria-label="เมนูหลัก">
+      <div class="logo-wrap">
+        <div class="nav-logo-icon"><span>มช.</span></div>
+        <div class="nav-logo-text">
+          <h1>บันทึกรับ-ส่งเอกสาร</h1>
+          <p>สมาคมนักศึกษาเก่า มช.</p>
+        </div>
+      </div>
+      <button class="desktop-add-btn" id="desktop-add-btn">
+        <i class="ti ti-plus" aria-hidden="true"></i> เพิ่มรายการ
+      </button>
+      <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
+      <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
+      <button class="desktop-nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
+      <button class="desktop-nav-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i>สต็อกเสื้อ</button>
+      <button class="desktop-nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
+      <button class="desktop-nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
+      <button class="desktop-nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
+    </nav>
+
+    <!-- MAIN AREA -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+
+      <!-- MOBILE HEADER -->
+      <header class="app-header" role="banner">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+        </div>
+        <div class="header-title">
+          <h1>รับ-ส่งเอกสาร</h1>
+          <p>สมาคมนักศึกษาเก่า มช.</p>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="sync-header-btn" onclick="syncFromSheets()" aria-label="ซิงก์ข้อมูล" title="ซิงก์ข้อมูลจาก Google Sheets"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content desktop-content" role="main">
+
+        <!-- PAGE: LIST -->
+        <div class="page active" id="page-list">
+          <div class="list-stats-strip" role="region" aria-label="สรุปสถิติ">
+            <div class="list-stats-cell">
+              <div class="list-stats-top"><span class="list-stats-icon all"><i class="ti ti-files" aria-hidden="true"></i></span><span class="list-stats-label">ทั้งหมด</span></div>
+              <div class="n" id="s-all">0</div>
+            </div>
+            <div class="list-stats-cell">
+              <div class="list-stats-top"><span class="list-stats-icon send"><i class="ti ti-send" aria-hidden="true"></i></span><span class="list-stats-label">ส่งออก</span></div>
+              <div class="n" id="s-send">0</div>
+            </div>
+            <div class="list-stats-cell">
+              <div class="list-stats-top"><span class="list-stats-icon recv"><i class="ti ti-inbox" aria-hidden="true"></i></span><span class="list-stats-label">รับเข้า</span></div>
+              <div class="n" id="s-recv">0</div>
+            </div>
+            <div class="list-stats-cell">
+              <div class="list-stats-top"><span class="list-stats-icon pend"><i class="ti ti-clock" aria-hidden="true"></i></span><span class="list-stats-label">รอดำเนินการ</span></div>
+              <div class="n" id="s-pend">0</div>
+            </div>
+          </div>
+
+          <div class="deadline-warn" id="deadline-warn" style="display:none;cursor:pointer" role="alert" onclick="goOverdue()">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            <span></span>
+            <i class="ti ti-chevron-right" aria-hidden="true" style="margin-left:auto"></i>
+          </div>
+
+          <div class="search-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="search" id="search-input" placeholder="ค้นหาเลขที่, เรื่อง, หน่วยงาน..." aria-label="ค้นหาเอกสาร">
+          </div>
+
+          <div class="filter-bar" role="group" aria-label="กรองรายการ">
+            <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
+            <button class="filter-chip" data-filter="recv">รับเข้า</button>
+            <button class="filter-chip" data-filter="send">ส่งออก</button>
+            <button class="filter-chip" data-filter="pend">รอดำเนินการ</button>
+          </div>
+
+          <div class="list-table" id="doc-list-wrap">
+            <div class="list-table-head">
+              <div class="list-col-icon"></div>
+              <div class="list-col-main">เรื่อง / เลขที่</div>
+              <div class="list-col-org">หน่วยงาน</div>
+              <div class="list-col-date">วันที่</div>
+              <div class="list-col-deadline">กำหนดตอบ</div>
+              <div class="list-col-status">สถานะ</div>
+            </div>
+            <div class="doc-list" id="doc-list" role="list">
+              <div class="empty-state"><i class="ti ti-file-plus"></i><p>กดปุ่ม + เพื่อเพิ่มรายการแรก</p></div>
+            </div>
+          </div>
+          <div id="pagination" class="pagination-wrap"></div>
+        </div>
+
+        <!-- PAGE: FINANCE -->
+        <div class="page" id="page-finance">
+          <div class="stats-row" role="region" aria-label="สรุปการเงิน">
+            <div class="stat-card all"><div class="n" id="fin-total">0</div><div class="l">รายการทั้งหมด</div></div>
+            <div class="stat-card pend"><div class="n" id="fin-pend">0</div><div class="l">รออนุมัติ/จ่าย</div></div>
+            <div class="stat-card recv"><div class="n" id="fin-paid-amt">฿0</div><div class="l">จ่ายแล้วทั้งหมด</div></div>
+            <div class="stat-card send"><div class="n" id="fin-pend-amt">฿0</div><div class="l">ยอดรออนุมัติ</div></div>
+          </div>
+
+          <div class="search-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="search" id="fin-search-input" placeholder="ค้นหาเลขที่เบิก, รายการ, ผู้รับเงิน..." aria-label="ค้นหารายการการเงิน">
+          </div>
+
+          <div class="filter-bar" role="group" aria-label="กรองรายการการเงิน">
+            <button class="filter-chip active" data-fin-filter="all">ทั้งหมด</button>
+            <button class="filter-chip" data-fin-filter="prepaid">ชำระให้ก่อน</button>
+            <button class="filter-chip" data-fin-filter="pending">รอสมาคมชำระ</button>
+            <button class="filter-chip" data-fin-filter="refund">ต้องโอนคืน</button>
+          </div>
+
+          <div class="doc-list" id="fin-list" role="list">
+            <div class="empty-state"><i class="ti ti-receipt"></i><p>กดปุ่ม + เพื่อเพิ่มรายการเบิก-จ่ายแรก</p></div>
+          </div>
+          <div id="fin-pagination" class="pagination-wrap"></div>
+        </div>
+
+        <!-- PAGE: RENT (ค่าเช่า) -->
+        <div class="page" id="page-rent">
+          <div class="stats-row" role="region" aria-label="สรุปค่าเช่า">
+            <div class="stat-card all"><div class="n" id="rent-total">0</div><div class="l">รายการทั้งหมด</div></div>
+            <div class="stat-card pend"><div class="n" id="rent-unpaid">0</div><div class="l">ค้างชำระ</div></div>
+            <div class="stat-card recv"><div class="n" id="rent-total-amt">฿0</div><div class="l">ยอดรวมทั้งหมด</div></div>
+            <div class="stat-card send"><div class="n" id="rent-unpaid-amt">฿0</div><div class="l">ยอดค้างชำระ</div></div>
+          </div>
+
+          <div class="search-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="search" id="rent-search-input" placeholder="ค้นหาชื่อร้าน, ล็อค, เดือน..." aria-label="ค้นหารายการค่าเช่า">
+          </div>
+
+          <button class="settings-row" style="cursor:pointer;width:100%;text-align:left;border:1px solid var(--border-med);border-radius:var(--radius);background:#fff;margin-bottom:8px;font-family:inherit;font-size:14px" onclick="openMasterMeterForm()">
+            <i class="ti ti-droplet" aria-hidden="true"></i>
+            <span class="sr-label">ตั้งค่ามิเตอร์น้ำกลางประจำเดือน</span>
+            <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
+          </button>
+
+          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+            <input type="month" id="rent-bundle-month" style="flex:1;min-width:140px;padding:10px 12px;border:1px solid var(--border-med);border-radius:var(--radius);font-family:inherit;font-size:14px">
+            <button class="btn-submit recv" style="width:auto;padding:10px 16px;margin:0" onclick="generateMonthlyBundle()">
+              <i class="ti ti-printer" aria-hidden="true"></i> รวมไฟล์ + ปริ้นทั้งเดือน
+            </button>
+          </div>
+
+          <div class="filter-bar" role="group" aria-label="กรองรายการค่าเช่า">
+            <button class="filter-chip active" data-rent-filter="all">ทั้งหมด</button>
+            <button class="filter-chip" data-rent-filter="unpaid">ค้างชำระ</button>
+            <button class="filter-chip" data-rent-filter="paid">จ่ายแล้ว</button>
+          </div>
+
+          <div class="doc-list" id="rent-list" role="list">
+            <div class="empty-state"><i class="ti ti-building-store"></i><p>กดปุ่ม + เพื่อเพิ่มรายการค่าเช่าแรก</p></div>
+          </div>
+          <div id="rent-pagination" class="pagination-wrap"></div>
+        </div>
+
+        <!-- PAGE: SHIRT STOCK (สต็อกเสื้อ) — ดีไซน์แยกอิสระ (TeeStock style) -->
+        <div class="page" id="page-shirt">
+          <div class="ts-header">
+            <div>
+              <div class="ts-title"><i class="ti ti-shirt" aria-hidden="true"></i> สต็อกเสื้อ</div>
+              <div class="ts-subtitle">ตรวจสอบจำนวนเสื้อคงเหลือในสต็อก</div>
+            </div>
+            <div class="ts-total-card">
+              <i class="ti ti-package" aria-hidden="true"></i>
+              <div>
+                <div class="ts-total-label">รวมทั้งหมด</div>
+                <div class="ts-total-num" id="ts-total-count">0<span>ตัว</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ts-toolbar">
+            <div class="ts-event-tabs" id="shirt-event-chips"></div>
+            <div class="ts-search-wrap">
+              <i class="ti ti-search" aria-hidden="true"></i>
+              <input type="search" id="shirt-search-input" placeholder="ค้นหาแบบเสื้อ...">
+            </div>
+          </div>
+
+          <div class="ts-grid" id="shirt-list">
+            <div class="ts-empty"><i class="ti ti-shirt" aria-hidden="true"></i><p>กดปุ่ม + เพื่อเพิ่มแบบเสื้อแรก</p></div>
+          </div>
+
+          <div class="ts-footer" id="shirt-last-updated"></div>
+
+          <input type="file" id="shirt-photo-input" accept="image/*" style="display:none">
+        </div>
+
+        <!-- PAGE: CALENDAR -->
+        <div class="page" id="page-calendar">
+          <div class="cal-layout">
+
+            <!-- LEFT PANEL -->
+            <div class="cal-left">
+              <div class="cal-pin-section">
+                <div class="cal-pin-header">
+                  <span>กิจกรรมสำคัญ</span>
+                  <button class="text-btn" onclick="openCalAllEvents()">ดูทั้งหมด</button>
+                </div>
+                <div id="cal-pinned-list">
+                  <div class="empty-state" style="padding:1rem 0"><i class="ti ti-calendar-off"></i><p>ยังไม่มีกิจกรรม</p></div>
+                </div>
+              </div>
+
+              <div class="cal-mini">
+                <div class="cal-mini-header">
+                  <span id="cal-mini-label">มิถุนายน 2568</span>
+                  <div style="display:flex;gap:4px">
+                    <button class="icon-btn" style="width:28px;height:28px;background:var(--color-background-secondary);color:var(--color-text-secondary)" onclick="calNav(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                    <button class="icon-btn" style="width:28px;height:28px;background:var(--color-background-secondary);color:var(--color-text-secondary)" onclick="calNav(1)"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+                  </div>
+                </div>
+                <div class="cal-grid-wrap" id="cal-grid"></div>
+              </div>
+            </div>
+
+            <!-- CENTER PANEL -->
+            <div class="cal-center">
+              <div class="cal-center-header">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <button class="icon-btn cal-toggle-btn" id="cal-toggle-left" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calTogglePanel('left')" aria-label="ย่อ/ขยายเมนูซ้าย" title="ย่อ/ขยายเมนูซ้าย"><i class="ti ti-layout-sidebar" aria-hidden="true"></i></button>
+                  <div>
+                    <div class="cal-day-title" id="cal-month-title">กรกฎาคม 2569</div>
+                    <div class="cal-day-sub" id="cal-month-sub">July 2026</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <button class="icon-btn" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calNav(-1)" aria-label="เดือนก่อนหน้า"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                  <button class="icon-btn" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calNav(1)" aria-label="เดือนถัดไป"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+                  <button class="cal-add-btn" onclick="openCalForm()" aria-label="เพิ่มกิจกรรม" title="เพิ่มกิจกรรม"><i class="ti ti-plus" aria-hidden="true"></i></button>
+                  <button class="icon-btn cal-toggle-btn" id="cal-toggle-right" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calTogglePanel('right')" aria-label="ย่อ/ขยายเมนูขวา" title="ย่อ/ขยายเมนูขวา"><i class="ti ti-layout-sidebar-right" aria-hidden="true"></i></button>
+                </div>
+              </div>
+              <div class="cal-legend" id="cal-legend"></div>
+              <div class="cal-main-card">
+                <div class="cal-main-dow" id="cal-main-dow"></div>
+                <div class="cal-main-grid" id="cal-main-grid"></div>
+              </div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="cal-right">
+              <div class="cal-right-section">
+                <div class="cal-right-title">สรุปเดือนนี้</div>
+                <div class="stats-row" style="grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:0">
+                  <div class="stat-card all"><div class="n" id="cal-s-total">0</div><div class="l">ทั้งหมด</div></div>
+                  <div class="stat-card pend"><div class="n" id="cal-s-soon">0</div><div class="l">ใกล้ถึง</div></div>
+                  <div class="stat-card recv"><div class="n" id="cal-s-done">0</div><div class="l">ผ่านไปแล้ว</div></div>
+                  <div class="stat-card send"><div class="n" id="cal-s-types">0</div><div class="l">ประเภท</div></div>
+                </div>
+              </div>
+
+              <div class="cal-right-section">
+                <div class="cal-right-title">กำลังจะมาถึง</div>
+                <div id="cal-upcoming-list"></div>
+              </div>
+
+              <div class="cal-right-section">
+                <div class="cal-right-title">ทีมงาน</div>
+                <div id="cal-team-list"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- PAGE: STATS -->
+        <div class="page" id="page-stats">
+          <div id="stats-content"></div>
+        </div>
+
+        <!-- PAGE: SETTINGS -->
+        <div class="page" id="page-settings">
+          <div class="section-hd"><h2>บัญชีผู้ใช้</h2></div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <i class="ti ti-user-circle" aria-hidden="true"></i>
+              <span class="sr-label">เข้าสู่ระบบด้วย: <strong id="auth-user-email">-</strong></span>
+            </div>
+            <div class="settings-row" style="cursor:pointer" onclick="signOutCMU()">
+              <i class="ti ti-logout" aria-hidden="true" style="color:var(--red)"></i>
+              <span class="sr-label" style="color:var(--red)">ออกจากระบบ</span>
+            </div>
+          </div>
+
+          <div class="section-hd"><h2>ตั้งค่าระบบ</h2></div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <i class="ti ti-link" aria-hidden="true"></i>
+              <span class="sr-label">Google Apps Script URL</span>
+            </div>
+            <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:8px">
+              <input type="url" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;padding:8px 10px;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:13px;font-family:inherit">
+              <button class="save-url-btn" onclick="saveApiUrl()">บันทึก URL</button>
+            </div>
+          </div>
+          <div class="settings-card">
+            <div class="settings-row" id="sync-settings-row" style="cursor:pointer" onclick="syncFromSheets()">
+              <i class="ti ti-cloud-download" id="sync-settings-icon" aria-hidden="true"></i>
+              <span class="sr-label" id="sync-settings-label">ซิงก์ข้อมูลจาก Google Sheets</span>
+              <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
+            </div>
+            <div class="settings-row" style="cursor:pointer" onclick="exportCSV()">
+              <i class="ti ti-download" aria-hidden="true"></i>
+              <span class="sr-label">ส่งออกข้อมูล CSV</span>
+              <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
+            </div>
+          </div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <i class="ti ti-info-circle" aria-hidden="true"></i>
+              <span class="sr-label">เวอร์ชัน</span>
+              <span class="sr-val">1.0.0</span>
+            </div>
+          </div>
+
+          <!-- APPS SCRIPT CODE -->
+          <div class="section-hd" style="margin-top:24px"><h2>โค้ด Google Apps Script</h2></div>
+          <div class="detail-section">
+            <h3>วิธีติดตั้ง backend</h3>
+            <div style="font-size:13px;color:var(--text-sub);line-height:1.8">
+              <p>1. เปิด <strong>Google Sheets</strong> ใหม่ ตั้งชื่อ "บันทึกรับ-ส่งเอกสาร"</p>
+              <p>2. ไปที่ <strong>Extensions → Apps Script</strong></p>
+              <p>3. วางโค้ดจากไฟล์ <code>Code.gs</code> แล้วกด Save</p>
+              <p>4. Deploy → New Deployment → Web App → Execute as: Me, Who has access: Anyone</p>
+              <p>5. Copy URL มาวางในช่อง Apps Script URL ด้านบน</p>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="bottom-nav" aria-label="เมนูล่าง">
+    <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
+    <button class="nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
+    <button class="nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
+    <button class="nav-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i>สต็อกเสื้อ</button>
+    <button class="nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
+    <button class="nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
+    <button class="nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="fab" aria-label="เพิ่มรายการ">
+    <i class="ti ti-plus" aria-hidden="true"></i>
+  </button>
+</div>
+
+<!-- FORM OVERLAY (DRAWER) -->
+<div class="overlay" id="form-overlay" role="dialog" aria-modal="true" aria-labelledby="form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="form-title">บันทึกหนังสือรับ</h2>
+      <button class="drawer-close" onclick="closeForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+
+      <!-- TYPE TOGGLE -->
+      <div class="type-toggle" role="group" aria-label="เลือกประเภท">
+        <button class="type-opt active recv" data-type="recv" onclick="trySwitchType('recv')">
+          <i class="ti ti-inbox" aria-hidden="true"></i> หนังสือรับ
+        </button>
+        <button class="type-opt send" data-type="send" onclick="trySwitchType('send')">
+          <i class="ti ti-send" aria-hidden="true"></i> หนังสือส่ง
+        </button>
+      </div>
+
+      <form id="doc-form" onsubmit="return false">
+
+        <!-- ฟิลด์หนังสือรับ -->
+        <div data-show="recv" class="form-grid" style="gap:12px">
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-recv-docno">เลขหนังสือรับ</label>
+              <input type="text" id="f-recv-docno" placeholder="รบ. 2568-001">
+            </div>
+            <div class="field">
+              <label for="f-ref-no">ที่ (เลขจากหน่วยงาน)</label>
+              <input type="text" id="f-ref-no" placeholder="อว 8393/2568">
+            </div>
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-issue-date">วันที่ออกหนังสือ</label>
+              <input type="date" id="f-issue-date">
+            </div>
+            <div class="field">
+              <label for="f-received-date">ได้รับวันที่</label>
+              <input type="date" id="f-received-date">
+            </div>
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-from-org">จาก (หน่วยงาน)</label>
+              <input type="text" id="f-from-org" placeholder="มหาวิทยาลัยเชียงใหม่">
+            </div>
+            <div class="field">
+              <label for="f-to-org-recv">ถึง</label>
+              <input type="text" id="f-to-org-recv" placeholder="สมาคมนักศึกษาเก่า มช.">
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-subject-recv">เรื่อง <span class="required">*</span></label>
+            <input type="text" id="f-subject" placeholder="ชื่อเรื่องของหนังสือ">
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-handler">การปฏิบัติ (ผู้รับผิดชอบ)</label>
+              <select id="f-handler">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-receiver">ผู้รับในสมาคม</label>
+              <select id="f-receiver">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-deadline">กำหนดตอบ / ครบกำหนด</label>
+            <input type="date" id="f-deadline">
+          </div>
+        </div>
+
+        <!-- ฟิลด์หนังสือส่ง -->
+        <div data-show="send" class="form-grid" style="gap:12px;display:none">
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-send-docno">เลขที่ส่ง</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:14px;color:var(--text-sub);white-space:nowrap">สก.มช.</span>
+                <input type="text" id="f-send-docno" placeholder="1/2569">
+              </div>
+            </div>
+            <div class="field">
+              <label for="f-issue-date-send">วันที่ออก</label>
+              <input type="date" id="f-issue-date-send">
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-to-org">ถึง (หน่วยงาน / ผู้รับ)</label>
+            <input type="text" id="f-to-org" placeholder="ชื่อหน่วยงานที่ส่งถึง">
+          </div>
+          <div class="field">
+            <label for="f-subject-send">เรื่อง <span class="required">*</span></label>
+            <input type="text" id="f-subject-send" placeholder="ชื่อเรื่องของหนังสือ">
+          </div>
+          <div class="field">
+            <label for="f-detail">รายละเอียด</label>
+            <textarea id="f-detail" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-handler-send">การปฏิบัติ (ผู้ทำเอกสาร)</label>
+              <select id="f-handler-send">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-sender">ผู้ส่ง</label>
+              <select id="f-sender">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-receiver-name">ผู้รับ</label>
+              <select id="f-receiver-name">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-send-date">วันที่ส่ง</label>
+              <input type="date" id="f-send-date">
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-send-channel">ช่องทางส่ง</label>
+            <select id="f-send-channel">
+              <option value="">-- เลือก --</option>
+              <option>ส่งมือ</option>
+              <option>ไปรษณีย์</option>
+              <option>อีเมล</option>
+              <option>Line</option>
+              <option>อื่น ๆ</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ฟิลด์ร่วม -->
+        <div data-show="both" class="form-grid" style="gap:12px;margin-top:12px">
+          <div class="form-grid two">
+            <div class="field">
+              <label for="f-doc-type">ประเภทเอกสาร</label>
+              <select id="f-doc-type">
+                <option value="">-- เลือก --</option>
+                <option>หนังสือราชการ</option>
+                <option>บันทึกข้อความ</option>
+                <option>สัญญา / ข้อตกลง</option>
+                <option>ใบแจ้งหนี้ / ใบสำคัญ</option>
+                <option>รายงาน</option>
+                <option>คำสั่ง / ประกาศ</option>
+                <option>อื่น ๆ</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-status">สถานะ</label>
+              <select id="f-status">
+                <option value="pend">รอดำเนินการ</option>
+                <option value="done">เสร็จสิ้น</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ลายเซ็น (เฉพาะหนังสือส่ง) -->
+          <div data-show="send" style="display:none">
+            <div class="field">
+              <label>ลายเซ็นผู้รับ</label>
+              <div class="sig-wrap">
+                <canvas id="sig-canvas" aria-label="พื้นที่เซ็นชื่อ"></canvas>
+                <div class="sig-actions">
+                  <button type="button" class="sig-clear" onclick="clearSig()">ล้างลายเซ็น</button>
+                  <span class="sig-label">เซ็นในกรอบด้านบน</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ไฟล์แนบ -->
+          <div class="field">
+            <label>ไฟล์แนบ</label>
+            <div class="file-area" onclick="document.getElementById('f-file').click()">
+              <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+              <p>แตะเพื่อแนบไฟล์</p>
+              <input type="file" id="f-file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="document.getElementById('file-name').textContent = this.files[0]?.name || ''">
+            </div>
+            <div id="file-name" class="file-name"></div>
+          </div>
+
+          <div class="field">
+            <label for="f-note">หมายเหตุ</label>
+            <textarea id="f-note" placeholder="บันทึกเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="submit-btn" onclick="submitForm()">
+            บันทึกหนังสือรับ
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- CALENDAR ALL EVENTS OVERLAY -->
+<div class="detail-overlay" id="cal-all-overlay" role="dialog" aria-modal="true">
+  <div class="detail-header">
+    <button class="icon-btn" onclick="document.getElementById('cal-all-overlay').classList.remove('open')" aria-label="กลับ" style="background:var(--gray-100);color:var(--text)"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <h2 style="color:var(--text)">กิจกรรมทั้งหมด</h2>
+  </div>
+  <div style="padding:16px;max-width:700px;margin:0 auto">
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select id="cal-all-month-filter" onchange="renderCalAllEvents()" style="padding:8px 12px;border:1.5px solid var(--border-med);border-radius:var(--r-md);font-size:14px;font-family:inherit;color:var(--text);background:var(--white);outline:none">
+        <option value="">ทุกเดือน</option>
+      </select>
+      <span id="cal-all-count" style="font-size:13px;color:var(--text-hint);font-weight:500"></span>
+    </div>
+    <div id="cal-all-list"></div>
+  </div>
+</div>
+
+<!-- CALENDAR FORM OVERLAY (DRAWER) -->
+<div class="overlay" id="cal-form-overlay" role="dialog" aria-modal="true" aria-labelledby="cal-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="cal-form-title">เพิ่มกิจกรรม</h2>
+      <button class="drawer-close" onclick="closeCalForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="cal-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="field">
+            <label for="cal-f-title">ชื่องาน / กิจกรรม <span class="required">*</span></label>
+            <input type="text" id="cal-f-title" placeholder="เช่น ประชุมคณะกรรมการสมาคม">
+          </div>
+
+          <div class="field">
+            <label for="cal-f-type">ประเภท</label>
+            <select id="cal-f-type">
+              <option value="">-- เลือก --</option>
+              <option>ประชุม</option>
+              <option>กิจกรรม</option>
+              <option>งานภายนอก</option>
+              <option>งานเอกสาร</option>
+              <option>อื่นๆ</option>
+            </select>
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="cal-f-date-start">วันที่เริ่ม <span class="required">*</span></label>
+              <input type="date" id="cal-f-date-start">
+            </div>
+            <div class="field">
+              <label for="cal-f-date-end">วันที่สิ้นสุด</label>
+              <input type="date" id="cal-f-date-end">
+            </div>
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="cal-f-time-start">เวลาเริ่ม</label>
+              <input type="time" id="cal-f-time-start">
+            </div>
+            <div class="field">
+              <label for="cal-f-time-end">เวลาสิ้นสุด</label>
+              <input type="time" id="cal-f-time-end">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="cal-f-location">สถานที่</label>
+            <input type="text" id="cal-f-location" placeholder="เช่น ห้องประชุมใหญ่ / ออนไลน์ Zoom">
+          </div>
+
+          <div class="field">
+            <label for="cal-f-owner">ผู้รับผิดชอบ</label>
+            <select id="cal-f-owner">
+              <option value="">-- เลือก --</option>
+              <option>ไอยลดา</option>
+              <option>จิตรภณ</option>
+              <option>โรจนวัน</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="cal-f-note">หมายเหตุ</label>
+            <textarea id="cal-f-note" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="cal-submit-btn" onclick="submitCalForm()">
+            บันทึกกิจกรรม
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- FINANCE FORM OVERLAY (DRAWER) -->
+<div class="overlay" id="fin-form-overlay" role="dialog" aria-modal="true" aria-labelledby="fin-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="fin-form-title">บันทึกรายการเบิก-จ่ายเงิน</h2>
+      <button class="drawer-close" onclick="closeFinForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="fin-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <!-- 1. หมวดงบประมาณ -->
+          <div class="field">
+            <label for="fin-category">หมวดงบประมาณ</label>
+            <select id="fin-category">
+              <option value="">-- เลือก --</option>
+              <option>บริหารทั่วไป</option>
+              <option>กิจกรรม Real Engineer CMU</option>
+              <option>กิจกรรม CMU-CM Marathon</option>
+              <option>กิจกรรมปั่นเพื่อน้อง</option>
+              <option>กิจกรรมกอล์ฟการกุศล</option>
+              <option>กิจกรรมทอดผ้าป่าสามัคคี</option>
+              <option>กิจกรรม Tour de CMU</option>
+              <option>อื่นๆ</option>
+            </select>
+          </div>
+
+          <!-- 2. รายการ / เรื่อง -->
+          <div class="field">
+            <label for="fin-title">รายการ / เรื่อง <span class="required">*</span></label>
+            <input type="text" id="fin-title" placeholder="เช่น ค่าจัดงานปั่นเพื่อน้อง">
+          </div>
+
+          <!-- รายละเอียดค่าใช้จ่าย -->
+          <div class="field">
+            <label for="fin-detail">รายละเอียดค่าใช้จ่าย</label>
+            <textarea id="fin-detail" placeholder="ระบุรายละเอียด เช่น&#10;- ค่าอาหาร 50 คน × 200 บาท = 10,000 บาท&#10;- ค่าเช่าสถานที่ = 5,000 บาท"></textarea>
+          </div>
+
+          <!-- 3. เลขที่ตั้งเบิก -->
+          <div class="field">
+            <label for="fin-docno">เลขที่ตั้งเบิก</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px;color:var(--text-sub);white-space:nowrap">บง.มช.</span>
+              <input type="text" id="fin-docno" placeholder="1/2569">
+            </div>
+          </div>
+
+          <!-- 4-5. วันที่ตั้งเบิก / ผู้ตั้งเบิก -->
+          <div class="form-grid two">
+            <div class="field">
+              <label for="fin-request-date">วันที่ตั้งเบิก</label>
+              <input type="date" id="fin-request-date">
+            </div>
+            <div class="field">
+              <label for="fin-requester">ผู้ตั้งเบิก</label>
+              <select id="fin-requester">
+                <option value="">-- เลือก --</option>
+                <option>ไอยลดา</option>
+                <option>จิตรภณ</option>
+                <option>โรจนวัน</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 6. จำนวนเงินที่ตั้งเบิก -->
+          <div class="field">
+            <label for="fin-amount-request">จำนวนเงินที่ตั้งเบิก (บาท)</label>
+            <input type="number" id="fin-amount-request" placeholder="0.00" step="0.01" min="0">
+          </div>
+
+          <!-- 7. ผู้อนุมัติ -->
+          <div class="field">
+            <label for="fin-approver">ผู้อนุมัติ</label>
+            <select id="fin-approver">
+              <option value="">-- เลือก --</option>
+              <option>นายกสมาคมฯ</option>
+              <option>เหรัญญิก</option>
+            </select>
+          </div>
+
+          <!-- 8. วันที่อนุมัติ -->
+          <div class="field">
+            <label for="fin-approve-date">วันที่อนุมัติ</label>
+            <input type="date" id="fin-approve-date">
+          </div>
+
+          <div class="field">
+            <label>หลักฐานการอนุมัติ (ไฟล์/รูป)</label>
+            <div class="file-area" onclick="document.getElementById('fin-approve-file').click()">
+              <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+              <p>แตะเพื่อแนบไฟล์</p>
+              <input type="file" id="fin-approve-file" accept=".pdf,.jpg,.png" onchange="document.getElementById('fin-approve-file-name').textContent = this.files[0]?.name || ''">
+            </div>
+            <div id="fin-approve-file-name" class="file-name"></div>
+          </div>
+
+          <!-- 6.5 สถานะการชำระ -->
+          <div class="field">
+            <label for="fin-status">สถานะการชำระ</label>
+            <select id="fin-status">
+              <option value="prepaid">มีคนชำระให้ก่อน</option>
+              <option value="pending">รอสมาคมชำระ</option>
+              <option value="refund">ต้องโอนคืน</option>
+            </select>
+          </div>
+
+          <div class="section-hd" style="margin:8px 0 4px"><h2>การชำระเงิน</h2></div>
+
+          <!-- 9. จำนวนเงินที่ชำระ -->
+          <div class="field">
+            <label for="fin-amount-paid">จำนวนเงินที่ชำระ (บาท)</label>
+            <input type="number" id="fin-amount-paid" placeholder="0.00" step="0.01" min="0">
+          </div>
+
+          <!-- 10. วันที่ทำรายการ -->
+          <div class="field">
+            <label for="fin-pay-date">วันที่ทำรายการ</label>
+            <input type="date" id="fin-pay-date">
+          </div>
+
+          <!-- 11. วิธีการชำระ -->
+          <div class="field">
+            <label for="fin-pay-method">วิธีการชำระ</label>
+            <select id="fin-pay-method">
+              <option value="">-- เลือก --</option>
+              <option>เงินสด</option>
+              <option>โอนเงิน</option>
+              <option>เช็คธนาคาร</option>
+            </select>
+          </div>
+
+          <!-- 12. ผู้รับเงิน -->
+          <div class="field">
+            <label for="fin-payee">ผู้รับเงิน</label>
+            <input type="text" id="fin-payee" placeholder="ชื่อผู้รับเงินหรือหน่วยงาน">
+          </div>
+
+          <div class="field">
+            <label for="fin-bank-account">เลขบัญชีปลายทาง (ถ้าโอน)</label>
+            <input type="text" id="fin-bank-account" placeholder="เลขบัญชี + ชื่อธนาคาร">
+          </div>
+
+          <div class="field">
+            <label for="fin-receipt-no">เลขที่ใบเสร็จ / ใบกำกับภาษี</label>
+            <input type="text" id="fin-receipt-no" placeholder="ถ้ามี">
+          </div>
+
+          <div class="field">
+            <label>หลักฐานการจ่าย / สลิปโอน</label>
+            <div class="file-area" onclick="document.getElementById('fin-file').click()">
+              <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+              <p>แตะเพื่อแนบไฟล์ (เลือกได้หลายไฟล์)</p>
+              <input type="file" id="fin-file" accept=".pdf,.jpg,.png" multiple onchange="updateFinFileNames()">
+            </div>
+            <div id="fin-file-name" class="file-name"></div>
+          </div>
+
+          <div class="field">
+            <label for="fin-note">หมายเหตุ</label>
+            <textarea id="fin-note" placeholder="บันทึกเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="fin-submit-btn" onclick="submitFinForm()">
+            บันทึกรายการเบิก-จ่ายเงิน
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- RENT FORM OVERLAY (ค่าเช่า) -->
+<div class="overlay" id="rent-form-overlay" role="dialog" aria-modal="true" aria-labelledby="rent-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="rent-form-title">บันทึกค่าเช่าประจำเดือน</h2>
+      <button class="drawer-close" onclick="closeRentForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="rent-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-month">เดือนที่เรียกเก็บ <span class="required">*</span></label>
+              <input type="month" id="rent-f-month" onchange="autofillMeterPrevious(); updateRentPreview()">
+            </div>
+            <div class="field">
+              <label for="rent-f-lot">ล็อค</label>
+              <input type="text" id="rent-f-lot" placeholder="เช่น 4">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="rent-f-shop">ชื่อร้าน / กิจการ <span class="required">*</span></label>
+            <input type="text" id="rent-f-shop" list="rent-shop-list" placeholder="ชื่อร้านค้า (เลือกจากลิสต์ หรือพิมพ์ชื่อใหม่)" onchange="autofillRentLot()">
+            <datalist id="rent-shop-list">
+              <option value="ร้านน้ำผลไม้ ป้าน้อง - ลูกชิ้นทอด (1)">
+              <option value="ร้านน้ำผลไม้ ป้าน้อง - ลูกชิ้นทอด (2)">
+              <option value="ร้านลุงเล็ก อาหารตามสั่ง (3)">
+              <option value="ร้านลุงเล็ก อาหารตามสั่ง (4)">
+              <option value="ครัวจันทร์เจ้า (5)">
+              <option value="ร้านสหายกาแฟ (6)">
+              <option value="ร้านสหายกาแฟ (7)">
+              <option value="ร้านอากงเยาวราช 9 (8)">
+              <option value="ร้านชงไก่ (9)">
+              <option value="ร้านชงไก่ (10)">
+              <option value="ร้าน Hair Made">
+            </datalist>
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-rooms">จำนวนห้องที่เช่า</label>
+              <input type="number" id="rent-f-rooms" value="1" min="1" step="1" oninput="updateRentPreview()">
+            </div>
+            <div class="field">
+              <label for="rent-f-rent">ค่าเช่า (บาท) <span class="required">*</span></label>
+              <input type="number" id="rent-f-rent" placeholder="0.00" step="0.01" min="0" oninput="updateRentPreview()">
+            </div>
+          </div>
+
+          <div class="section-hd" style="margin:8px 0 4px"><h2>มิเตอร์น้ำประปา</h2></div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-meter-previous">เลขมิเตอร์ครั้งก่อน</label>
+              <input type="number" id="rent-f-meter-previous" placeholder="0" step="1" min="0" oninput="this.dataset.touched='1'; updateRentPreview()">
+            </div>
+            <div class="field">
+              <label for="rent-f-meter-current">เลขมิเตอร์ครั้งนี้</label>
+              <input type="number" id="rent-f-meter-current" placeholder="0" step="1" min="0" oninput="updateRentPreview()">
+            </div>
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-units">จำนวนหน่วยที่ใช้</label>
+              <input type="number" id="rent-f-units" readonly style="background:var(--gray-100)">
+            </div>
+            <div class="field">
+              <label for="rent-f-water-fee">ค่าน้ำ (คำนวณจากเรทเฉลี่ยมิเตอร์กลาง)</label>
+              <input type="number" id="rent-f-water-fee" readonly style="background:var(--gray-100)">
+            </div>
+          </div>
+          <div id="rent-f-water-warn" class="field" style="display:none;background:var(--red-pale);border-radius:var(--r-md);padding:10px 14px">
+            <span style="color:var(--red);font-size:13px">⚠️ ยังไม่ได้ตั้งค่ามิเตอร์น้ำกลางของเดือนนี้ — ค่าน้ำจะเป็น 0 ไปก่อน กด "ตั้งค่ามิเตอร์น้ำกลาง" จากหน้ารายการก่อนบันทึกจริง</span>
+          </div>
+
+          <div class="section-hd" style="margin:8px 0 4px"><h2>ค่าใช้จ่ายอื่น</h2></div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="rent-f-security-fee">ค่า รปภ. (แก้ไขได้)</label>
+              <input type="number" id="rent-f-security-fee" placeholder="0.00" step="0.01" min="0"
+                oninput="this.dataset.touched='1'; updateRentPreview()">
+            </div>
+            <div class="field">
+              <label for="rent-f-donation">บริจาคช่วยภาษี (แก้ไขได้)</label>
+              <input type="number" id="rent-f-donation" placeholder="0.00" step="0.01" min="0"
+                oninput="this.dataset.touched='1'; updateRentPreview()">
+            </div>
+          </div>
+
+          <div class="field" style="background:var(--purple-pale);border-radius:var(--r-md);padding:12px 16px">
+            <label style="color:var(--purple);font-weight:700">รวมเงินที่ต้องชำระทั้งสิ้น</label>
+            <div id="rent-f-total-preview" style="font-size:22px;font-weight:800;color:var(--purple)">฿0</div>
+          </div>
+
+          <div class="field">
+            <label for="rent-f-status">สถานะการชำระ</label>
+            <select id="rent-f-status">
+              <option value="unpaid">ค้างชำระ</option>
+              <option value="paid">จ่ายแล้ว</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="rent-f-note">หมายเหตุ</label>
+            <textarea id="rent-f-note" placeholder="บันทึกเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="rent-submit-btn" onclick="submitRentForm()">
+            บันทึกรายการค่าเช่า
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- RENT BATCH FORM OVERLAY (กรอกค่าเช่าทั้งเดือนทีเดียว ครบทุกร้าน) -->
+<div class="overlay" id="rent-batch-overlay" role="dialog" aria-modal="true" aria-labelledby="rent-batch-title">
+  <div class="drawer rb-drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="rent-batch-title">กรอกค่าเช่าทั้งเดือน <span class="rb-count-pill" id="rent-batch-shop-count">0 ร้าน</span></h2>
+      <button class="drawer-close" onclick="closeRentBatchForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body rb-body">
+
+      <div class="rb-month-row">
+        <label for="rent-batch-month">เดือนที่เรียกเก็บ</label>
+        <input type="month" id="rent-batch-month" onchange="loadRentBatchRows(this.value)">
+      </div>
+
+      <div id="rent-batch-water-warn" class="rb-warn" style="display:none">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+        <span></span>
+      </div>
+
+      <div class="rb-table-wrap">
+        <table class="rb-table">
+          <thead>
+            <tr>
+              <th class="rb-col-shop">ชื่อร้าน</th>
+              <th class="rb-col-sm">ล็อค</th>
+              <th class="rb-col-sm">ห้อง</th>
+              <th class="rb-col-md">ค่าเช่า</th>
+              <th class="rb-col-md">มิเตอร์ก่อน</th>
+              <th class="rb-col-md">มิเตอร์หลัง</th>
+              <th class="rb-col-sm rb-readonly-col">หน่วยใช้</th>
+              <th class="rb-col-md rb-readonly-col">ค่าน้ำ</th>
+              <th class="rb-col-md">รปภ.</th>
+              <th class="rb-col-md">บริจาค</th>
+              <th class="rb-col-total">รวม</th>
+              <th class="rb-col-del"></th>
+            </tr>
+          </thead>
+          <tbody id="rent-batch-tbody"></tbody>
+        </table>
+      </div>
+
+      <button type="button" class="rb-add-btn" onclick="addRentBatchRow()">
+        <i class="ti ti-plus" aria-hidden="true"></i> เพิ่มร้าน
+      </button>
+
+      <div class="rb-summary-bar">
+        <div class="rb-summary-label">รวมทั้งหมด</div>
+        <div class="rb-summary-total" id="rent-batch-grandtotal">฿0</div>
+      </div>
+
+      <div id="rent-batch-status" class="rb-status" style="display:none"></div>
+
+      <button type="button" class="btn-submit recv rb-submit-btn" onclick="submitRentBatchAll()">
+        บันทึกทั้งหมด
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<!-- MASTER METER FORM OVERLAY (มิเตอร์น้ำกลาง) -->
+<div class="overlay" id="mm-form-overlay" role="dialog" aria-modal="true" aria-labelledby="mm-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="mm-form-title">ตั้งค่ามิเตอร์น้ำกลางประจำเดือน</h2>
+      <button class="drawer-close" onclick="closeMasterMeterForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <p style="font-size:13px;color:var(--text-sub);margin:0 0 12px">
+        กปภ. คิดค่าน้ำแบบขั้นบันไดจาก<strong>ยอดรวมที่มิเตอร์กลางอ่านได้</strong> ระบบจะคำนวณราคาเฉลี่ยต่อหน่วยของเดือนนี้ให้อัตโนมัติ
+        แล้วนำไปคูณกับหน่วยที่แต่ละร้านใช้จริงจากมิเตอร์ย่อยของร้าน<br><br>
+        <strong>หมายเหตุ:</strong> รอบบิลค่าน้ำล่าช้ากว่ารอบเก็บค่าเช่า 1 เดือนเสมอ (เช่น บิลค่าเช่าเดือนกรกฎาคม ใช้ค่าน้ำของเดือนมิถุนายน) —
+        ระบบจะเลือกเดือนให้อัตโนมัติเมื่อเปิดจากฟอร์มร้านค้า
+      </p>
+      <form id="mm-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="field">
+            <label for="mm-f-month">เดือน <span class="required">*</span></label>
+            <input type="month" id="mm-f-month" onchange="autofillMasterMeterFields()">
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="mm-f-meter-previous">เลขมิเตอร์กลางครั้งก่อน</label>
+              <input type="number" id="mm-f-meter-previous" placeholder="0" step="1" min="0" oninput="this.dataset.touched='1'; updateMasterMeterPreview()">
+            </div>
+            <div class="field">
+              <label for="mm-f-meter-current">เลขมิเตอร์กลางครั้งนี้</label>
+              <input type="number" id="mm-f-meter-current" placeholder="0" step="1" min="0" oninput="updateMasterMeterPreview()">
+            </div>
+          </div>
+
+          <div class="field" style="background:var(--gray-100);border-radius:var(--r-md);padding:12px 16px">
+            <div class="detail-row"><span class="dk">หน่วยรวมทั้งหมด</span><span class="dv" id="mm-f-units-preview">0</span></div>
+            <div class="detail-row"><span class="dk">ค่าน้ำรวม (คิดขั้นบันได)</span><span class="dv" id="mm-f-total-preview">฿0</span></div>
+          </div>
+
+          <div class="field" style="background:var(--purple-pale);border-radius:var(--r-md);padding:12px 16px">
+            <label style="color:var(--purple);font-weight:700">ราคาเฉลี่ยต่อหน่วย</label>
+            <div id="mm-f-avgrate-preview" style="font-size:22px;font-weight:800;color:var(--purple)">0.00 บาท/หน่วย</div>
+          </div>
+
+          <button type="button" class="btn-submit recv" onclick="submitMasterMeter()">
+            บันทึกมิเตอร์กลาง
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- SHIRT STOCK FORM OVERLAY (เพิ่ม/แก้ไขแบบเสื้อ) -->
+<div class="overlay" id="shirt-form-overlay" role="dialog" aria-modal="true" aria-labelledby="shirt-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="shirt-form-title">เพิ่มแบบเสื้อ/ไซส์ใหม่</h2>
+      <button class="drawer-close" onclick="closeShirtForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="shirt-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <div class="field">
+            <label for="shirt-f-event">กิจกรรม</label>
+            <input type="text" id="shirt-f-event" list="shirt-event-list" placeholder="เช่น CMU Marathon 10, ปั่นเพื่อน้อง 9">
+            <datalist id="shirt-event-list"></datalist>
+          </div>
+
+          <div class="field">
+            <label for="shirt-f-design">แบบเสื้อ <span class="required">*</span></label>
+            <input type="text" id="shirt-f-design" placeholder="ชื่อ/ลายเสื้อ">
+          </div>
+
+          <div class="form-grid two">
+            <div class="field">
+              <label for="shirt-f-size">ไซส์</label>
+              <input type="text" id="shirt-f-size" placeholder="เช่น S, M, L, Free Size">
+            </div>
+            <div class="field">
+              <label for="shirt-f-qty">จำนวนเริ่มต้น (ตัว)</label>
+              <input type="number" id="shirt-f-qty" placeholder="0" min="0" step="1">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="shirt-f-note">หมายเหตุ</label>
+            <textarea id="shirt-f-note" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+          </div>
+
+          <button type="button" class="btn-submit recv" id="shirt-submit-btn" onclick="submitShirtStockForm()">
+            บันทึกรายการ
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- SHIRT LOG FORM OVERLAY (บันทึกเบิกออก) -->
+<div class="overlay" id="shirt-log-overlay" role="dialog" aria-modal="true" aria-labelledby="shirt-log-form-title">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <h2 id="shirt-log-form-title">บันทึกเบิกออก</h2>
+      <button class="drawer-close" onclick="closeShirtLogForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="shirt-log-form" onsubmit="return false">
+        <div class="form-grid" style="gap:12px">
+
+          <input type="hidden" id="shirt-log-stock-id">
+
+          <div class="field">
+            <label for="shirt-log-date">วันที่</label>
+            <input type="date" id="shirt-log-date">
+          </div>
+
+          <div class="field">
+            <label for="shirt-log-qty">จำนวนที่เบิกออก (ตัว) <span class="required">*</span></label>
+            <input type="number" id="shirt-log-qty" placeholder="0" min="1" step="1">
+          </div>
+
+          <div class="field">
+            <label for="shirt-log-note">หมายเหตุ</label>
+            <input type="text" id="shirt-log-note" placeholder="เช่น แจกงานวิ่ง, ขายหน้างาน, แจกกรรมการ">
+          </div>
+
+          <button type="button" class="btn-submit recv" style="background:#085041" onclick="submitShirtLog()">
+            บันทึกเบิกออก
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- GLOBAL LOADING OVERLAY (ใช้กับงานที่ใช้เวลานาน เช่น ออกใบแจ้งหนี้/รวมไฟล์) -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-card">
+    <div class="loading-icon-wrap loading-neutral" id="loading-icon-wrap">
+      <i class="ti ti-loader-2 rb-spin" id="loading-icon" aria-hidden="true"></i>
+    </div>
+    <div class="loading-message" id="loading-message">กรุณารอสักครู่...</div>
+    <button type="button" class="loading-close-btn" id="loading-close-btn" style="display:none" onclick="hideLoadingOverlay()">ปิด</button>
+  </div>
+</div>
+
+<!-- FINANCE DETAIL OVERLAY -->
+<div class="detail-overlay" id="fin-detail-overlay" role="dialog" aria-modal="true">
+  <div class="detail-header">
+    <button class="icon-btn" onclick="closeFinDetail()" aria-label="กลับ"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <h2 id="fin-detail-title">รายละเอียดรายการเบิก-จ่ายเงิน</h2>
+  </div>
+  <div class="detail-body" id="fin-detail-body"></div>
+</div>
+
+<!-- DETAIL OVERLAY -->
+<div class="detail-overlay" id="detail-overlay" role="dialog" aria-modal="true">
+  <div class="detail-header">
+    <button class="icon-btn" onclick="closeDetail()" aria-label="กลับ"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <h2 id="detail-title">รายละเอียด</h2>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+// Export CSV
+function exportCSV() {
+  if (!state.records.length) { showToast('ไม่มีข้อมูล'); return; }
+  const headers = ['ประเภท','เลขที่','วันที่ออก','เรื่อง','จาก/ถึง','ผู้รับผิดชอบ','สถานะ','ประเภทเอกสาร','หมายเหตุ'];
+  const rows = state.records.map(r => [
+    r.type === 'recv' ? 'รับ' : 'ส่ง',
+    r.docno || '',
+    r.issue_date || '',
+    r.subject || '',
+    r.type === 'recv' ? (r.from_org || '') : (r.to_org || ''),
+    r.handler || '',
+    r.status === 'pend' ? 'รอดำเนินการ' : 'เสร็จสิ้น',
+    r.doc_type || '',
+    r.note || ''
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'เอกสาร-มช-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
