@@ -916,3 +916,109 @@ body {
   grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #A8A8AC;
 }
 .ts-empty i { font-size: 40px; margin-bottom: 10px; display: block; color: #D5D5D8; }
+
+/* ===================================================================
+   RENT BATCH TABLE — ตารางกรอกค่าเช่าทั้งเดือน (ดีไซน์ใหม่ให้ดูโปร่ง ไม่เหมือนกริดดิบๆ)
+   =================================================================== */
+.rb-drawer { max-width: 1240px; width: 96vw; }
+
+.rb-count-pill {
+  display: inline-block; background: var(--purple-pale); color: var(--purple);
+  font-size: 12.5px; font-weight: 700; padding: 3px 11px; border-radius: 999px;
+  margin-left: 8px; vertical-align: middle;
+}
+
+.rb-body { padding-top: 4px; }
+
+.rb-month-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+}
+.rb-month-row label { font-size: 14px; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
+.rb-month-row input {
+  padding: 10px 14px; border-radius: var(--r-md); border: 1.5px solid var(--border-med);
+  font-family: inherit; font-size: 14.5px; color: var(--text); background: #fff;
+}
+.rb-month-row input:focus { border-color: var(--purple); outline: none; }
+
+.rb-warn {
+  display: flex; align-items: center; gap: 10px; background: var(--red-pale);
+  border-radius: var(--r-lg); padding: 14px 18px; margin-bottom: 18px;
+}
+.rb-warn i { font-size: 20px; color: var(--red); flex-shrink: 0; }
+.rb-warn span { color: var(--red); font-size: 14px; font-weight: 500; line-height: 1.5; }
+
+.rb-table-wrap {
+  border-radius: var(--r-lg); overflow: auto; max-height: 55vh;
+  border: 1px solid var(--border); background: #fff;
+}
+
+.rb-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14.5px; min-width: 980px; }
+
+.rb-table thead th {
+  position: sticky; top: 0; z-index: 2; background: #FAFAFB;
+  text-align: left; font-size: 12px; font-weight: 700; color: var(--text-hint);
+  text-transform: uppercase; letter-spacing: .04em;
+  padding: 14px 12px; border-bottom: 1.5px solid var(--border);
+  white-space: nowrap;
+}
+.rb-table thead th.rb-col-total,
+.rb-table thead th.rb-readonly-col { text-align: right; }
+
+.rb-table tbody tr { transition: background .12s; }
+.rb-table tbody tr:hover { background: #FAFAFB; }
+.rb-table tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+
+.rb-table td { padding: 8px 10px; vertical-align: middle; }
+
+.rb-table input {
+  width: 100%; border: 1.5px solid transparent; background: transparent;
+  font-family: inherit; font-size: 14.5px; color: var(--text);
+  padding: 9px 10px; border-radius: 10px; outline: none;
+  transition: all .12s; min-width: 0;
+}
+.rb-table input:hover { background: #F3F3F5; }
+.rb-table input:focus { background: #fff; border-color: var(--purple); box-shadow: 0 0 0 3px var(--purple-pale); }
+.rb-table input::placeholder { color: var(--text-hint); }
+
+.rb-col-shop input { min-width: 160px; font-weight: 600; }
+.rb-col-sm { width: 64px; }
+.rb-col-sm input { text-align: center; }
+.rb-col-md { width: 100px; }
+.rb-col-md input { text-align: right; }
+.rb-col-total { width: 110px; text-align: right; }
+.rb-col-del { width: 44px; }
+
+.rb-readonly-col { color: var(--text-hint); font-variant-numeric: tabular-nums; }
+.rb-units { text-align: center; }
+.rb-water { text-align: right; }
+
+.rb-total { font-weight: 800; color: var(--purple); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+.rb-del-btn {
+  width: 32px; height: 32px; border-radius: 10px; border: none; background: transparent;
+  color: var(--text-hint); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: all .12s;
+}
+.rb-del-btn:hover { background: var(--red-pale); color: var(--red); }
+
+.rb-add-btn {
+  margin-top: 14px; border: 1.5px dashed var(--border-med); background: none; color: var(--purple);
+  font-family: inherit; font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: var(--r-md);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all .12s;
+}
+.rb-add-btn:hover { background: var(--purple-pale); border-color: var(--purple); border-style: solid; }
+
+.rb-summary-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--purple-pale); border-radius: var(--r-lg); padding: 16px 22px;
+  margin: 18px 0 14px;
+}
+.rb-summary-label { font-size: 14px; font-weight: 600; color: var(--purple); }
+.rb-summary-total { font-size: 26px; font-weight: 800; color: var(--purple); font-variant-numeric: tabular-nums; }
+
+.rb-submit-btn { font-size: 15.5px; padding: 15px; }
+
+@media (max-width: 640px) {
+  .rb-table { font-size: 13px; min-width: 900px; }
+  .rb-table td, .rb-table th { padding: 10px 8px; }
+}
