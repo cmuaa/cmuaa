@@ -761,6 +761,33 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// ===== GLOBAL LOADING OVERLAY (pop up ค้างระหว่างทำงานหนัก ไม่หายเองจนกว่าจะกดปิด) =====
+function showLoadingOverlay(message) {
+  document.getElementById('loading-message').textContent = message || 'กรุณารอสักครู่...';
+  document.getElementById('loading-icon').className = 'ti ti-loader-2 rb-spin';
+  document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-neutral';
+  document.getElementById('loading-close-btn').style.display = 'none';
+  document.getElementById('loading-overlay').classList.add('open');
+}
+function updateLoadingMessage(message) {
+  document.getElementById('loading-message').textContent = message;
+}
+function showLoadingSuccess(message) {
+  document.getElementById('loading-message').textContent = message;
+  document.getElementById('loading-icon').className = 'ti ti-circle-check';
+  document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-success';
+  document.getElementById('loading-close-btn').style.display = 'inline-block';
+}
+function showLoadingError(message) {
+  document.getElementById('loading-message').textContent = message;
+  document.getElementById('loading-icon').className = 'ti ti-alert-triangle';
+  document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-error';
+  document.getElementById('loading-close-btn').style.display = 'inline-block';
+}
+function hideLoadingOverlay() {
+  document.getElementById('loading-overlay').classList.remove('open');
+}
+
 function render() {
   switchPage('list');
   // Restore API URL in settings
@@ -1726,7 +1753,7 @@ function deleteRentRecord(id) {
 // สั่งออกใบแจ้งหนี้ (Apps Script จะ merge เข้า Slides template แล้ว export PDF ให้)
 async function generateRentInvoice(id) {
   if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
-  showToast('กำลังออกใบแจ้งหนี้... (อาจใช้เวลาสักครู่)');
+  showLoadingOverlay('กำลังออกใบแจ้งหนี้...\nกรุณารอสักครู่');
   try {
     const res = await API.call({ action: 'generateRentInvoice', id }, 60000); // ให้เวลา 60 วิ เพราะต้อง copy+merge+export PDF
     if (res.ok) {
@@ -1736,14 +1763,14 @@ async function generateRentInvoice(id) {
         rentState.records[idx].issue_date = res.issueDate;
         saveRentLocal();
       }
-      showToast('ออกใบแจ้งหนี้สำเร็จ');
+      showLoadingSuccess('ออกใบแจ้งหนี้สำเร็จ! 🎉');
       openRentDetail(id);
       window.open(res.pdfUrl, '_blank');
     } else {
-      showToast('ออกใบแจ้งหนี้ไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+      showLoadingError('ออกใบแจ้งหนี้ไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
     }
   } catch (e) {
-    showToast('ออกใบแจ้งหนี้ไม่สำเร็จ: ' + e.message);
+    showLoadingError('ออกใบแจ้งหนี้ไม่สำเร็จ: ' + e.message);
   }
 }
 
@@ -2229,18 +2256,18 @@ async function generateMonthlyBundle() {
   if (!monthKey) { showToast('กรุณาเลือกเดือนที่จะรวมไฟล์'); return; }
   if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
 
-  showToast('กำลังรวมไฟล์ทั้งเดือน... (อาจใช้เวลาสักครู่ถ้ามีหลายร้าน)');
+  showLoadingOverlay('กำลังรวมใบแจ้งหนี้ทั้งเดือน...\nอาจใช้เวลาสักครู่ถ้ามีหลายร้าน กรุณารอ');
   try {
     const res = await API.call({ action: 'generateMonthlyInvoiceBundle', month_key: monthKey }, 240000); // ให้เวลา 4 นาที เพราะต้องออกใบแจ้งหนี้ทุกร้านในเดือนนั้นใหม่ทั้งหมดก่อนรวม
     if (res.ok) {
-      showToast(`รวมไฟล์สำเร็จ (${res.count} ร้าน)` + (res.failed && res.failed.length ? ` — ล้มเหลว: ${res.failed.join(', ')}` : ''));
+      showLoadingSuccess(`รวมไฟล์สำเร็จ! (${res.count} ร้าน) 🎉` + (res.failed && res.failed.length ? `\n⚠️ ล้มเหลว: ${res.failed.join(', ')}` : ''));
       await syncRentFromSheets(); // แต่ละร้านจะมีลิงก์ใบแจ้งหนี้เดี่ยวใหม่ด้วย เพราะฟังก์ชันนี้ออกใบแจ้งหนี้ให้ทุกร้านใหม่ก่อนรวม
       window.open(res.pdfUrl, '_blank');
     } else {
-      showToast('รวมไฟล์ไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+      showLoadingError('รวมไฟล์ไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
     }
   } catch (e) {
-    showToast('รวมไฟล์ไม่สำเร็จ: ' + e.message);
+    showLoadingError('รวมไฟล์ไม่สำเร็จ: ' + e.message);
   }
 }
 
