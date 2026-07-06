@@ -1045,3 +1045,36 @@ body {
 
 .rb-spin { animation: rb-spin-anim .8s linear infinite; }
 @keyframes rb-spin-anim { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ===== GLOBAL LOADING OVERLAY (pop up ค้างระหว่างทำงานหนัก เช่น ออกใบแจ้งหนี้/รวมไฟล์) ===== */
+.loading-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(20,16,30,0.55);
+  z-index: 9999; align-items: center; justify-content: center; padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.loading-overlay.open { display: flex; }
+
+.loading-card {
+  background: #fff; border-radius: 22px; padding: 36px 32px; max-width: 360px; width: 100%;
+  text-align: center; box-shadow: 0 24px 70px rgba(0,0,0,0.3);
+}
+
+.loading-icon-wrap {
+  width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 18px;
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+}
+.loading-neutral { background: var(--purple-pale); color: var(--purple); }
+.loading-success { background: #E1F5EE; color: #085041; }
+.loading-error { background: var(--red-pale); color: var(--red); }
+
+.loading-message {
+  font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.6;
+  white-space: pre-line;
+}
+
+.loading-close-btn {
+  margin-top: 20px; border: none; background: var(--purple); color: #fff;
+  font-family: inherit; font-weight: 700; font-size: 14px; padding: 11px 28px;
+  border-radius: 999px; cursor: pointer; transition: opacity .15s;
+}
+.loading-close-btn:hover { opacity: .88; }
