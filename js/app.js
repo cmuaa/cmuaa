@@ -1444,6 +1444,8 @@ function openRentBatchForm() {
 
 function closeRentBatchForm() {
   document.getElementById('rent-batch-overlay').classList.remove('open');
+  const statusEl = document.getElementById('rent-batch-status');
+  if (statusEl) statusEl.style.display = 'none';
 }
 
 // ดึงรายชื่อร้านจากเดือนก่อนหน้ามาเติมเป็นแถวเริ่มต้นให้อัตโนมัติ (ค่าเช่า/รปภ/บริจาคคงเดิม, เลขมิเตอร์ก่อน = เลขมิเตอร์หลังของเดือนที่แล้ว, เลขมิเตอร์หลังเว้นว่างไว้ให้กรอกใหม่)
@@ -1607,7 +1609,14 @@ async function submitRentBatchAll() {
   const invalidRows = rentBatchRows.filter(r => !r.shop_name || !r.shop_name.trim());
   if (invalidRows.length) { showToast('มี ' + invalidRows.length + ' แถวที่ยังไม่ได้กรอกชื่อร้าน'); return; }
 
-  showToast('กำลังบันทึกทั้งหมด ' + rentBatchRows.length + ' ร้าน...');
+  const submitBtn = document.querySelector('.rb-submit-btn');
+  const statusEl = document.getElementById('rent-batch-status');
+  submitBtn.disabled = true;
+  submitBtn.style.opacity = '.6';
+  submitBtn.textContent = 'กำลังบันทึก...';
+  statusEl.style.display = 'flex';
+  statusEl.className = 'rb-status rb-status-loading';
+  statusEl.innerHTML = `<i class="ti ti-loader-2 rb-spin" aria-hidden="true"></i><span>กำลังบันทึก ${rentBatchRows.length} ร้าน กรุณารอสักครู่...</span>`;
 
   const records = rentBatchRows.map(row => {
     const { units, waterFee } = calcRentBatchRowWater(row);
@@ -1629,16 +1638,26 @@ async function submitRentBatchAll() {
   saveRentLocal();
   renderRentList();
 
+  let resultHtml = '';
   if (API.url) {
     const results = await Promise.allSettled(records.map(r => API.call({ action: 'addRent', row: JSON.stringify(r) }, 30000)));
     const failCount = results.filter(x => x.status === 'rejected').length;
-    if (failCount) showToast(`บันทึกสำเร็จ ${records.length - failCount}/${records.length} ร้าน (${failCount} ร้านพลาด ลองซิงก์ใหม่ทีหลัง)`);
-    else showToast(`บันทึกสำเร็จครบทุกร้าน (${records.length} ร้าน) 🎉`);
+    if (failCount) {
+      statusEl.className = 'rb-status rb-status-warn';
+      resultHtml = `<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>บันทึกสำเร็จ ${records.length - failCount}/${records.length} ร้าน — ${failCount} ร้านพลาด (ลองกด "ซิงก์ข้อมูล" ในหน้าตั้งค่าอีกครั้งทีหลัง)</span>`;
+    } else {
+      statusEl.className = 'rb-status rb-status-success';
+      resultHtml = `<i class="ti ti-circle-check" aria-hidden="true"></i><span>บันทึกสำเร็จครบทุกร้าน (${records.length} ร้าน) 🎉</span>`;
+    }
   } else {
-    showToast('บันทึก offline ครบ ' + records.length + ' ร้าน — จะซิงก์เมื่อออนไลน์');
+    statusEl.className = 'rb-status rb-status-warn';
+    resultHtml = `<i class="ti ti-cloud-off" aria-hidden="true"></i><span>บันทึก offline ครบ ${records.length} ร้าน — จะซิงก์ให้อัตโนมัติเมื่อออนไลน์</span>`;
   }
+  statusEl.innerHTML = resultHtml + `<button type="button" class="rb-status-close" onclick="closeRentBatchForm()">ปิดหน้าต่างนี้</button>`;
 
-  closeRentBatchForm();
+  submitBtn.disabled = false;
+  submitBtn.style.opacity = '1';
+  submitBtn.textContent = 'บันทึกทั้งหมด';
 }
 
 // ===== RENT: DETAIL =====
