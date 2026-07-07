@@ -1078,37 +1078,3 @@ body {
   border-radius: 999px; cursor: pointer; transition: opacity .15s;
 }
 .loading-close-btn:hover { opacity: .88; }
-
-/* ===== AUTH GATE (หน้า login ด้วย Google Account) ===== */
-.auth-gate {
-  position: fixed; inset: 0; z-index: 10000;
-  background: linear-gradient(160deg, var(--purple) 0%, #241542 100%);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
-}
-.auth-gate.auth-hidden { display: none; }
-
-.auth-card {
-  background: #fff; border-radius: 24px; padding: 44px 36px; max-width: 380px; width: 100%;
-  text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,0.35);
-}
-.auth-logo {
-  width: 56px; height: 56px; border-radius: 16px; background: var(--purple); color: #fff;
-  font-weight: 800; font-size: 18px; display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 18px;
-}
-.auth-title { font-size: 21px; font-weight: 800; color: var(--text); margin: 0 0 2px; }
-.auth-subtitle { font-size: 14px; color: var(--text-sub); margin: 0 0 20px; }
-.auth-hint { font-size: 13px; color: var(--text-hint); margin: 0 0 22px; line-height: 1.6; }
-
-.auth-google-btn { display: flex; justify-content: center; margin-bottom: 8px; }
-
-.auth-loading {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  color: var(--purple); font-size: 13.5px; font-weight: 600; margin-top: 16px;
-}
-.auth-loading i { font-size: 18px; }
-
-.auth-error {
-  margin-top: 16px; background: var(--red-pale); color: var(--red); font-size: 13px;
-  font-weight: 500; padding: 12px 14px; border-radius: var(--r-md); text-align: left; line-height: 1.5;
-}
