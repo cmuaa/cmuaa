@@ -84,14 +84,17 @@ body {
 .desktop-layout { display: flex; flex: 1; min-width: 0; }
 
 /* ===== DESKTOP SIDEBAR ===== */
+/* ซ่อนแถบเมนูซ้ายแบบเดสก์ท็อปไว้เป็นค่าเริ่มต้นเสมอ (มือถือ/จอแคบ) — จะเปิดกลับมาเฉพาะตอนจอกว้างระดับเดสก์ท็อปใน media query ด้านล่าง
+   (บั๊กที่เจอ: ถ้าไม่มีบรรทัดนี้ แถบนี้จะโชว์ค้างพร้อมกับเมนูมือถือทุกจอ ทำให้บีบเนื้อหาจนตัวเล็กจิ๋ว) */
 .desktop-nav {
+  display: none;
   width: var(--sidebar-w);
   background: var(--white);
   min-height: 100dvh;
   flex-shrink: 0;
   position: sticky; top: 0; height: 100dvh;
   overflow-y: auto;
-  display: flex; flex-direction: column;
+  flex-direction: column;
   border-right: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
 }
@@ -583,6 +586,7 @@ body {
   .fab { display: none; }
   #app { flex-direction: row; }
   .app-header { display: none; }
+  .desktop-nav { display: flex; }
   .overlay { align-items: center; }
   .drawer { border-radius: var(--r-xl); margin-bottom: 40px; }
   .stats-row { grid-template-columns: repeat(4, 1fr); }
