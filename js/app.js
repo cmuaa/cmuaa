@@ -15,6 +15,13 @@ let state = {
   pageSize: 20,
 };
 
+// ===== AUTO SYNC =====
+// Google Sheets เป็นแหล่งข้อมูลกลาง ส่วน localStorage ใช้เป็น cache ของแต่ละเครื่อง
+const AUTO_SYNC_INTERVAL_MS = 60000;
+const AUTO_SYNC_MIN_GAP_MS = 10000;
+let lastAutoSyncAt = 0;
+let autoSyncIntervalId = null;
+
 // ===== FINANCE STATE =====
 let finState = {
   records: [],
@@ -92,14 +99,44 @@ document.addEventListener('DOMContentLoaded', () => {
   loadRentLocal();
   loadMasterMeterLocal();
   loadShirtLocal();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
   render();
   setupNav();
   setupFab();
   setupSearch();
   checkDeadlines();
   setupDateRolloverWatcher();
+  setupAutoSync();
 });
+
+function setupAutoSync() {
+  const requestSync = force => { void autoSyncFromSheets(force); };
+
+  // ดึงข้อมูลทันทีเมื่อเปิดแอป และเมื่ออินเทอร์เน็ตกลับมา
+  requestSync(true);
+  window.addEventListener('online', () => requestSync(true));
+
+  // เครื่องที่เปิดแอปค้างไว้จะเห็นข้อมูลจากเครื่องอื่นเมื่อกลับเข้าหน้าจอ
+  window.addEventListener('focus', () => requestSync(false));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) requestSync(false);
+  });
+
+  // อัปเดตข้อมูลขณะเปิดหน้าจอค้างไว้ โดยไม่ยิง Apps Script ตอนซ่อนแท็บ
+  autoSyncIntervalId = setInterval(() => {
+    if (!document.hidden) requestSync(false);
+  }, AUTO_SYNC_INTERVAL_MS);
+}
+
+async function autoSyncFromSheets(force = false) {
+  if (!API.url || !navigator.onLine || state.syncing) return;
+
+  const now = Date.now();
+  if (!force && now - lastAutoSyncAt < AUTO_SYNC_MIN_GAP_MS) return;
+  lastAutoSyncAt = now;
+
+  await syncFromSheets({ silent: true });
+}
 
 // ===== เช็ควันเปลี่ยนอัตโนมัติ กัน "วันนี้" ค้างข้ามเที่ยงคืนถ้าเปิดแท็บทิ้งไว้นาน =====
 // (การไฮไลต์ "วันนี้" ในปฏิทิน/แจ้งเตือนเกินกำหนด คำนวณตอน render เท่านั้น ถ้าไม่มีอะไรมา trigger re-render
@@ -697,24 +734,52 @@ function saveApiUrl() {
   const url = document.getElementById('api-url-input').value.trim();
   API.setUrl(url);
   showToast('บันทึก URL สำเร็จ');
+  if (url) void autoSyncFromSheets(true);
 }
 
-async function syncFromSheets() {
+function ensureSyncResponse(data, label) {
+  if (!data || data.ok === false) {
+    throw new Error((label ? label + ': ' : '') + (data?.error || 'ไม่ได้รับข้อมูลจากเซิร์ฟเวอร์'));
+  }
+  return data;
+}
+
+async function syncFromSheets(options = {}) {
+  const silent = options.silent === true;
   if (!API.url) { showToast('กรุณาตั้งค่า API URL ก่อน'); return; }
   if (state.syncing) return; // กันกดซ้ำระหว่างกำลังซิงก์อยู่
   state.syncing = true;
+  lastAutoSyncAt = Date.now();
   setSyncLoading(true);
-  showToast('กำลังซิงก์...');
+  if (!silent) showToast('กำลังซิงก์...');
   try {
-    const data = await API.getAll();
+    const data = ensureSyncResponse(await API.getAll(), 'รับ-ส่งเอกสาร');
     if (data.records) { state.records = data.records; saveLocal(); renderList(); }
-    await syncFinFromSheets();
-    await syncCalFromSheets();
-    await syncRentFromSheets();
-    await syncMasterMeterFromSheets();
-    await syncShirtFromSheets();
-    showToast('ซิงก์สำเร็จ');
-  } catch(e) { showToast('ซิงก์ไม่สำเร็จ: ' + e.message); }
+    checkDeadlines();
+
+    const modules = [
+      ['การเงิน', syncFinFromSheets],
+      ['ปฏิทิน', syncCalFromSheets],
+      ['ค่าเช่า', syncRentFromSheets],
+      ['มิเตอร์กลาง', syncMasterMeterFromSheets],
+      ['สต็อกเสื้อ', syncShirtFromSheets],
+    ];
+    // เรียกทีละโมดูลเพื่อลดโอกาสชน quota ของ Apps Script และ callback ของ JSONP
+    const failed = [];
+    for (const [label, sync] of modules) {
+      try { await sync(); }
+      catch (e) { failed.push(label); }
+    }
+
+    if (!silent) {
+      if (failed.length) showToast('ซิงค์ได้บางส่วน — ตรวจ backend ของ: ' + failed.join(', '));
+      else showToast('ซิงค์สำเร็จ');
+    }
+    return { ok: failed.length === 0, failed };
+  } catch(e) {
+    if (!silent) showToast('ซิงค์ไม่สำเร็จ: ' + e.message);
+    return { ok: false, error: e.message };
+  }
   finally { state.syncing = false; setSyncLoading(false); }
 }
 
@@ -1147,10 +1212,8 @@ function deleteFinRecord(id) {
 
 async function syncFinFromSheets() {
   if (!API.url) return;
-  try {
-    const data = await API.call({ action: 'getAllFinance' });
-    if (data.records) { finState.records = data.records; saveFinLocal(); renderFinList(); }
-  } catch(e) {}
+  const data = ensureSyncResponse(await API.call({ action: 'getAllFinance' }), 'การเงิน');
+  if (data.records) { finState.records = data.records; saveFinLocal(); renderFinList(); }
 }
 
 // ===== RENT (ค่าเช่า) =====
@@ -1776,10 +1839,8 @@ async function generateRentInvoice(id) {
 
 async function syncRentFromSheets() {
   if (!API.url) return;
-  try {
-    const data = await API.call({ action: 'getAllRent' });
-    if (data.records) { rentState.records = data.records; saveRentLocal(); renderRentList(); }
-  } catch(e) {}
+  const data = ensureSyncResponse(await API.call({ action: 'getAllRent' }), 'ค่าเช่า');
+  if (data.records) { rentState.records = data.records; saveRentLocal(); renderRentList(); }
 }
 
 // ===== มิเตอร์น้ำกลาง (ตั้งค่าราคาเฉลี่ยต่อหน่วยของแต่ละเดือน) =====
@@ -1865,10 +1926,8 @@ async function submitMasterMeter() {
 
 async function syncMasterMeterFromSheets() {
   if (!API.url) return;
-  try {
-    const data = await API.call({ action: 'getAllMasterMeter' });
-    if (data.records) { masterMeterState.records = data.records; saveMasterMeterLocal(); }
-  } catch(e) {}
+  const data = ensureSyncResponse(await API.call({ action: 'getAllMasterMeter' }), 'มิเตอร์กลาง');
+  if (data.records) { masterMeterState.records = data.records; saveMasterMeterLocal(); }
 }
 
 // ===== SHIRT STOCK (สต็อกเสื้อ) =====
@@ -1907,16 +1966,16 @@ function getShirtRemaining(stockId) {
 
 async function syncShirtFromSheets() {
   if (!API.url) return;
-  try {
-    const [stockData, logData] = await Promise.all([
-      API.call({ action: 'getAllShirtStock' }),
-      API.call({ action: 'getAllShirtLog' }),
-    ]);
-    if (stockData.records) shirtState.stockRecords = stockData.records;
-    if (logData.records) shirtState.logRecords = logData.records;
-    saveShirtLocal();
-    renderShirtList();
-  } catch(e) {}
+  const [stockData, logData] = await Promise.all([
+    API.call({ action: 'getAllShirtStock' }),
+    API.call({ action: 'getAllShirtLog' }),
+  ]);
+  ensureSyncResponse(stockData, 'สต็อกเสื้อ');
+  ensureSyncResponse(logData, 'ประวัติเบิกเสื้อ');
+  if (stockData.records) shirtState.stockRecords = stockData.records;
+  if (logData.records) shirtState.logRecords = logData.records;
+  saveShirtLocal();
+  renderShirtList();
 }
 
 function renderShirtEventChips() {
@@ -2701,10 +2760,8 @@ function deleteCalRecord(id) {
 
 async function syncCalFromSheets() {
   if (!API.url) return;
-  try {
-    const data = await API.call({ action: 'getAllCalendar' });
-    if (data.records) { calState.records = data.records; saveCalLocal(); if (state.page === 'calendar') renderCalendar(); }
-  } catch(e) {}
+  const data = ensureSyncResponse(await API.call({ action: 'getAllCalendar' }), 'ปฏิทิน');
+  if (data.records) { calState.records = data.records; saveCalLocal(); if (state.page === 'calendar') renderCalendar(); }
 }
 
 // ===== CALENDAR ALL EVENTS =====

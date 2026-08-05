@@ -1,5 +1,5 @@
-const CACHE = 'cmu-doctrack-v1';
-const ASSETS = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/api.js'];
+const CACHE = 'cmu-doctrack-v2';
+const ASSETS = ['./', './index.html', './css/style.css', './js/app.js', './js/api.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

@@ -1,6 +1,7 @@
 /* api.js — เชื่อมต่อ Google Apps Script ผ่าน GET (JSONP) และ POST FormData (upload) */
 const API = {
   url: localStorage.getItem('cmu_api_url') || '',
+  jsonpSeq: 0,
   setUrl(u) {
     this.url = u.trim();
     localStorage.setItem('cmu_api_url', this.url);
@@ -11,7 +12,8 @@ const API = {
   call(params, timeoutMs = 20000) {
     return new Promise((resolve, reject) => {
       if (!this.url) return reject(new Error('ยังไม่ได้ตั้งค่า API URL'));
-      const cbName = 'cb_' + Date.now();
+      // Date.now() อย่างเดียวอาจซ้ำเมื่อมีหลาย request ใน millisecond เดียวกัน
+      const cbName = 'cb_' + Date.now() + '_' + (++this.jsonpSeq);
       const script = document.createElement('script');
       const timeout = setTimeout(() => {
         delete window[cbName];
@@ -22,6 +24,10 @@ const API = {
         clearTimeout(timeout);
         delete window[cbName];
         if (script.parentNode) document.body.removeChild(script);
+        if (data && data.ok === false) {
+          reject(new Error(data.error || 'Google Apps Script ตอบกลับว่าไม่สำเร็จ'));
+          return;
+        }
         resolve(data);
       };
       const qs = new URLSearchParams({ ...params, callback: cbName }).toString();
