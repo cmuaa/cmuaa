@@ -18,6 +18,11 @@ const HEADERS_FINANCE = [
   'จ่ายให้','เลขบัญชีปลายทาง','จำนวนเงินที่จ่ายจริง','เลขที่ใบเสร็จ','หมายเหตุ','ลิงก์ไฟล์','วันที่บันทึก'
 ];
 
+const HEADERS_CALENDAR = [
+  'id','ชื่องาน','ประเภท','วันที่เริ่ม','วันที่สิ้นสุด',
+  'เวลาเริ่ม','เวลาสิ้นสุด','สถานที่','ผู้รับผิดชอบ','หมายเหตุ','วันที่บันทึก'
+];
+
 const ROOT_FOLDER_NAME = 'เอกสาร สมาคมนักศึกษาเก่า มช.';
 
 function getRootFolder() {
@@ -112,6 +117,18 @@ function doGet(e) {
         break;
       case 'deleteFinance':
         result = deleteFinance(params.id);
+        break;
+      case 'addCalendar':
+        result = addCalendar(JSON.parse(params.row));
+        break;
+      case 'getAllCalendar':
+        result = getAllCalendar();
+        break;
+      case 'updateCalendar':
+        result = updateCalendar(JSON.parse(params.row));
+        break;
+      case 'deleteCalendar':
+        result = deleteCalendar(params.id);
         break;
       default:
         result = { ok: false, error: 'unknown action' };
@@ -315,4 +332,118 @@ function deleteFinance(id) {
     }
   }
   return { ok: true };
+}
+
+// ===== CALENDAR FUNCTIONS =====
+function formatCalendarDate(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(value).slice(0, 10);
+}
+
+function formatCalendarTime(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'HH:mm');
+  }
+  return String(value).slice(0, 5);
+}
+
+function calendarRowValues(r, createdAt) {
+  return [
+    String(r.id || Date.now()),
+    r.title || '',
+    r.type || '',
+    formatCalendarDate(r.date_start),
+    formatCalendarDate(r.date_end),
+    formatCalendarTime(r.time_start),
+    formatCalendarTime(r.time_end),
+    r.location || '',
+    r.owner || '',
+    r.note || '',
+    createdAt || r.created_at || new Date().toISOString()
+  ];
+}
+
+// ใช้ upsert เพื่อให้การส่งซ้ำหลังเน็ตหลุดไม่สร้างกิจกรรมซ้ำ
+function upsertCalendar(r) {
+  if (!r || !r.id) return { ok: false, error: 'Calendar id is required' };
+
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = getOrCreateSheet('ปฏิทิน', HEADERS_CALENDAR);
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(r.id)) {
+        const values = calendarRowValues(r, data[i][10]);
+        sheet.getRange(i + 1, 1, 1, values.length).setValues([values]);
+        SpreadsheetApp.flush();
+        return { ok: true, id: String(r.id), updated: true };
+      }
+    }
+
+    sheet.appendRow(calendarRowValues(r));
+    SpreadsheetApp.flush();
+    return { ok: true, id: String(r.id), created: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function addCalendar(r) {
+  return upsertCalendar(r);
+}
+
+function updateCalendar(r) {
+  return upsertCalendar(r);
+}
+
+function getAllCalendar() {
+  const sheet = getOrCreateSheet('ปฏิทิน', HEADERS_CALENDAR);
+  const records = sheet.getDataRange().getValues().slice(1).map(r => ({
+    id: String(r[0] || ''),
+    title: r[1] || '',
+    type: r[2] || '',
+    date_start: formatCalendarDate(r[3]),
+    date_end: formatCalendarDate(r[4]),
+    time_start: formatCalendarTime(r[5]),
+    time_end: formatCalendarTime(r[6]),
+    location: r[7] || '',
+    owner: r[8] || '',
+    note: r[9] || '',
+    created_at: r[10] instanceof Date ? r[10].toISOString() : String(r[10] || '')
+  })).filter(r => r.id);
+
+  records.sort((a, b) => {
+    const byDate = (a.date_start || '').localeCompare(b.date_start || '');
+    if (byDate !== 0) return byDate;
+    return (a.time_start || '').localeCompare(b.time_start || '');
+  });
+  return { ok: true, records: records };
+}
+
+function deleteCalendar(id) {
+  if (!id) return { ok: false, error: 'Calendar id is required' };
+
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ปฏิทิน');
+    if (!sheet) return { ok: true, deleted: false };
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][0]) === String(id)) {
+        sheet.deleteRow(i + 1);
+        SpreadsheetApp.flush();
+        return { ok: true, deleted: true };
+      }
+    }
+    return { ok: true, deleted: false };
+  } finally {
+    lock.releaseLock();
+  }
 }
