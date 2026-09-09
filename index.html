@@ -282,12 +282,29 @@
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px">
+                  <button class="cal-today-btn" onclick="calGoToday()">วันนี้</button>
                   <button class="icon-btn" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calNav(-1)" aria-label="เดือนก่อนหน้า"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
                   <button class="icon-btn" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calNav(1)" aria-label="เดือนถัดไป"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
                   <button class="cal-add-btn" onclick="openCalForm()" aria-label="เพิ่มกิจกรรม" title="เพิ่มกิจกรรม"><i class="ti ti-plus" aria-hidden="true"></i></button>
                   <button class="icon-btn cal-toggle-btn" id="cal-toggle-right" style="width:32px;height:32px;background:var(--gray-100);color:var(--text-sub)" onclick="calTogglePanel('right')" aria-label="ย่อ/ขยายเมนูขวา" title="ย่อ/ขยายเมนูขวา"><i class="ti ti-layout-sidebar-right" aria-hidden="true"></i></button>
                 </div>
               </div>
+              <div class="cal-search-panel">
+                <div class="cal-search-box">
+                  <i class="ti ti-search" aria-hidden="true"></i>
+                  <input type="search" id="cal-search-input" placeholder="ค้นหาชื่องาน สถานที่ ผู้รับผิดชอบ หรือหมายเหตุ" autocomplete="off">
+                  <button type="button" id="cal-search-clear" class="cal-search-clear" onclick="clearCalSearch()" aria-label="ล้างคำค้น"><i class="ti ti-x" aria-hidden="true"></i></button>
+                </div>
+                <select id="cal-search-type" class="cal-search-select" aria-label="กรองประเภทกิจกรรม">
+                  <option value="">ทุกประเภท</option>
+                  <option>ประชุม</option><option>กิจกรรม</option><option>งานภายนอก</option><option>งานเอกสาร</option><option>อื่นๆ</option>
+                </select>
+                <select id="cal-search-owner" class="cal-search-select" aria-label="กรองผู้รับผิดชอบ">
+                  <option value="">ทุกคน</option>
+                  <option>ไอยลดา</option><option>จิตรภณ</option><option>โรจนวัน</option>
+                </select>
+              </div>
+              <div class="cal-search-results" id="cal-search-results" aria-live="polite"></div>
               <div class="cal-legend" id="cal-legend"></div>
               <div class="cal-main-card">
                 <div class="cal-main-dow" id="cal-main-dow"></div>
@@ -298,7 +315,7 @@
             <!-- RIGHT PANEL -->
             <div class="cal-right">
               <div class="cal-right-section">
-                <div class="cal-right-title">สรุปเดือนนี้</div>
+                <div class="cal-right-title" id="cal-summary-title">สรุปเดือนนี้</div>
                 <div class="stats-row" style="grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:0">
                   <div class="stat-card all"><div class="n" id="cal-s-total">0</div><div class="l">ทั้งหมด</div></div>
                   <div class="stat-card pend"><div class="n" id="cal-s-soon">0</div><div class="l">ใกล้ถึง</div></div>
@@ -434,14 +451,14 @@
               <input type="date" id="f-issue-date">
             </div>
             <div class="field">
-              <label for="f-received-date">ได้รับวันที่</label>
-              <input type="date" id="f-received-date">
+              <label for="f-received-date">ได้รับวันที่ <span class="required">*</span></label>
+              <input type="date" id="f-received-date" required>
             </div>
           </div>
           <div class="form-grid two">
             <div class="field">
-              <label for="f-from-org">จาก (หน่วยงาน)</label>
-              <input type="text" id="f-from-org" placeholder="มหาวิทยาลัยเชียงใหม่">
+              <label for="f-from-org">จาก (หน่วยงาน) <span class="required">*</span></label>
+              <input type="text" id="f-from-org" placeholder="มหาวิทยาลัยเชียงใหม่" required>
             </div>
             <div class="field">
               <label for="f-to-org-recv">ถึง</label>
@@ -449,8 +466,8 @@
             </div>
           </div>
           <div class="field">
-            <label for="f-subject-recv">เรื่อง <span class="required">*</span></label>
-            <input type="text" id="f-subject" placeholder="ชื่อเรื่องของหนังสือ">
+              <label for="f-subject">เรื่อง <span class="required">*</span></label>
+              <input type="text" id="f-subject" placeholder="ชื่อเรื่องของหนังสือ" required>
           </div>
           <div class="form-grid two">
             <div class="field">
@@ -499,7 +516,7 @@
           </div>
           <div class="field">
             <label for="f-subject-send">เรื่อง <span class="required">*</span></label>
-            <input type="text" id="f-subject-send" placeholder="ชื่อเรื่องของหนังสือ">
+            <input type="text" id="f-subject-send" placeholder="ชื่อเรื่องของหนังสือ" required>
           </div>
           <div class="field">
             <label for="f-detail">รายละเอียด</label>
@@ -649,7 +666,7 @@
 
           <div class="field">
             <label for="cal-f-title">ชื่องาน / กิจกรรม <span class="required">*</span></label>
-            <input type="text" id="cal-f-title" placeholder="เช่น ประชุมคณะกรรมการสมาคม">
+            <input type="text" id="cal-f-title" placeholder="เช่น ประชุมคณะกรรมการสมาคม" required>
           </div>
 
           <div class="field">
@@ -667,7 +684,7 @@
           <div class="form-grid two">
             <div class="field">
               <label for="cal-f-date-start">วันที่เริ่ม <span class="required">*</span></label>
-              <input type="date" id="cal-f-date-start">
+              <input type="date" id="cal-f-date-start" required>
             </div>
             <div class="field">
               <label for="cal-f-date-end">วันที่สิ้นสุด</label>
@@ -1218,11 +1235,12 @@
 
 
 <!-- GLOBAL LOADING OVERLAY (ใช้กับงานที่ใช้เวลานาน เช่น ออกใบแจ้งหนี้/รวมไฟล์) -->
-<div class="loading-overlay" id="loading-overlay">
+<div class="loading-overlay" id="loading-overlay" role="dialog" aria-modal="true" aria-labelledby="loading-title" aria-describedby="loading-message">
   <div class="loading-card">
     <div class="loading-icon-wrap loading-neutral" id="loading-icon-wrap">
       <i class="ti ti-loader-2 rb-spin" id="loading-icon" aria-hidden="true"></i>
     </div>
+    <div class="loading-title" id="loading-title">กำลังดำเนินการ</div>
     <div class="loading-message" id="loading-message">กรุณารอสักครู่...</div>
     <button type="button" class="loading-close-btn" id="loading-close-btn" style="display:none" onclick="hideLoadingOverlay()">ปิด</button>
   </div>
@@ -1271,7 +1289,7 @@ function exportCSV() {
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'เอกสาร-มช-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.download = 'เอกสาร-มช-' + localDateISO() + '.csv';
   a.click();
 }
 </script>

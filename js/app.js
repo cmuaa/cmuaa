@@ -1,5 +1,13 @@
 /* app.js — CMU Alumni Document Tracker */
 
+// ใช้วันที่ตามเวลาท้องถิ่นของเครื่อง แทน UTC เพื่อไม่ให้วันที่คลาดเคลื่อนช่วงหลังเที่ยงคืนในไทย
+function localDateISO(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 // ===== STATE =====
 let state = {
   records: [],
@@ -188,10 +196,10 @@ async function autoSyncFromSheets(force = false) {
 // ===== เช็ควันเปลี่ยนอัตโนมัติ กัน "วันนี้" ค้างข้ามเที่ยงคืนถ้าเปิดแท็บทิ้งไว้นาน =====
 // (การไฮไลต์ "วันนี้" ในปฏิทิน/แจ้งเตือนเกินกำหนด คำนวณตอน render เท่านั้น ถ้าไม่มีอะไรมา trigger re-render
 //  ข้ามเที่ยงคืนไป หน้าจอจะยังค้างของเดิมอยู่ ฟังก์ชันนี้คอยเช็คแล้วสั่ง render ใหม่ให้เมื่อวันที่เปลี่ยนจริง)
-let lastKnownDate = new Date().toISOString().slice(0, 10);
+let lastKnownDate = localDateISO();
 
 function checkDateRollover() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   if (today === lastKnownDate) return;
   lastKnownDate = today;
   checkDeadlines();
@@ -244,10 +252,13 @@ function updateConnectionStatus() {
 // ===== CALENDAR STATE =====
 let calState = {
   records: [],
-  selectedDate: new Date().toISOString().slice(0,10),
+  selectedDate: localDateISO(),
   viewMonth: new Date().getMonth(),
   viewYear: new Date().getFullYear(),
   detailId: null,
+  search: '',
+  typeFilter: '',
+  ownerFilter: '',
 };
 let calEditingId = null;
 
@@ -334,6 +345,22 @@ function setupSearch() {
       renderShirtList();
     });
   }
+
+  const calSearch = document.getElementById('cal-search-input');
+  const calType = document.getElementById('cal-search-type');
+  const calOwner = document.getElementById('cal-search-owner');
+  if (calSearch) calSearch.addEventListener('input', e => {
+    calState.search = e.target.value.trim().toLowerCase();
+    renderCalSearchResults();
+  });
+  if (calType) calType.addEventListener('change', e => {
+    calState.typeFilter = e.target.value;
+    renderCalSearchResults();
+  });
+  if (calOwner) calOwner.addEventListener('change', e => {
+    calState.ownerFilter = e.target.value;
+    renderCalSearchResults();
+  });
   document.querySelectorAll('.filter-chip[data-rent-filter]').forEach(el => {
     el.addEventListener('click', () => {
       rentState.filter = el.dataset.rentFilter;
@@ -362,13 +389,16 @@ function renderList() {
     else if (state.filter === 'recv') items = items.filter(r => r.type === 'recv');
     else if (state.filter === 'pend') items = items.filter(r => r.status === 'pend');
     else if (state.filter === 'overdue') {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateISO();
       items = items.filter(r => r.deadline && r.deadline <= today && r.status === 'pend');
     }
   }
   if (state.search) {
     items = items.filter(r =>
-      [r.docno, r.ref_no, r.subject, r.from_org, r.to_org, r.handler].some(v => v && v.toLowerCase().includes(state.search))
+      [r.docno, r.ref_no, r.subject, r.from_org, r.to_org, r.handler, r.receiver,
+       r.sender, r.receiver_name, r.doc_type, r.note, r.detail, r.send_channel].some(v =>
+        v && String(v).toLowerCase().includes(state.search)
+      )
     );
   }
 
@@ -431,7 +461,7 @@ function renderList() {
 // เดิม badge-urgent ขึ้นเฉพาะตอนเกินกำหนดแล้วเท่านั้น — เพิ่มสถานะ "ใกล้ครบกำหนด" (7 วัน) ให้เห็นล่วงหน้าตั้งแต่ในลิสต์
 function deadlineChipHtml(r) {
   if (!r.deadline) return '<span class="deadline-none">—</span>';
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   const diffDays = Math.round((new Date(r.deadline) - new Date(today)) / 86400000);
   if (r.status === 'pend' && diffDays < 0) {
     return `<span class="deadline-chip overdue"><i class="ti ti-alert-triangle" aria-hidden="true"></i>เกินกำหนด ${Math.abs(diffDays)} วัน</span>`;
@@ -542,7 +572,7 @@ function resetForm() {
   document.getElementById('file-name').textContent = '';
   if (state.sigPad) state.sigPad.clear();
   // set today
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   ['f-issue-date', 'f-issue-date-send', 'f-received-date', 'f-send-date'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = today;
@@ -599,8 +629,29 @@ function clearSig() { if (state.sigPad) state.sigPad.clear(); }
 // ===== SUBMIT FORM =====
 async function submitForm() {
   const get = id => document.getElementById(id)?.value?.trim() || '';
-
   const isEdit = !!editingId;
+
+  const requiredFields = currentFormType === 'recv'
+    ? [['f-subject', 'กรุณากรอกชื่อเรื่อง'], ['f-received-date', 'กรุณาเลือกวันที่รับหนังสือ'], ['f-from-org', 'กรุณากรอกหน่วยงานต้นทาง']]
+    : [['f-subject-send', 'กรุณากรอกชื่อเรื่อง']];
+  for (const [id, message] of requiredFields) {
+    const field = document.getElementById(id);
+    if (!field?.value?.trim()) {
+      showLoadingError(message, 'ข้อมูลยังไม่ครบ');
+      field?.focus();
+      return;
+    }
+  }
+
+  const subject = currentFormType === 'recv' ? get('f-subject') : get('f-subject-send');
+  const duplicate = state.records.find(r => r.id !== editingId && r.type === currentFormType && (
+    (get(currentFormType === 'recv' ? 'f-recv-docno' : 'f-send-docno') && r.docno === (currentFormType === 'send' ? 'สก.มช.' : '') + get(currentFormType === 'recv' ? 'f-recv-docno' : 'f-send-docno')) ||
+    (currentFormType === 'recv' && get('f-ref-no') && r.ref_no === get('f-ref-no'))
+  ));
+  if (duplicate) {
+    showLoadingError(`พบเลขเอกสารซ้ำกับรายการ “${duplicate.subject || duplicate.docno}”\nกรุณาตรวจสอบเลขหนังสือก่อนบันทึก`, 'อาจเป็นข้อมูลซ้ำ');
+    return;
+  }
 
   const common = {
     id: isEdit ? editingId : Date.now().toString(),
@@ -610,27 +661,40 @@ async function submitForm() {
     handler: get(currentFormType === 'send' ? 'f-handler-send' : 'f-handler'),
     note: get('f-note'),
     signature: (state.sigPad && !state.sigPad.isEmpty()) ? state.sigPad.toDataURL() : '',
-    created_at: new Date().toISOString(),
+    created_at: '',
+    updated_at: new Date().toISOString(),
   };
-
-  const subject = currentFormType === 'recv' ? get('f-subject') : get('f-subject-send');
-  if (!subject) { showToast('กรุณากรอกชื่อเรื่อง'); return; }
 
   // เก็บ file_url เดิมไว้ก่อน (ถ้าแก้ไขและไม่ได้แนบไฟล์ใหม่)
   const oldRecord = isEdit ? state.records.find(x => x.id === editingId) : null;
+  common.created_at = oldRecord?.created_at || new Date().toISOString();
   let file_url = oldRecord ? (oldRecord.file_url || '') : '';
+  let uploadWarning = '';
 
   // อัปโหลดไฟล์ไป Drive (ถ้ามีการเลือกไฟล์ใหม่)
   const fileInput = document.getElementById('f-file');
-  if (fileInput && fileInput.files.length > 0 && API.url) {
+  if (fileInput?.files?.length) {
     const file = fileInput.files[0];
-    showToast('กำลังอัปโหลดไฟล์...');
-    try {
-      const res = await API.upload(currentFormType, file);
-      if (res.ok) file_url = res.url;
-    } catch(e) {
-      showToast('อัปโหลดไฟล์ไม่สำเร็จ บันทึกข้อมูลอย่างเดียว');
+    const allowed = /\.(pdf|doc|docx|jpe?g|png)$/i.test(file.name);
+    if (!allowed || file.size > 10 * 1024 * 1024) {
+      showLoadingError(allowed ? 'ไฟล์ต้องมีขนาดไม่เกิน 10 MB' : 'รองรับเฉพาะ PDF, Word, JPG และ PNG', 'แนบไฟล์ไม่ได้');
+      fileInput.focus();
+      return;
     }
+    if (API.url) {
+      showLoadingOverlay('กำลังอัปโหลดไฟล์แนบและบันทึกข้อมูล...\nกรุณาอย่าปิดหน้าต่างนี้', 'กำลังบันทึกเอกสาร');
+      try {
+        const res = await API.upload(currentFormType, file);
+        if (res.ok) file_url = res.url;
+        else uploadWarning = 'ไฟล์แนบอัปโหลดไม่สำเร็จ';
+      } catch(e) {
+        uploadWarning = 'ไฟล์แนบอัปโหลดไม่สำเร็จ';
+      }
+    }
+  }
+
+  if (!document.getElementById('loading-overlay').classList.contains('open')) {
+    showLoadingOverlay('กำลังบันทึกข้อมูล...\nกรุณาอย่าปิดหน้าต่างนี้', 'กำลังบันทึกเอกสาร');
   }
 
   let record = {};
@@ -673,7 +737,6 @@ async function submitForm() {
   saveLocal();
   renderList();
   closeForm();
-  showToast(isEdit ? 'แก้ไขสำเร็จ' : 'บันทึกสำเร็จ');
 
   // Sync to Google Sheets
   if (API.url) {
@@ -684,7 +747,12 @@ async function submitForm() {
         if (currentFormType === 'recv') await API.addRecv(record);
         else await API.addSend(record);
       }
-    } catch(e) { showToast('บันทึก offline — จะซิงก์เมื่อออนไลน์'); }
+      showLoadingSuccess(`${isEdit ? 'แก้ไข' : 'บันทึก'}เอกสารสำเร็จ${uploadWarning ? '\nแต่' + uploadWarning : ''}`, 'บันทึกเรียบร้อย');
+    } catch(e) {
+      showLoadingError(`ข้อมูลถูกเก็บไว้ในเครื่องนี้แล้ว แต่ยังส่งไป Google Sheets ไม่สำเร็จ\n${e.message}`, 'ยังซิงก์ไม่สำเร็จ');
+    }
+  } else {
+    showLoadingSuccess(`${isEdit ? 'แก้ไข' : 'บันทึก'}ข้อมูลไว้ในเครื่องนี้แล้ว${uploadWarning ? '\n' + uploadWarning : ''}`, 'บันทึกเรียบร้อย');
   }
 
   editingId = null;
@@ -784,7 +852,7 @@ function deleteRecord(id) {
 
 // ===== DEADLINE CHECK =====
 function checkDeadlines() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = localDateISO();
   const warn = state.records.filter(r => r.deadline && r.deadline <= today && r.status === 'pend');
   const el = document.getElementById('deadline-warn');
   if (warn.length) {
@@ -905,7 +973,7 @@ function goPage(p) {
 
 // ===== UTILS =====
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function isPast(d) { return d && d < new Date().toISOString().slice(0,10); }
+function isPast(d) { return d && d < localDateISO(); }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -915,7 +983,8 @@ function showToast(msg) {
 }
 
 // ===== GLOBAL LOADING OVERLAY (pop up ค้างระหว่างทำงานหนัก ไม่หายเองจนกว่าจะกดปิด) =====
-function showLoadingOverlay(message) {
+function showLoadingOverlay(message, title = 'กำลังดำเนินการ') {
+  document.getElementById('loading-title').textContent = title;
   document.getElementById('loading-message').textContent = message || 'กรุณารอสักครู่...';
   document.getElementById('loading-icon').className = 'ti ti-loader-2 rb-spin';
   document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-neutral';
@@ -925,17 +994,23 @@ function showLoadingOverlay(message) {
 function updateLoadingMessage(message) {
   document.getElementById('loading-message').textContent = message;
 }
-function showLoadingSuccess(message) {
+function showLoadingSuccess(message, title = 'ดำเนินการสำเร็จ') {
+  document.getElementById('loading-title').textContent = title;
   document.getElementById('loading-message').textContent = message;
   document.getElementById('loading-icon').className = 'ti ti-circle-check';
   document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-success';
   document.getElementById('loading-close-btn').style.display = 'inline-block';
+  document.getElementById('loading-overlay').classList.add('open');
+  document.getElementById('loading-close-btn').focus();
 }
-function showLoadingError(message) {
+function showLoadingError(message, title = 'เกิดข้อผิดพลาด') {
+  document.getElementById('loading-title').textContent = title;
   document.getElementById('loading-message').textContent = message;
   document.getElementById('loading-icon').className = 'ti ti-alert-triangle';
   document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-error';
   document.getElementById('loading-close-btn').style.display = 'inline-block';
+  document.getElementById('loading-overlay').classList.add('open');
+  document.getElementById('loading-close-btn').focus();
 }
 function hideLoadingOverlay() {
   document.getElementById('loading-overlay').classList.remove('open');
@@ -1012,7 +1087,7 @@ function openFinForm() {
   document.getElementById('fin-approve-file-name').textContent = '';
   document.getElementById('fin-form-title').textContent = 'บันทึกรายการเบิก-จ่ายเงิน';
   document.getElementById('fin-submit-btn').textContent = 'บันทึกรายการเบิก-จ่ายเงิน';
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   document.getElementById('fin-request-date').value = today;
 }
 
@@ -2344,7 +2419,7 @@ function openShirtDetail(id) {
 function openShirtLogForm(stockId) {
   closeFinDetail();
   document.getElementById('shirt-log-stock-id').value = stockId;
-  document.getElementById('shirt-log-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('shirt-log-date').value = localDateISO();
   document.getElementById('shirt-log-qty').value = '';
   document.getElementById('shirt-log-note').value = '';
   const s = shirtState.stockRecords.find(x => x.id === stockId);
@@ -2364,7 +2439,7 @@ async function submitShirtLog() {
   const record = {
     id: Date.now().toString(),
     stock_id: stockId,
-    date: document.getElementById('shirt-log-date').value || new Date().toISOString().slice(0, 10),
+    date: document.getElementById('shirt-log-date').value || localDateISO(),
     qty: qty,
     note: document.getElementById('shirt-log-note').value.trim(),
   };
@@ -2446,6 +2521,68 @@ function renderCalendar() {
   renderCalMainGrid();
   renderCalRight();
   renderCalPinned();
+  renderCalSearchResults();
+}
+
+function renderCalSearchResults() {
+  const container = document.getElementById('cal-search-results');
+  const clearBtn = document.getElementById('cal-search-clear');
+  if (!container) return;
+  const hasFilter = !!(calState.search || calState.typeFilter || calState.ownerFilter);
+  clearBtn?.classList.toggle('visible', !!calState.search);
+  if (!hasFilter) {
+    container.classList.remove('open');
+    container.innerHTML = '';
+    return;
+  }
+
+  let items = calState.records.filter(r => {
+    const searchable = [r.title, r.location, r.owner, r.type, r.note, r.date_start, r.date_end]
+      .filter(Boolean).join(' ').toLowerCase();
+    return (!calState.search || searchable.includes(calState.search)) &&
+      (!calState.typeFilter || r.type === calState.typeFilter) &&
+      (!calState.ownerFilter || r.owner === calState.ownerFilter);
+  }).sort((a, b) => (a.date_start || '').localeCompare(b.date_start || '') || (a.time_start || '').localeCompare(b.time_start || ''));
+
+  container.classList.add('open');
+  if (!items.length) {
+    container.innerHTML = '<div class="cal-search-empty"><i class="ti ti-calendar-off" aria-hidden="true"></i> ไม่พบกิจกรรมที่ตรงกับคำค้น</div>';
+    return;
+  }
+  const visible = items.slice(0, 30);
+  container.innerHTML = visible.map(r => {
+    const date = r.date_start ? new Date(r.date_start + 'T00:00:00') : null;
+    const col = CAL_TYPE_COLOR[r.type] || CAL_TYPE_COLOR['อื่นๆ'];
+    const dateDay = date ? date.getDate() : '—';
+    const dateMonth = date ? THAI_MONTHS[date.getMonth()].slice(0, 3) : '';
+    const meta = [r.time_start || 'ทั้งวัน', r.location, r.owner].filter(Boolean).join(' · ');
+    return `<button type="button" class="cal-search-result" onclick="calOpenSearchResult('${r.id}')">
+      <span class="cal-search-date">${dateDay}<br>${dateMonth}</span>
+      <span><span class="cal-search-name">${esc(r.title || 'ไม่มีชื่อ')}</span><span class="cal-search-meta">${esc(meta)}</span></span>
+      <span class="cal-search-tag" style="background:${col.bg};color:${col.color}">${esc(r.type || 'อื่นๆ')}</span>
+    </button>`;
+  }).join('') + (items.length > visible.length ? `<div class="cal-search-empty">แสดง 30 จาก ${items.length} รายการ กรุณาระบุคำค้นให้เจาะจงขึ้น</div>` : '');
+}
+
+function clearCalSearch() {
+  calState.search = '';
+  const input = document.getElementById('cal-search-input');
+  if (input) { input.value = ''; input.focus(); }
+  renderCalSearchResults();
+}
+
+function calOpenSearchResult(id) {
+  const record = calState.records.find(r => r.id === id);
+  if (!record) return;
+  const date = record.date_start?.slice(0, 10);
+  if (date) {
+    const [y, m] = date.split('-').map(Number);
+    calState.selectedDate = date;
+    calState.viewYear = y;
+    calState.viewMonth = m - 1;
+    renderCalendar();
+  }
+  openCalDetail(id);
 }
 
 // คำอธิบายสีของแต่ละประเภทกิจกรรม — เดิมไม่มี legend ผู้ใช้ต้องเดาความหมายสีของ chip เอง
@@ -2498,8 +2635,21 @@ function renderMiniCal() {
   document.getElementById('cal-mini-label').textContent = THAI_MONTHS[m] + ' ' + thaiYear;
   const firstDay = new Date(y, m, 1).getDay();
   const daysInMonth = new Date(y, m+1, 0).getDate();
-  const today = new Date().toISOString().slice(0,10);
-  const eventDates = new Set(calState.records.map(r => r.date_start?.slice(0,7) === `${y}-${String(m+1).padStart(2,'0')}` ? r.date_start?.slice(0,10) : null).filter(Boolean));
+  const today = localDateISO();
+  const monthStart = `${y}-${String(m+1).padStart(2,'0')}-01`;
+  const monthEnd = `${y}-${String(m+1).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
+  const eventDates = new Set();
+  calState.records.forEach(r => {
+    const start = r.date_start?.slice(0, 10);
+    const end = r.date_end?.slice(0, 10) || start;
+    if (!start || end < monthStart || start > monthEnd) return;
+    let cursor = new Date((start < monthStart ? monthStart : start) + 'T00:00:00');
+    const last = end > monthEnd ? monthEnd : end;
+    while (localDateISO(cursor) <= last) {
+      eventDates.add(localDateISO(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  });
 
   let html = THAI_DAYS.map(d => `<div class="cal-dow">${d}</div>`).join('');
   const startOffset = firstDay;
@@ -2530,6 +2680,16 @@ function calNav(dir) {
   renderMiniCal();
   renderCalMainGrid();
   updateCalMonthHeader();
+  renderCalRight();
+}
+
+function calGoToday() {
+  const today = localDateISO();
+  const now = new Date();
+  calState.selectedDate = today;
+  calState.viewMonth = now.getMonth();
+  calState.viewYear = now.getFullYear();
+  renderCalendar();
 }
 
 function calSelectDate(d) {
@@ -2560,7 +2720,7 @@ function renderCalMainGrid() {
   const y = calState.viewYear, m = calState.viewMonth;
   const firstDay = new Date(y, m, 1).getDay();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   const maxChips = calGetMaxChips();
 
   const dowEl = document.getElementById('cal-main-dow');
@@ -2646,13 +2806,19 @@ function calOpenDayDetail(dateStr) {
 }
 
 function renderCalRight() {
-  const today = new Date().toISOString().slice(0,10);
-  const ym = today.slice(0,7);
-  const thisMonth = calState.records.filter(r => (r.date_start||'').slice(0,7) === ym);
-  const done = thisMonth.filter(r => r.date_start?.slice(0,10) < today).length;
+  const today = localDateISO();
+  const ym = `${calState.viewYear}-${String(calState.viewMonth + 1).padStart(2, '0')}`;
+  const monthStart = ym + '-01';
+  const monthEnd = ym + '-' + String(new Date(calState.viewYear, calState.viewMonth + 1, 0).getDate()).padStart(2, '0');
+  const thisMonth = calState.records.filter(r => {
+    const start = r.date_start?.slice(0, 10);
+    const end = r.date_end?.slice(0, 10) || start;
+    return start && start <= monthEnd && end >= monthStart;
+  });
+  const done = thisMonth.filter(r => (r.date_end || r.date_start)?.slice(0,10) < today).length;
   const soon = thisMonth.filter(r => {
     const d = r.date_start?.slice(0,10);
-    const diff = (new Date(d) - new Date()) / 86400000;
+    const diff = (new Date(d + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000;
     return diff >= 0 && diff <= 7;
   }).length;
   const types = new Set(thisMonth.map(r => r.type).filter(Boolean)).size;
@@ -2661,6 +2827,8 @@ function renderCalRight() {
   document.getElementById('cal-s-soon').textContent = soon;
   document.getElementById('cal-s-done').textContent = done;
   document.getElementById('cal-s-types').textContent = types;
+  const summaryTitle = document.getElementById('cal-summary-title');
+  if (summaryTitle) summaryTitle.textContent = `สรุป${THAI_MONTHS[calState.viewMonth]} ${calState.viewYear + 543}`;
 
   // Upcoming
   const upcoming = calState.records.filter(r => r.date_start?.slice(0,10) >= today)
@@ -2670,7 +2838,7 @@ function renderCalRight() {
   else {
     upEl.innerHTML = upcoming.map(r => {
       const col = CAL_TYPE_COLOR[r.type] || CAL_TYPE_COLOR['อื่นๆ'];
-      const diff = Math.ceil((new Date(r.date_start) - new Date()) / 86400000);
+      const diff = Math.ceil((new Date(r.date_start.slice(0,10) + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
       const isSoon = diff <= 7;
       return `<div class="cal-up-item">
         <div class="cal-up-dot" style="background:${col.dot}"></div>
@@ -2701,7 +2869,7 @@ function renderCalRight() {
 }
 
 function renderCalPinned() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = localDateISO();
   const upcoming = calState.records.filter(r => r.date_start?.slice(0,10) >= today)
     .sort((a,b) => a.date_start.localeCompare(b.date_start)).slice(0,3);
   const el = document.getElementById('cal-pinned-list');
@@ -2765,21 +2933,45 @@ async function submitCalForm() {
   const get = id => document.getElementById(id)?.value?.trim() || '';
   const isEdit = !!calEditingId;
   const title = get('cal-f-title');
-  if (!title) { showToast('กรุณากรอกชื่องาน'); return; }
+  const dateStart = get('cal-f-date-start');
+  const dateEnd = get('cal-f-date-end');
+  const timeStart = get('cal-f-time-start');
+  const timeEnd = get('cal-f-time-end');
+  if (!title) {
+    showLoadingError('กรุณากรอกชื่องานหรือกิจกรรมก่อนบันทึก', 'ข้อมูลยังไม่ครบ');
+    return;
+  }
+  if (!dateStart) {
+    showLoadingError('กรุณาเลือกวันที่เริ่มของกิจกรรม', 'ข้อมูลยังไม่ครบ');
+    return;
+  }
+  if (dateEnd && dateEnd < dateStart) {
+    showLoadingError('วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม', 'ช่วงวันที่ไม่ถูกต้อง');
+    return;
+  }
+  if ((!dateEnd || dateEnd === dateStart) && timeStart && timeEnd && timeEnd <= timeStart) {
+    showLoadingError('เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม', 'ช่วงเวลาไม่ถูกต้อง');
+    return;
+  }
+
+  const oldRecord = isEdit ? calState.records.find(x => x.id === calEditingId) : null;
 
   const record = {
     id: isEdit ? calEditingId : Date.now().toString(),
     title,
     type: get('cal-f-type'),
-    date_start: get('cal-f-date-start'),
-    date_end: get('cal-f-date-end'),
-    time_start: get('cal-f-time-start'),
-    time_end: get('cal-f-time-end'),
+    date_start: dateStart,
+    date_end: dateEnd,
+    time_start: timeStart,
+    time_end: timeEnd,
     location: get('cal-f-location'),
     owner: get('cal-f-owner'),
     note: get('cal-f-note'),
-    created_at: new Date().toISOString(),
+    created_at: oldRecord?.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
+
+  showLoadingOverlay('กำลังบันทึกกิจกรรม...\nกรุณาอย่าปิดหน้าต่างนี้', 'กำลังบันทึกปฏิทิน');
 
   if (isEdit) {
     const idx = calState.records.findIndex(x => x.id === calEditingId);
@@ -2790,13 +2982,17 @@ async function submitCalForm() {
   saveCalLocal();
   closeCalForm();
   renderCalendar();
-  showToast(isEdit ? 'แก้ไขกิจกรรมแล้ว' : 'เพิ่มกิจกรรมแล้ว');
 
   if (API.url) {
     try {
       if (isEdit) await API.call({ action: 'updateCalendar', row: JSON.stringify(record) });
       else await API.call({ action: 'addCalendar', row: JSON.stringify(record) });
-    } catch(e) { showToast('บันทึก offline'); }
+      showLoadingSuccess(isEdit ? 'แก้ไขกิจกรรมและซิงก์ข้อมูลแล้ว' : 'เพิ่มกิจกรรมและซิงก์ข้อมูลแล้ว', 'บันทึกเรียบร้อย');
+    } catch(e) {
+      showLoadingError(`กิจกรรมถูกเก็บไว้ในเครื่องนี้แล้ว แต่ยังส่งไป Google Sheets ไม่สำเร็จ\n${e.message}`, 'ยังซิงก์ไม่สำเร็จ');
+    }
+  } else {
+    showLoadingSuccess(isEdit ? 'แก้ไขกิจกรรมไว้ในเครื่องนี้แล้ว' : 'เพิ่มกิจกรรมไว้ในเครื่องนี้แล้ว', 'บันทึกเรียบร้อย');
   }
   calEditingId = null;
 }
@@ -2887,7 +3083,7 @@ function renderCalAllEvents() {
     return;
   }
 
-  const today = new Date().toISOString().slice(0,10);
+  const today = localDateISO();
   let lastMonth = '';
   let html = '';
 

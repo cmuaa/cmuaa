@@ -143,14 +143,28 @@ function doGet(e) {
 }
 
 function uploadFile(type, filename, mimetype, base64data, subfolder) {
+  const allowedName = /\.(pdf|doc|docx|jpe?g|png)$/i.test(String(filename || ''));
+  if (!allowedName) return { ok: false, error: 'Unsupported file type' };
+  const bytes = Utilities.base64Decode(base64data);
+  if (bytes.length > 10 * 1024 * 1024) return { ok: false, error: 'File exceeds 10 MB' };
   const folder = getSubFolder(type, subfolder);
-  const blob = Utilities.newBlob(Utilities.base64Decode(base64data), mimetype, filename);
+  const blob = Utilities.newBlob(bytes, mimetype, filename);
   const file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   return { ok: true, url: file.getUrl(), id: file.getId() };
 }
 
+function validateDocumentRecord(type, r) {
+  if (!r || !String(r.id || '').trim()) throw new Error('Document id is required');
+  if (!String(r.subject || '').trim()) throw new Error('Document subject is required');
+  if (type === 'recv') {
+    if (!String(r.received_date || '').trim()) throw new Error('Received date is required');
+    if (!String(r.from_org || '').trim()) throw new Error('Source organization is required');
+  }
+}
+
 function addRecv(r) {
+  validateDocumentRecord('recv', r);
   const sheet = getOrCreateSheet('หนังสือรับ', HEADERS_RECV);
   sheet.appendRow([
     r.id || Date.now().toString(),
@@ -164,6 +178,7 @@ function addRecv(r) {
 }
 
 function addSend(r) {
+  validateDocumentRecord('send', r);
   const sheet = getOrCreateSheet('หนังสือส่ง', HEADERS_SEND);
   sheet.appendRow([
     r.id || Date.now().toString(),
@@ -208,6 +223,7 @@ function getAll() {
 }
 
 function updateRecord(type, r) {
+  validateDocumentRecord(type, r);
   const name = type === 'send' ? 'หนังสือส่ง' : 'หนังสือรับ';
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
   if (!sheet) return { ok: false, error: 'Sheet not found' };
@@ -340,7 +356,18 @@ function formatCalendarDate(value) {
   if (value instanceof Date) {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
-  return String(value).slice(0, 10);
+  const text = String(value).trim();
+  // ข้อมูลใหม่จาก <input type="date"> จะอยู่ในรูป yyyy-MM-dd อยู่แล้ว
+  const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoMatch) return isoMatch[1];
+
+  // รองรับข้อมูลเดิมที่ Sheets เก็บเป็นข้อความ Date เช่น
+  // "Fri Aug 07 2026 00:00:00 GMT+0700 (...)" โดยห้าม slice ก่อน parse
+  const parsed = new Date(text);
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return text;
 }
 
 function formatCalendarTime(value) {
@@ -348,7 +375,15 @@ function formatCalendarTime(value) {
   if (value instanceof Date) {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), 'HH:mm');
   }
-  return String(value).slice(0, 5);
+  const text = String(value).trim();
+  const timeMatch = text.match(/^(\d{1,2}):(\d{2})/);
+  if (timeMatch) return String(timeMatch[1]).padStart(2, '0') + ':' + timeMatch[2];
+
+  const parsed = new Date(text);
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, Session.getScriptTimeZone(), 'HH:mm');
+  }
+  return text;
 }
 
 function calendarRowValues(r, createdAt) {
@@ -370,6 +405,16 @@ function calendarRowValues(r, createdAt) {
 // ใช้ upsert เพื่อให้การส่งซ้ำหลังเน็ตหลุดไม่สร้างกิจกรรมซ้ำ
 function upsertCalendar(r) {
   if (!r || !r.id) return { ok: false, error: 'Calendar id is required' };
+  if (!String(r.title || '').trim()) return { ok: false, error: 'Calendar title is required' };
+  const dateStart = formatCalendarDate(r.date_start);
+  const dateEnd = formatCalendarDate(r.date_end);
+  if (!dateStart) return { ok: false, error: 'Calendar start date is required' };
+  if (dateEnd && dateEnd < dateStart) return { ok: false, error: 'Calendar end date must not be before start date' };
+  const timeStart = formatCalendarTime(r.time_start);
+  const timeEnd = formatCalendarTime(r.time_end);
+  if ((!dateEnd || dateEnd === dateStart) && timeStart && timeEnd && timeEnd <= timeStart) {
+    return { ok: false, error: 'Calendar end time must be after start time' };
+  }
 
   const lock = LockService.getDocumentLock();
   lock.waitLock(10000);

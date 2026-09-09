@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v3';
+const CACHE = 'cmu-doctrack-v4';
 const ASSETS = [
   './',
   './index.html',

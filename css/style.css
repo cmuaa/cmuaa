@@ -614,6 +614,55 @@ body {
   display: flex; flex-direction: column; gap: 20px; background: var(--white);
 }
 .cal-center { padding: 20px 24px; background: var(--gray-50); }
+
+.cal-today-btn {
+  border: 1px solid var(--border-med); background: var(--white); color: var(--purple);
+  border-radius: 9px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.cal-today-btn:hover { background: var(--purple-pale); border-color: rgba(76,42,122,.3); }
+.cal-search-panel {
+  display: grid; grid-template-columns: minmax(260px, 1fr) 142px 132px;
+  align-items: center; gap: 8px; margin: -6px 0 12px;
+}
+.cal-search-box { position: relative; }
+.cal-search-box > i {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text-hint); font-size: 17px; pointer-events: none;
+}
+.cal-search-box input, .cal-search-select {
+  width: 100%; height: 40px; border: 1px solid var(--border-med); border-radius: 10px;
+  background: var(--white); color: var(--text); font-size: 13px; outline: none;
+}
+.cal-search-box input { padding: 0 38px 0 38px; }
+.cal-search-select { padding: 0 10px; cursor: pointer; }
+.cal-search-box input:focus, .cal-search-select:focus {
+  border-color: var(--purple); box-shadow: 0 0 0 3px rgba(76,42,122,.10);
+}
+.cal-search-clear {
+  display: none; position: absolute; right: 7px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent;
+  color: var(--text-hint); cursor: pointer;
+}
+.cal-search-clear.visible { display: inline-flex; align-items: center; justify-content: center; }
+.cal-search-clear:hover { background: var(--gray-100); color: var(--text); }
+.cal-search-results {
+  display: none; max-height: 270px; overflow: auto; margin: -4px 0 14px;
+  border: 1px solid var(--border-med); border-radius: 12px; background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+.cal-search-results.open { display: block; }
+.cal-search-result {
+  width: 100%; display: grid; grid-template-columns: 42px minmax(0,1fr) auto;
+  align-items: center; gap: 10px; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--border);
+  background: transparent; text-align: left; color: var(--text); cursor: pointer;
+}
+.cal-search-result:last-child { border-bottom: 0; }
+.cal-search-result:hover { background: var(--purple-pale); }
+.cal-search-date { text-align: center; color: var(--purple); font-size: 11px; font-weight: 700; line-height: 1.2; }
+.cal-search-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-search-meta { color: var(--text-hint); font-size: 11px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-search-tag { border-radius: 999px; padding: 4px 8px; font-size: 10px; font-weight: 700; }
+.cal-search-empty { padding: 18px; text-align: center; color: var(--text-hint); font-size: 13px; }
 .cal-right {
   padding: 20px 16px; border-left: 1px solid var(--border);
   display: flex; flex-direction: column; gap: 20px; background: var(--white);
@@ -1059,7 +1108,7 @@ body {
 .loading-overlay.open { display: flex; }
 
 .loading-card {
-  background: #fff; border-radius: 22px; padding: 36px 32px; max-width: 360px; width: 100%;
+  background: #fff; border-radius: 22px; padding: 38px 34px; max-width: 440px; width: 100%;
   text-align: center; box-shadow: 0 24px 70px rgba(0,0,0,0.3);
 }
 
@@ -1071,8 +1120,11 @@ body {
 .loading-success { background: #E1F5EE; color: #085041; }
 .loading-error { background: var(--red-pale); color: var(--red); }
 
+.loading-title {
+  font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.35; margin-bottom: 8px;
+}
 .loading-message {
-  font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.6;
+  font-size: 15px; font-weight: 500; color: var(--text-sub); line-height: 1.65;
   white-space: pre-line;
 }
 
@@ -1081,6 +1133,7 @@ body {
   font-family: inherit; font-weight: 700; font-size: 14px; padding: 11px 28px;
   border-radius: 999px; cursor: pointer; transition: opacity .15s;
 }
+.loading-close-btn:focus-visible { outline: 3px solid rgba(76,42,122,.25); outline-offset: 3px; }
 .loading-close-btn:hover { opacity: .88; }
 
 /* ===================================================================
