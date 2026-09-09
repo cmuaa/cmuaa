@@ -4,11 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#351F5D">
+  <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="เอกสาร มช.">
   <title>บันทึกรับ-ส่งเอกสาร — สมาคมนักศึกษาเก่า มช.</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
@@ -34,17 +36,41 @@
       <button class="desktop-add-btn" id="desktop-add-btn">
         <i class="ti ti-plus" aria-hidden="true"></i> เพิ่มรายการ
       </button>
+      <div class="desktop-nav-label">งานประจำ</div>
       <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
       <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
       <button class="desktop-nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
       <button class="desktop-nav-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i>สต็อกเสื้อ</button>
       <button class="desktop-nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
+      <div class="desktop-nav-label">ภาพรวมและระบบ</div>
       <button class="desktop-nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
       <button class="desktop-nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
+      <div class="desktop-nav-footer">
+        <span class="status-dot" aria-hidden="true"></span>
+        <div><strong>พร้อมใช้งาน</strong><small>รองรับการทำงานออฟไลน์</small></div>
+      </div>
     </nav>
 
     <!-- MAIN AREA -->
-    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="main-shell">
+
+      <!-- DESKTOP WORKSPACE HEADER -->
+      <header class="workspace-header" role="banner">
+        <div class="workspace-heading">
+          <span class="workspace-eyebrow">ศูนย์จัดการงานสมาคม</span>
+          <h2 id="workspace-title">รายการเอกสาร</h2>
+          <p id="workspace-subtitle">ติดตามหนังสือรับ–ส่งและงานที่ต้องดำเนินการ</p>
+        </div>
+        <div class="workspace-actions">
+          <div class="workspace-status" aria-label="สถานะระบบ">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="workspace-status-text">พร้อมใช้งาน</span>
+          </div>
+          <button class="workspace-sync-btn" id="sync-desktop-btn" onclick="syncFromSheets()" aria-label="ซิงก์ข้อมูล" title="ซิงก์ข้อมูลจาก Google Sheets">
+            <i class="ti ti-refresh" aria-hidden="true"></i><span>ซิงก์ข้อมูล</span>
+          </button>
+        </div>
+      </header>
 
       <!-- MOBILE HEADER -->
       <header class="app-header" role="banner">
@@ -52,8 +78,8 @@
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
         </div>
         <div class="header-title">
-          <h1>รับ-ส่งเอกสาร</h1>
-          <p>สมาคมนักศึกษาเก่า มช.</p>
+          <h1 id="mobile-page-title">รายการเอกสาร</h1>
+          <p id="mobile-page-subtitle">สมาคมนักศึกษาเก่า มช.</p>
         </div>
         <div class="header-actions">
           <button class="icon-btn" id="sync-header-btn" onclick="syncFromSheets()" aria-label="ซิงก์ข้อมูล" title="ซิงก์ข้อมูลจาก Google Sheets"><i class="ti ti-refresh" aria-hidden="true"></i></button>

@@ -15,6 +15,51 @@ let state = {
   pageSize: 20,
 };
 
+const PAGE_META = {
+  list: {
+    title: 'รายการเอกสาร',
+    subtitle: 'ติดตามหนังสือรับ–ส่งและงานที่ต้องดำเนินการ',
+    mobileSubtitle: 'หนังสือรับ–ส่ง',
+    action: 'เพิ่มเอกสาร',
+  },
+  finance: {
+    title: 'การเงิน',
+    subtitle: 'ติดตามรายการเบิก จ่าย และสถานะการอนุมัติ',
+    mobileSubtitle: 'เบิก–จ่ายและอนุมัติ',
+    action: 'เพิ่มรายการการเงิน',
+  },
+  rent: {
+    title: 'ค่าเช่า',
+    subtitle: 'จัดการค่าเช่า ค่าน้ำ และสถานะการชำระรายเดือน',
+    mobileSubtitle: 'ค่าเช่าและค่าสาธารณูปโภค',
+    action: 'กรอกค่าเช่ารายเดือน',
+  },
+  shirt: {
+    title: 'สต็อกเสื้อ',
+    subtitle: 'ตรวจสอบคงเหลือและประวัติการเบิกเสื้อ',
+    mobileSubtitle: 'จำนวนคงเหลือ',
+    action: 'เพิ่มแบบเสื้อ',
+  },
+  calendar: {
+    title: 'ปฏิทินกิจกรรม',
+    subtitle: 'วางแผนงานสำคัญและติดตามกำหนดการของทีม',
+    mobileSubtitle: 'กิจกรรมและกำหนดการ',
+    action: 'เพิ่มกิจกรรม',
+  },
+  stats: {
+    title: 'สถิติ',
+    subtitle: 'ดูภาพรวมเอกสารและแนวโน้มการดำเนินงาน',
+    mobileSubtitle: 'ภาพรวมการดำเนินงาน',
+    action: 'เพิ่มเอกสาร',
+  },
+  settings: {
+    title: 'ตั้งค่าระบบ',
+    subtitle: 'เชื่อมต่อข้อมูล สำรองข้อมูล และตั้งค่าการทำงาน',
+    mobileSubtitle: 'การเชื่อมต่อและข้อมูล',
+    action: 'เพิ่มเอกสาร',
+  },
+};
+
 // ===== AUTO SYNC =====
 // Google Sheets เป็นแหล่งข้อมูลกลาง ส่วน localStorage ใช้เป็น cache ของแต่ละเครื่อง
 const AUTO_SYNC_INTERVAL_MS = 60000;
@@ -103,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
   render();
   setupNav();
   setupFab();
+  updatePageContext(state.page);
   setupSearch();
   checkDeadlines();
   setupDateRolloverWatcher();
@@ -114,7 +160,8 @@ function setupAutoSync() {
 
   // ดึงข้อมูลทันทีเมื่อเปิดแอป และเมื่ออินเทอร์เน็ตกลับมา
   requestSync(true);
-  window.addEventListener('online', () => requestSync(true));
+  window.addEventListener('online', () => { updateConnectionStatus(); requestSync(true); });
+  window.addEventListener('offline', updateConnectionStatus);
 
   // เครื่องที่เปิดแอปค้างไว้จะเห็นข้อมูลจากเครื่องอื่นเมื่อกลับเข้าหน้าจอ
   window.addEventListener('focus', () => requestSync(false));
@@ -148,7 +195,7 @@ function checkDateRollover() {
   if (today === lastKnownDate) return;
   lastKnownDate = today;
   checkDeadlines();
-  if (state.currentPage === 'calendar') renderCalendar();
+  if (state.page === 'calendar') renderCalendar();
 }
 
 function setupDateRolloverWatcher() {
@@ -165,6 +212,33 @@ function setupNav() {
   document.querySelectorAll('.nav-item, .desktop-nav-item').forEach(el => {
     el.addEventListener('click', () => switchPage(el.dataset.page));
   });
+}
+
+function updatePageContext(page) {
+  const meta = PAGE_META[page] || PAGE_META.list;
+  const desktopTitle = document.getElementById('workspace-title');
+  const desktopSubtitle = document.getElementById('workspace-subtitle');
+  const mobileTitle = document.getElementById('mobile-page-title');
+  const mobileSubtitle = document.getElementById('mobile-page-subtitle');
+  const desktopAdd = document.getElementById('desktop-add-btn');
+  const fab = document.getElementById('fab');
+
+  if (desktopTitle) desktopTitle.textContent = meta.title;
+  if (desktopSubtitle) desktopSubtitle.textContent = meta.subtitle;
+  if (mobileTitle) mobileTitle.textContent = meta.title;
+  if (mobileSubtitle) mobileSubtitle.textContent = meta.mobileSubtitle;
+  if (desktopAdd) desktopAdd.innerHTML = `<i class="ti ti-plus" aria-hidden="true"></i> ${meta.action}`;
+  if (fab) fab.setAttribute('aria-label', meta.action);
+  document.title = `${meta.title} — สมาคมนักศึกษาเก่า มช.`;
+  updateConnectionStatus();
+}
+
+function updateConnectionStatus() {
+  const workspaceStatus = document.getElementById('workspace-status-text');
+  if (!workspaceStatus || state.syncing) return;
+  workspaceStatus.textContent = API.url
+    ? (navigator.onLine ? 'เชื่อมต่อ Google Sheets' : 'โหมดออฟไลน์')
+    : 'จัดเก็บในเครื่อง';
 }
 
 // ===== CALENDAR STATE =====
@@ -184,6 +258,7 @@ function switchPage(p) {
   state.page = p;
   document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === 'page-' + p));
   document.querySelectorAll('.nav-item, .desktop-nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === p));
+  updatePageContext(p);
   if (p === 'list' || p === 'send' || p === 'recv') renderList();
   if (p === 'stats') renderStats();
   if (p === 'finance') renderFinList();
@@ -783,9 +858,11 @@ async function syncFromSheets(options = {}) {
   finally { state.syncing = false; setSyncLoading(false); }
 }
 
-// ควบคุม loading state ของปุ่มซิงก์ทั้ง 2 จุด (header + หน้าตั้งค่า)
+// ควบคุม loading state ของปุ่มซิงก์ทุกจุด (mobile header + desktop header + หน้าตั้งค่า)
 function setSyncLoading(isLoading) {
   const headerBtn = document.getElementById('sync-header-btn');
+  const desktopBtn = document.getElementById('sync-desktop-btn');
+  const workspaceStatus = document.getElementById('workspace-status-text');
   const settingsRow = document.getElementById('sync-settings-row');
   const settingsIcon = document.getElementById('sync-settings-icon');
   const settingsLabel = document.getElementById('sync-settings-label');
@@ -793,6 +870,17 @@ function setSyncLoading(isLoading) {
   if (headerBtn) {
     headerBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
     headerBtn.querySelector('i')?.classList.toggle('icon-spinning', isLoading);
+  }
+  if (desktopBtn) {
+    desktopBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    desktopBtn.querySelector('i')?.classList.toggle('icon-spinning', isLoading);
+    const label = desktopBtn.querySelector('span');
+    if (label) label.textContent = isLoading ? 'กำลังซิงก์' : 'ซิงก์ข้อมูล';
+  }
+  if (workspaceStatus) {
+    workspaceStatus.textContent = isLoading
+      ? 'กำลังซิงก์ข้อมูล'
+      : (API.url ? (navigator.onLine ? 'เชื่อมต่อ Google Sheets' : 'โหมดออฟไลน์') : 'จัดเก็บในเครื่อง');
   }
   if (settingsRow) settingsRow.setAttribute('aria-busy', isLoading ? 'true' : 'false');
   if (settingsIcon) settingsIcon.classList.toggle('icon-spinning', isLoading);
