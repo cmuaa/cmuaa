@@ -197,17 +197,17 @@ function getAll() {
 
   const recvData = recvSheet.getDataRange().getValues().slice(1).map(r => ({
     id: String(r[0]), type: 'recv',
-    docno: r[1], ref_no: r[2], issue_date: r[3],
+    docno: r[1], ref_no: r[2], issue_date: formatCalendarDate(r[3]),
     from_org: r[4], to_org: r[5], subject: r[6],
-    handler: r[7], receiver: r[8], received_date: r[9],
-    deadline: r[10], doc_type: r[11], status: r[12], note: r[13], file_url: r[14]
+    handler: r[7], receiver: r[8], received_date: formatCalendarDate(r[9]),
+    deadline: formatCalendarDate(r[10]), doc_type: r[11], status: r[12], note: r[13], file_url: r[14]
   }));
 
   const sendData = sendSheet.getDataRange().getValues().slice(1).map(r => ({
     id: String(r[0]), type: 'send',
-    docno: r[1], issue_date: r[2], to_org: r[3],
+    docno: r[1], issue_date: formatCalendarDate(r[2]), to_org: r[3],
     subject: r[4], detail: r[5], handler: r[6],
-    sender: r[7], receiver_name: r[8], send_date: r[9],
+    sender: r[7], receiver_name: r[8], send_date: formatCalendarDate(r[9]),
     send_channel: r[10], doc_type: r[11], status: r[12], note: r[13], file_url: r[14]
   }));
 

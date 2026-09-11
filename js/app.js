@@ -8,6 +8,28 @@ function localDateISO(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
+// ช่อง <input type="date"> รับเฉพาะ yyyy-MM-dd เท่านั้น
+// Google Sheets อาจส่งวันที่กลับมาเป็น ISO เต็มหรือข้อความ Date จึงต้องแปลงก่อนใส่ฟอร์มแก้ไข
+function dateInputValue(value) {
+  if (!value) return '';
+  const text = String(value).trim();
+  const iso = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? '' : localDateISO(parsed);
+}
+
+function normalizeDocumentRecord(record) {
+  if (!record) return record;
+  return {
+    ...record,
+    issue_date: dateInputValue(record.issue_date),
+    received_date: dateInputValue(record.received_date),
+    deadline: dateInputValue(record.deadline),
+    send_date: dateInputValue(record.send_date),
+  };
+}
+
 // ===== STATE =====
 let state = {
   records: [],
@@ -74,6 +96,7 @@ const AUTO_SYNC_INTERVAL_MS = 60000;
 const AUTO_SYNC_MIN_GAP_MS = 10000;
 let lastAutoSyncAt = 0;
 let autoSyncIntervalId = null;
+let lastSuccessfulSyncAt = Number(localStorage.getItem('cmu_last_successful_sync') || 0);
 
 // ===== FINANCE STATE =====
 let finState = {
@@ -132,7 +155,7 @@ function saveLocal() { try { localStorage.setItem('cmu_records', JSON.stringify(
 function loadLocal() {
   try {
     const d = localStorage.getItem('cmu_records');
-    if (d) state.records = JSON.parse(d);
+    if (d) state.records = JSON.parse(d).map(normalizeDocumentRecord);
   } catch(e) {}
 }
 
@@ -289,10 +312,30 @@ function updatePageContext(page) {
 
 function updateConnectionStatus() {
   const workspaceStatus = document.getElementById('workspace-status-text');
-  if (!workspaceStatus || state.syncing) return;
-  workspaceStatus.textContent = API.url
-    ? (navigator.onLine ? 'เชื่อมต่อ Google Sheets' : 'โหมดออฟไลน์')
-    : 'จัดเก็บในเครื่อง';
+  const footerTitle = document.getElementById('desktop-footer-status-title');
+  const footerSub = document.getElementById('desktop-footer-status-sub');
+  if (state.syncing) return;
+
+  let shortLabel = 'จัดเก็บในเครื่อง';
+  let title = 'พร้อมใช้งาน';
+  let sub = 'จัดเก็บในเครื่องเท่านั้น';
+  if (API.url && !navigator.onLine) {
+    shortLabel = 'โหมดออฟไลน์';
+    title = 'กำลังออฟไลน์';
+    sub = 'ข้อมูลใหม่จะเก็บในเครื่อง';
+  } else if (API.url && lastSuccessfulSyncAt) {
+    const time = new Date(lastSuccessfulSyncAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    shortLabel = `ซิงก์ล่าสุด ${time} น.`;
+    title = 'เชื่อมต่อแล้ว';
+    sub = `ซิงก์ล่าสุด ${time} น.`;
+  } else if (API.url) {
+    shortLabel = 'เชื่อมต่อ Google Sheets';
+    title = 'พร้อมซิงก์';
+    sub = 'เชื่อมต่อ Google Sheets แล้ว';
+  }
+  if (workspaceStatus) workspaceStatus.textContent = shortLabel;
+  if (footerTitle) footerTitle.textContent = title;
+  if (footerSub) footerSub.textContent = sub;
 }
 
 // ===== CALENDAR STATE =====
@@ -467,7 +510,10 @@ function renderList() {
   }
 
   if (!items.length) {
-    container.innerHTML = `<div class="empty-state"><i class="ti ti-file-off"></i><p>ไม่พบรายการ</p></div>`;
+    const hasFilters = state.filter !== 'all' || !!state.search;
+    container.innerHTML = hasFilters
+      ? `<div class="empty-state"><i class="ti ti-search-off"></i><p>ไม่พบรายการที่ตรงกับคำค้นหาหรือตัวกรอง</p><button class="empty-action-btn" type="button" onclick="clearDocumentFilters()">ล้างตัวกรอง</button></div>`
+      : `<div class="empty-state"><i class="ti ti-file-plus"></i><p>ยังไม่มีรายการเอกสาร</p><button class="empty-action-btn" type="button" onclick="openForm('recv')">เพิ่มเอกสารแรก</button></div>`;
     const pgEl = document.getElementById('pagination');
     if (pgEl) pgEl.innerHTML = '';
     return;
@@ -491,7 +537,7 @@ function renderList() {
   }
 
   container.innerHTML = pagedItems.map(r => `
-    <div class="list-row" onclick="openDetail('${r.id}')">
+    <div class="list-row" role="button" tabindex="0" aria-label="เปิดรายละเอียด ${escAttr(r.subject || 'เอกสาร')}" onclick="openDetail('${r.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail('${r.id}')}">
       <div class="list-col-icon"><div class="list-row-icon ${r.type}"><i class="ti ti-${r.type === 'send' ? 'send' : 'inbox'}" aria-hidden="true"></i></div></div>
       <div class="list-col-main">
         <div class="list-row-title">${esc(r.subject || '-')}</div>
@@ -508,6 +554,16 @@ function renderList() {
       </div>
     </div>
   `).join('');
+}
+
+function clearDocumentFilters() {
+  state.filter = 'all';
+  state.search = '';
+  state.currentPage = 1;
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) searchInput.value = '';
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(chip => chip.classList.toggle('active', chip.dataset.filter === 'all'));
+  renderList();
 }
 
 // เดิม badge-urgent ขึ้นเฉพาะตอนเกินกำหนดแล้วเท่านั้น — เพิ่มสถานะ "ใกล้ครบกำหนด" (7 วัน) ให้เห็นล่วงหน้าตั้งแต่ในลิสต์
@@ -949,7 +1005,7 @@ async function syncFromSheets(options = {}) {
   if (!silent) showToast('กำลังซิงก์...');
   try {
     const data = ensureSyncResponse(await API.getAll(), 'รับ-ส่งเอกสาร');
-    if (data.records) { state.records = data.records; saveLocal(); renderList(); }
+    if (data.records) { state.records = data.records.map(normalizeDocumentRecord); saveLocal(); renderList(); }
     checkDeadlines();
 
     const modules = [
@@ -970,12 +1026,21 @@ async function syncFromSheets(options = {}) {
       if (failed.length) showToast('ซิงค์ได้บางส่วน — ตรวจ backend ของ: ' + failed.join(', '));
       else showToast('ซิงค์สำเร็จ');
     }
+    if (!failed.length) {
+      lastSuccessfulSyncAt = Date.now();
+      localStorage.setItem('cmu_last_successful_sync', String(lastSuccessfulSyncAt));
+      updateConnectionStatus();
+    }
     return { ok: failed.length === 0, failed };
   } catch(e) {
     if (!silent) showToast('ซิงค์ไม่สำเร็จ: ' + e.message);
     return { ok: false, error: e.message };
   }
-  finally { state.syncing = false; setSyncLoading(false); }
+  finally {
+    state.syncing = false;
+    setSyncLoading(false);
+    updateConnectionStatus();
+  }
 }
 
 // ควบคุม loading state ของปุ่มซิงก์ทุกจุด (mobile header + desktop header + หน้าตั้งค่า)
@@ -986,6 +1051,8 @@ function setSyncLoading(isLoading) {
   const settingsRow = document.getElementById('sync-settings-row');
   const settingsIcon = document.getElementById('sync-settings-icon');
   const settingsLabel = document.getElementById('sync-settings-label');
+  const footerTitle = document.getElementById('desktop-footer-status-title');
+  const footerSub = document.getElementById('desktop-footer-status-sub');
 
   if (headerBtn) {
     headerBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
@@ -997,11 +1064,9 @@ function setSyncLoading(isLoading) {
     const label = desktopBtn.querySelector('span');
     if (label) label.textContent = isLoading ? 'กำลังซิงก์' : 'ซิงก์ข้อมูล';
   }
-  if (workspaceStatus) {
-    workspaceStatus.textContent = isLoading
-      ? 'กำลังซิงก์ข้อมูล'
-      : (API.url ? (navigator.onLine ? 'เชื่อมต่อ Google Sheets' : 'โหมดออฟไลน์') : 'จัดเก็บในเครื่อง');
-  }
+  if (workspaceStatus && isLoading) workspaceStatus.textContent = 'กำลังซิงก์ข้อมูล';
+  if (footerTitle && isLoading) footerTitle.textContent = 'กำลังซิงก์ข้อมูล';
+  if (footerSub && isLoading) footerSub.textContent = 'กรุณารอสักครู่';
   if (settingsRow) settingsRow.setAttribute('aria-busy', isLoading ? 'true' : 'false');
   if (settingsIcon) settingsIcon.classList.toggle('icon-spinning', isLoading);
   if (settingsLabel) settingsLabel.textContent = isLoading ? 'กำลังซิงก์ข้อมูล...' : 'ซิงก์ข้อมูลจาก Google Sheets';
@@ -1025,6 +1090,7 @@ function goPage(p) {
 
 // ===== UTILS =====
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 function isPast(d) { return d && d < localDateISO(); }
 
 function showToast(msg) {
@@ -1084,19 +1150,20 @@ function openEditForm(id) {
   closeDetail();
   openForm(r.type, true);
   setTimeout(() => {
-    const set = (elId, val) => { const el = document.getElementById(elId); if (el && val !== undefined) el.value = val; };
+    const set = (elId, val) => { const el = document.getElementById(elId); if (el && val !== undefined) el.value = val ?? ''; };
+    const setDate = (elId, val) => set(elId, dateInputValue(val));
     if (r.type === 'recv') {
       set('f-recv-docno', r.docno); set('f-ref-no', r.ref_no);
-      set('f-issue-date', r.issue_date); set('f-received-date', r.received_date);
+      setDate('f-issue-date', r.issue_date); setDate('f-received-date', r.received_date);
       set('f-from-org', r.from_org); set('f-to-org-recv', r.to_org);
       set('f-subject', r.subject); set('f-receiver', r.receiver);
-      set('f-deadline', r.deadline);
+      setDate('f-deadline', r.deadline);
       set('f-handler', r.handler);
     } else {
-      set('f-send-docno', (r.docno || '').replace('สก.มช.', '')); set('f-issue-date-send', r.issue_date);
+      set('f-send-docno', (r.docno || '').replace('สก.มช.', '')); setDate('f-issue-date-send', r.issue_date);
       set('f-to-org', r.to_org); set('f-subject-send', r.subject);
       set('f-detail', r.detail); set('f-sender', r.sender);
-      set('f-receiver-name', r.receiver_name); set('f-send-date', r.send_date);
+      set('f-receiver-name', r.receiver_name); setDate('f-send-date', r.send_date);
       set('f-send-channel', r.send_channel);
       set('f-handler-send', r.handler);
     }
@@ -1157,17 +1224,18 @@ function openFinEditForm(id) {
   document.getElementById('fin-submit-btn').textContent = 'บันทึกการแก้ไข';
   setTimeout(() => {
     const set = (elId, val) => { const el = document.getElementById(elId); if (el && val !== undefined) el.value = val; };
+    const setDate = (elId, val) => set(elId, dateInputValue(val));
     set('fin-docno', (r.docno || '').replace('บง.มช.', ''));
-    set('fin-request-date', r.request_date);
+    setDate('fin-request-date', r.request_date);
     set('fin-requester', r.requester);
     set('fin-title', r.title);
     set('fin-detail', r.detail);
     set('fin-amount-request', r.amount_request);
     set('fin-category', r.category);
     set('fin-approver', r.approver);
-    set('fin-approve-date', r.approve_date);
+    setDate('fin-approve-date', r.approve_date);
     set('fin-status', r.status);
-    set('fin-pay-date', r.pay_date);
+    setDate('fin-pay-date', r.pay_date);
     set('fin-pay-method', r.pay_method);
     set('fin-payee', r.payee);
     set('fin-bank-account', r.bank_account);
@@ -2711,7 +2779,7 @@ function renderMiniCal() {
     const isToday = dateStr === today;
     const isSel = dateStr === calState.selectedDate;
     const hasEv = eventDates.has(dateStr);
-    html += `<div class="cal-d${isToday?' today':''}${isSel&&!isToday?' selected':''}${hasEv?' has-ev':''}" onclick="calSelectDate('${dateStr}')">${d}</div>`;
+    html += `<div class="cal-d${isToday?' today':''}${isSel&&!isToday?' selected':''}${hasEv?' has-ev':''}" role="button" tabindex="0" aria-label="${escAttr(formatDate(dateStr))}${hasEv ? ' มีกิจกรรม' : ''}" onclick="calSelectDate('${dateStr}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();calSelectDate('${dateStr}')}">${d}</div>`;
   }
   document.getElementById('cal-grid').innerHTML = html;
 }
@@ -2719,10 +2787,17 @@ function renderMiniCal() {
 function updateCalMonthHeader() {
   const y = calState.viewYear, m = calState.viewMonth;
   const thaiYear = y + 543;
+  const monthStart = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  const monthEnd = `${y}-${String(m + 1).padStart(2, '0')}-${String(new Date(y, m + 1, 0).getDate()).padStart(2, '0')}`;
+  const eventCount = calState.records.filter(r => {
+    const start = r.date_start?.slice(0, 10);
+    const end = r.date_end?.slice(0, 10) || start;
+    return start && start <= monthEnd && end >= monthStart;
+  }).length;
   const titleEl = document.getElementById('cal-month-title');
   const subEl = document.getElementById('cal-month-sub');
   if (titleEl) titleEl.textContent = THAI_MONTHS[m] + ' ' + thaiYear;
-  if (subEl) subEl.textContent = new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  if (subEl) subEl.textContent = eventCount ? `${eventCount} กิจกรรมในเดือนนี้` : 'ยังไม่มีกิจกรรมในเดือนนี้';
 }
 
 function calNav(dir) {
@@ -2799,7 +2874,7 @@ function renderCalMainGrid() {
     }).join('');
     const more = dayEvents.length > maxChips ? `<div class="cal-main-more">+${dayEvents.length - maxChips} อื่นๆ</div>` : '';
 
-    html += `<div class="cal-main-cell${isToday ? ' today' : ''}${dayEvents.length ? ' has-ev' : ''}" onclick="calOpenDayDetail('${dateStr}')">
+    html += `<div class="cal-main-cell${isToday ? ' today' : ''}${dayEvents.length ? ' has-ev' : ''}" role="button" tabindex="0" aria-label="${escAttr(formatDate(dateStr))}${dayEvents.length ? ` มี ${dayEvents.length} กิจกรรม` : ' ไม่มีกิจกรรม'}" onclick="calOpenDayDetail('${dateStr}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();calOpenDayDetail('${dateStr}')}">
       <div class="cal-main-date">${d}</div>
       <div class="cal-main-evs">${chips}${more}</div>
     </div>`;
@@ -2829,7 +2904,7 @@ function calOpenDayDetail(dateStr) {
     const oc = CAL_OWNER_COLOR[r.owner] || { bg: '#E6F1FB', color: '#0C447C' };
     const timeStr = r.time_start ? (r.time_start + (r.time_end ? '–' + r.time_end : '')) : 'ทั้งวัน';
     return `
-      <div class="cal-event-card" onclick="openCalDetail('${r.id}')">
+      <div class="cal-event-card" role="button" tabindex="0" aria-label="เปิดรายละเอียด ${escAttr(r.title || 'กิจกรรม')}" onclick="openCalDetail('${r.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCalDetail('${r.id}')}">
         <div class="cal-ev-icon" style="background:${col.bg};color:${col.color}">
           <i class="ti ${calTypeIcon(r.type)}" aria-hidden="true"></i>
         </div>
@@ -2931,7 +3006,7 @@ function renderCalPinned() {
   }
   el.innerHTML = upcoming.map(r => {
     const col = CAL_TYPE_COLOR[r.type] || CAL_TYPE_COLOR['อื่นๆ'];
-    return `<div class="cal-pin-card" onclick="calSelectDate('${r.date_start?.slice(0,10)}')">
+    return `<div class="cal-pin-card" role="button" tabindex="0" aria-label="ไปยังกิจกรรม ${escAttr(r.title || '')}" onclick="calSelectDate('${r.date_start?.slice(0,10)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();calSelectDate('${r.date_start?.slice(0,10)}')}">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
         <div style="width:8px;height:8px;border-radius:50%;background:${col.dot};flex-shrink:0"></div>
         <div class="cal-pin-title">${esc(r.title)}</div>
@@ -2969,10 +3044,11 @@ function openCalEditForm(id) {
   document.getElementById('cal-submit-btn').textContent = 'บันทึกการแก้ไข';
   setTimeout(() => {
     const set = (elId, val) => { const el = document.getElementById(elId); if (el && val !== undefined) el.value = val; };
+    const setDate = (elId, val) => set(elId, dateInputValue(val));
     set('cal-f-title', r.title);
     set('cal-f-type', r.type);
-    set('cal-f-date-start', r.date_start);
-    set('cal-f-date-end', r.date_end);
+    setDate('cal-f-date-start', r.date_start);
+    setDate('cal-f-date-end', r.date_end);
     set('cal-f-time-start', r.time_start);
     set('cal-f-time-end', r.time_end);
     set('cal-f-location', r.location);

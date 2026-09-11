@@ -55,7 +55,7 @@
       </details>
       <div class="desktop-nav-footer">
         <span class="status-dot" aria-hidden="true"></span>
-        <div><strong>พร้อมใช้งาน</strong><small>รองรับการทำงานออฟไลน์</small></div>
+        <div><strong id="desktop-footer-status-title">พร้อมใช้งาน</strong><small id="desktop-footer-status-sub">จัดเก็บในเครื่องเท่านั้น</small></div>
       </div>
     </nav>
 
@@ -271,8 +271,8 @@
                 <div class="cal-mini-header">
                   <span id="cal-mini-label">มิถุนายน 2568</span>
                   <div style="display:flex;gap:4px">
-                    <button class="icon-btn" style="width:28px;height:28px;background:var(--color-background-secondary);color:var(--color-text-secondary)" onclick="calNav(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-                    <button class="icon-btn" style="width:28px;height:28px;background:var(--color-background-secondary);color:var(--color-text-secondary)" onclick="calNav(1)"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+                    <button class="icon-btn" style="width:28px;height:28px;background:var(--color-background-secondary);color:var(--color-text-secondary)" onclick="calNav(-1)" aria-label="เดือนก่อนหน้าในปฏิทินย่อย"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                    <button class="icon-btn" style="width:28px;height:28px;background:var(--color-background-secondary);color:var(--color-text-secondary)" onclick="calNav(1)" aria-label="เดือนถัดไปในปฏิทินย่อย"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
                   </div>
                 </div>
                 <div class="cal-grid-wrap" id="cal-grid"></div>
@@ -300,7 +300,7 @@
               <div class="cal-search-panel">
                 <div class="cal-search-box">
                   <i class="ti ti-search" aria-hidden="true"></i>
-                  <input type="search" id="cal-search-input" placeholder="ค้นหาชื่องาน สถานที่ ผู้รับผิดชอบ หรือหมายเหตุ" autocomplete="off">
+                  <input type="search" id="cal-search-input" placeholder="ค้นหาชื่องาน สถานที่ ผู้รับผิดชอบ หรือหมายเหตุ" autocomplete="off" aria-label="ค้นหากิจกรรมในปฏิทิน">
                   <button type="button" id="cal-search-clear" class="cal-search-clear" onclick="clearCalSearch()" aria-label="ล้างคำค้น"><i class="ti ti-x" aria-hidden="true"></i></button>
                 </div>
                 <select id="cal-search-type" class="cal-search-select" aria-label="กรองประเภทกิจกรรม">
@@ -326,7 +326,7 @@
                 <div class="cal-right-title" id="cal-summary-title">สรุปเดือนนี้</div>
                 <div class="stats-row" style="grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:0">
                   <div class="stat-card all"><div class="n" id="cal-s-total">0</div><div class="l">ทั้งหมด</div></div>
-                  <div class="stat-card pend"><div class="n" id="cal-s-soon">0</div><div class="l">ใกล้ถึง</div></div>
+                  <div class="stat-card pend"><div class="n" id="cal-s-soon">0</div><div class="l">ภายใน 7 วัน</div></div>
                   <div class="stat-card recv"><div class="n" id="cal-s-done">0</div><div class="l">ผ่านไปแล้ว</div></div>
                   <div class="stat-card send"><div class="n" id="cal-s-types">0</div><div class="l">ประเภท</div></div>
                 </div>
@@ -650,9 +650,10 @@
             <textarea id="f-note" placeholder="บันทึกเพิ่มเติม"></textarea>
           </div>
 
-          <button type="button" class="btn-submit recv" id="submit-btn" onclick="submitForm()">
-            บันทึกหนังสือรับ
-          </button>
+          <div class="drawer-sticky-actions">
+            <button type="button" class="drawer-secondary-btn" onclick="closeForm()">ยกเลิก</button>
+            <button type="button" class="btn-submit recv" id="submit-btn" onclick="submitForm()">บันทึกหนังสือรับ</button>
+          </div>
         </div>
 
       </form>
@@ -748,9 +749,10 @@
             <textarea id="cal-f-note" placeholder="รายละเอียดเพิ่มเติม"></textarea>
           </div>
 
-          <button type="button" class="btn-submit recv" id="cal-submit-btn" onclick="submitCalForm()">
-            บันทึกกิจกรรม
-          </button>
+          <div class="drawer-sticky-actions">
+            <button type="button" class="drawer-secondary-btn" onclick="closeCalForm()">ยกเลิก</button>
+            <button type="button" class="btn-submit recv" id="cal-submit-btn" onclick="submitCalForm()">บันทึกกิจกรรม</button>
+          </div>
 
         </div>
       </form>
