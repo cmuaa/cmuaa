@@ -1461,3 +1461,307 @@ textarea:focus-visible,
     transition-duration: .01ms !important;
   }
 }
+
+/* ===================================================================
+   UI REFRESH 2026-09 — clearer hierarchy, restrained CMU identity
+   =================================================================== */
+:root {
+  --purple: #4D286F;
+  --purple-mid: #68408A;
+  --purple-soft: #80609D;
+  --purple-pale: #F2EDF6;
+  --gold: #B58A2A;
+  --gold-light: #E2C978;
+  --gold-pale: #FBF6E9;
+  --sidebar-w: 264px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --shadow-card: 0 1px 2px rgba(20, 13, 25, .04), 0 8px 24px rgba(20, 13, 25, .045);
+}
+
+body { background: #F5F4F7; }
+
+/* Desktop sidebar stays available while the content scrolls. */
+@media (min-width: 900px) {
+  .desktop-layout { display: block; width: 100%; }
+  .desktop-nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 120;
+    width: var(--sidebar-w);
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #281735;
+    box-shadow: none;
+    border-right: 1px solid rgba(255,255,255,.08);
+  }
+  .main-shell {
+    width: calc(100% - var(--sidebar-w));
+    min-height: 100dvh;
+    margin-left: var(--sidebar-w);
+  }
+  .workspace-header {
+    background: rgba(245,244,247,.96);
+    backdrop-filter: blur(10px);
+  }
+}
+
+.desktop-nav .logo-wrap .nav-logo-icon,
+.desktop-add-btn,
+.desktop-add-btn:hover {
+  background: var(--gold-light);
+  color: #281735;
+  box-shadow: none;
+}
+.desktop-add-btn:hover { background: #EAD58F; }
+.desktop-nav .logo-wrap .nav-logo-icon span { color: #281735; }
+.desktop-nav-item { border-radius: 10px; }
+.desktop-nav-item:hover { transform: none; }
+.desktop-nav-item.active {
+  background: rgba(255,255,255,.11);
+  box-shadow: none;
+}
+.desktop-nav-footer {
+  border-radius: 10px;
+  background: rgba(255,255,255,.055);
+}
+.status-dot { box-shadow: none; }
+
+/* Collapsible utility group in the sidebar. */
+.desktop-more { margin: 0; }
+.desktop-more summary { list-style: none; }
+.desktop-more summary::-webkit-details-marker { display: none; }
+.desktop-more summary .desktop-more-chevron {
+  margin-left: auto;
+  font-size: 15px;
+  transition: transform .18s ease;
+}
+.desktop-more[open] summary .desktop-more-chevron { transform: rotate(180deg); }
+.desktop-more.has-active-child > summary {
+  color: #fff;
+  background: rgba(255,255,255,.08);
+  font-weight: 600;
+}
+.desktop-more.has-active-child > summary > i:first-child { color: var(--gold-light); }
+.desktop-more-menu { margin: 2px 0 6px; }
+.desktop-subnav-item {
+  width: calc(100% - 34px);
+  margin-left: 24px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  font-size: 13px;
+}
+.desktop-subnav-item i { font-size: 18px; }
+
+/* Flat, consistent surfaces; color is reserved for meaning and actions. */
+.list-stats-strip,
+.stat-card,
+.list-table,
+.doc-card,
+.settings-card,
+.detail-section,
+.cal-main-card,
+.cal-event-card,
+.search-wrap input,
+.workspace-status {
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
+.stat-card:hover,
+.doc-card:hover,
+.cal-event-card:hover {
+  transform: none;
+  box-shadow: 0 1px 2px rgba(20,13,25,.05), 0 10px 28px rgba(20,13,25,.07);
+}
+.stat-card::before { height: 2px; opacity: .72; }
+.filter-chip.active { box-shadow: none; }
+.workspace-sync-btn,
+.workspace-sync-btn:hover { box-shadow: none; transform: none; }
+
+.rent-meter-button {
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-med);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.rent-bundle-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.rent-bundle-month {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-med);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  color-scheme: light dark;
+}
+.rent-bundle-button {
+  width: auto;
+  margin: 0;
+  padding: 10px 16px;
+  background: var(--purple);
+}
+
+/* Mobile navigation: four clear destinations, no tiny horizontal strip. */
+.bottom-nav {
+  overflow: visible;
+  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,.97);
+}
+.nav-item { min-width: 0; }
+.nav-item::after { top: 0; height: 2px; }
+
+/* Mobile “More” bottom sheet. */
+.more-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(18, 12, 22, .52);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+}
+.more-sheet-overlay[hidden] { display: none; }
+.more-sheet-overlay.open { opacity: 1; pointer-events: auto; }
+.more-sheet {
+  width: min(100%, 520px);
+  padding: 10px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--white);
+  box-shadow: 0 24px 64px rgba(18,12,22,.25);
+  transform: translateY(18px);
+  transition: transform .18s ease;
+}
+.more-sheet-overlay.open .more-sheet { transform: translateY(0); }
+.more-sheet-handle {
+  width: 38px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: 4px;
+  background: var(--gray-300);
+}
+.more-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 2px 14px;
+}
+.more-sheet-header h2 { font-size: 19px; line-height: 1.3; }
+.more-sheet-header p { margin-top: 2px; color: var(--text-hint); font-size: 12px; }
+.more-sheet-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--gray-50);
+  color: var(--text-sub);
+  font-size: 18px;
+  cursor: pointer;
+}
+.more-sheet-grid { display: grid; gap: 8px; }
+.more-sheet-item {
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 38px minmax(0,1fr) 20px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--gray-25);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.more-sheet-item > i:first-child {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--purple-pale);
+  color: var(--purple);
+  font-size: 19px;
+}
+.more-sheet-item > i:last-child { color: var(--text-hint); }
+.more-sheet-item span { min-width: 0; }
+.more-sheet-item strong,
+.more-sheet-item small { display: block; }
+.more-sheet-item strong { font-size: 14px; }
+.more-sheet-item small { color: var(--text-hint); font-size: 11.5px; margin-top: 1px; }
+.more-sheet-item.active { border-color: rgba(77,40,111,.3); background: var(--purple-pale); }
+.more-menu-open { overflow: hidden; }
+
+@media (min-width: 900px) {
+  .more-sheet-overlay { display: none !important; }
+}
+
+/* Mobile overflow fixes: filters wrap and calendar controls stay inside the viewport. */
+@media (max-width: 640px) {
+  .filter-bar {
+    overflow: visible;
+    flex-wrap: wrap;
+    padding: 0;
+  }
+  .cal-center-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .cal-center-header > div:last-child {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .cal-search-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .cal-search-box { grid-column: 1 / -1; }
+  .cal-search-select { min-width: 0; }
+  .cal-legend {
+    gap: 8px 12px;
+    padding: 9px 10px;
+  }
+  .cal-legend-label { width: 100%; }
+  .cal-main-card { border-radius: 12px; }
+  .cal-main-dow > div { padding: 9px 0; font-size: 10px; }
+  .cal-main-cell { padding: 5px 2px; }
+  .cal-main-date { width: 22px; height: 22px; font-size: 11.5px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  body { background: #100D13; }
+  .desktop-nav { background: #21132C; }
+  .workspace-header { background: rgba(16,13,19,.96); }
+  .bottom-nav { background: rgba(27,22,33,.97); }
+  .more-sheet-item { background: #211B29; }
+}

@@ -217,9 +217,55 @@ function setupDateRolloverWatcher() {
 
 // ===== NAVIGATION =====
 function setupNav() {
-  document.querySelectorAll('.nav-item, .desktop-nav-item').forEach(el => {
-    el.addEventListener('click', () => switchPage(el.dataset.page));
+  document.querySelectorAll('.nav-item[data-page], .desktop-nav-item[data-page], .more-sheet-item[data-page]').forEach(el => {
+    el.addEventListener('click', () => {
+      switchPage(el.dataset.page);
+      closeMoreMenu();
+    });
   });
+
+  const moreButton = document.getElementById('more-nav-btn');
+  const moreClose = document.getElementById('more-sheet-close');
+  const moreOverlay = document.getElementById('more-sheet-overlay');
+  if (moreButton) moreButton.addEventListener('click', openMoreMenu);
+  if (moreClose) moreClose.addEventListener('click', closeMoreMenu);
+  if (moreOverlay) {
+    moreOverlay.addEventListener('click', event => {
+      if (event.target === moreOverlay) closeMoreMenu();
+    });
+  }
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && moreOverlay && !moreOverlay.hidden) closeMoreMenu();
+  });
+}
+
+const MORE_PAGES = new Set(['rent', 'shirt', 'stats', 'settings']);
+let moreMenuCloseTimer = null;
+
+function openMoreMenu() {
+  const overlay = document.getElementById('more-sheet-overlay');
+  const button = document.getElementById('more-nav-btn');
+  if (!overlay) return;
+  if (moreMenuCloseTimer) window.clearTimeout(moreMenuCloseTimer);
+  overlay.hidden = false;
+  requestAnimationFrame(() => overlay.classList.add('open'));
+  document.body.classList.add('more-menu-open');
+  if (button) button.setAttribute('aria-expanded', 'true');
+  const activeItem = overlay.querySelector(`[data-page="${state.page}"]`);
+  (activeItem || overlay.querySelector('.more-sheet-item'))?.focus();
+}
+
+function closeMoreMenu() {
+  const overlay = document.getElementById('more-sheet-overlay');
+  const button = document.getElementById('more-nav-btn');
+  if (!overlay || overlay.hidden) return;
+  overlay.classList.remove('open');
+  document.body.classList.remove('more-menu-open');
+  if (button) button.setAttribute('aria-expanded', 'false');
+  moreMenuCloseTimer = window.setTimeout(() => {
+    overlay.hidden = true;
+    moreMenuCloseTimer = null;
+  }, 180);
 }
 
 function updatePageContext(page) {
@@ -266,9 +312,15 @@ function saveCalLocal() { try { localStorage.setItem('cmu_cal_records', JSON.str
 function loadCalLocal() { try { const d = localStorage.getItem('cmu_cal_records'); if (d) calState.records = JSON.parse(d); } catch(e){} }
 
 function switchPage(p) {
+  if (!PAGE_META[p]) return;
   state.page = p;
   document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === 'page-' + p));
-  document.querySelectorAll('.nav-item, .desktop-nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === p));
+  document.querySelectorAll('.nav-item[data-page], .desktop-nav-item[data-page], .more-sheet-item[data-page]').forEach(el => el.classList.toggle('active', el.dataset.page === p));
+  const isMorePage = MORE_PAGES.has(p);
+  document.getElementById('more-nav-btn')?.classList.toggle('active', isMorePage);
+  const desktopMore = document.getElementById('desktop-more');
+  desktopMore?.classList.toggle('has-active-child', isMorePage);
+  if (desktopMore && isMorePage) desktopMore.open = true;
   updatePageContext(p);
   if (p === 'list' || p === 'send' || p === 'recv') renderList();
   if (p === 'stats') renderStats();

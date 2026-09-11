@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#351F5D">
+  <meta name="theme-color" content="#281735">
   <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260911">
 </head>
 <body>
 
@@ -39,12 +39,20 @@
       <div class="desktop-nav-label">งานประจำ</div>
       <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
       <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
-      <button class="desktop-nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
-      <button class="desktop-nav-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i>สต็อกเสื้อ</button>
       <button class="desktop-nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
-      <div class="desktop-nav-label">ภาพรวมและระบบ</div>
-      <button class="desktop-nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
-      <button class="desktop-nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
+      <div class="desktop-nav-label">เครื่องมือ</div>
+      <details class="desktop-more" id="desktop-more">
+        <summary class="desktop-nav-item" aria-label="เปิดเมนูเพิ่มเติม">
+          <i class="ti ti-dots" aria-hidden="true"></i><span>เพิ่มเติม</span>
+          <i class="ti ti-chevron-down desktop-more-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="desktop-more-menu">
+          <button class="desktop-nav-item desktop-subnav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
+          <button class="desktop-nav-item desktop-subnav-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i>สต็อกเสื้อ</button>
+          <button class="desktop-nav-item desktop-subnav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
+          <button class="desktop-nav-item desktop-subnav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
+        </div>
+      </details>
       <div class="desktop-nav-footer">
         <span class="status-dot" aria-hidden="true"></span>
         <div><strong>พร้อมใช้งาน</strong><small>รองรับการทำงานออฟไลน์</small></div>
@@ -185,15 +193,15 @@
             <input type="search" id="rent-search-input" placeholder="ค้นหาชื่อร้าน, ล็อค, เดือน..." aria-label="ค้นหารายการค่าเช่า">
           </div>
 
-          <button class="settings-row" style="cursor:pointer;width:100%;text-align:left;border:1px solid var(--border-med);border-radius:var(--radius);background:#fff;margin-bottom:8px;font-family:inherit;font-size:14px" onclick="openMasterMeterForm()">
+          <button class="settings-row rent-meter-button" onclick="openMasterMeterForm()">
             <i class="ti ti-droplet" aria-hidden="true"></i>
             <span class="sr-label">ตั้งค่ามิเตอร์น้ำกลางประจำเดือน</span>
             <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text-hint)"></i>
           </button>
 
-          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-            <input type="month" id="rent-bundle-month" style="flex:1;min-width:140px;padding:10px 12px;border:1px solid var(--border-med);border-radius:var(--radius);font-family:inherit;font-size:14px">
-            <button class="btn-submit recv" style="width:auto;padding:10px 16px;margin:0" onclick="generateMonthlyBundle()">
+          <div class="rent-bundle-tools">
+            <input type="month" id="rent-bundle-month" class="rent-bundle-month">
+            <button class="btn-submit rent-bundle-button" onclick="generateMonthlyBundle()">
               <i class="ti ti-printer" aria-hidden="true"></i> รวมไฟล์ + ปริ้นทั้งเดือน
             </button>
           </div>
@@ -398,12 +406,29 @@
   <nav class="bottom-nav" aria-label="เมนูล่าง">
     <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
     <button class="nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
-    <button class="nav-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i>ค่าเช่า</button>
-    <button class="nav-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i>สต็อกเสื้อ</button>
     <button class="nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
-    <button class="nav-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>สถิติ</button>
-    <button class="nav-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i>ตั้งค่า</button>
+    <button class="nav-item more-nav-item" id="more-nav-btn" type="button" aria-haspopup="dialog" aria-controls="more-sheet" aria-expanded="false"><i class="ti ti-dots" aria-hidden="true"></i>เพิ่มเติม</button>
   </nav>
+
+  <!-- MOBILE MORE MENU -->
+  <div class="more-sheet-overlay" id="more-sheet-overlay" hidden>
+    <section class="more-sheet" id="more-sheet" role="dialog" aria-modal="true" aria-labelledby="more-sheet-title">
+      <div class="more-sheet-handle" aria-hidden="true"></div>
+      <div class="more-sheet-header">
+        <div>
+          <h2 id="more-sheet-title">เพิ่มเติม</h2>
+          <p>เครื่องมือและการตั้งค่าที่ใช้งานเป็นครั้งคราว</p>
+        </div>
+        <button class="more-sheet-close" id="more-sheet-close" type="button" aria-label="ปิดเมนูเพิ่มเติม"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="more-sheet-grid">
+        <button class="more-sheet-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i><span><strong>ค่าเช่า</strong><small>ค่าเช่าและค่าสาธารณูปโภค</small></span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        <button class="more-sheet-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i><span><strong>สต็อกเสื้อ</strong><small>จำนวนคงเหลือและการเบิก</small></span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        <button class="more-sheet-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i><span><strong>สถิติ</strong><small>ภาพรวมการดำเนินงาน</small></span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        <button class="more-sheet-item" data-page="settings"><i class="ti ti-settings" aria-hidden="true"></i><span><strong>ตั้งค่า</strong><small>การเชื่อมต่อและข้อมูล</small></span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+      </div>
+    </section>
+  </div>
 
   <!-- FAB -->
   <button class="fab" id="fab" aria-label="เพิ่มรายการ">
@@ -1267,8 +1292,8 @@
 <!-- TOAST -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/api.js"></script>
-<script src="js/app.js"></script>
+<script src="js/api.js?v=20260911"></script>
+<script src="js/app.js?v=20260911"></script>
 <script>
 // Export CSV
 function exportCSV() {
