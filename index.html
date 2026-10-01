@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/style.css?v=20260911">
   <link rel="stylesheet" href="css/workspace.css?v=20261001-4">
+  <link rel="stylesheet" href="css/home.css?v=20261001-1">
 </head>
 <body>
 
@@ -28,9 +29,9 @@
     <!-- DESKTOP SIDEBAR NAV -->
     <nav class="desktop-nav" aria-label="เมนูหลัก">
       <div class="logo-wrap">
-        <div class="nav-logo-icon"><span>มช.</span></div>
+        <div class="nav-logo-icon"><img src="icons/cmuaa-logo.png" alt="ตราสมาคมนักศึกษาเก่ามหาวิทยาลัยเชียงใหม่" width="64" height="58"></div>
         <div class="nav-logo-text">
-          <h1>บันทึกรับ-ส่งเอกสาร</h1>
+          <h1>สมาคมลับ</h1>
           <p>สมาคมนักศึกษาเก่า มช.</p>
         </div>
       </div>
@@ -38,7 +39,8 @@
         <i class="ti ti-plus" aria-hidden="true"></i> เพิ่มรายการ
       </button>
       <div class="desktop-nav-label">งานประจำ</div>
-      <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
+      <button class="desktop-nav-item active" data-page="home"><i class="ti ti-home" aria-hidden="true"></i>ภาพรวม</button>
+      <button class="desktop-nav-item" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รับ–ส่งเอกสาร</button>
       <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
       <button class="desktop-nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
 <button class="desktop-nav-item" data-page="support"><i class="ti ti-heart-handshake" aria-hidden="true"></i>การสนับสนุนกิจกรรม</button>
@@ -84,9 +86,7 @@
 
       <!-- MOBILE HEADER -->
       <header class="app-header" role="banner">
-        <div class="logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
-        </div>
+        <div class="logo home-mobile-logo"><img src="icons/cmuaa-logo.png" alt="ตราสมาคม" width="38" height="34"></div>
         <div class="header-title">
           <h1 id="mobile-page-title">รายการเอกสาร</h1>
           <p id="mobile-page-subtitle">สมาคมนักศึกษาเก่า มช.</p>
@@ -100,7 +100,8 @@
       <main class="main-content desktop-content" role="main">
 
         <!-- PAGE: LIST -->
-        <div class="page active" id="page-list">
+        <div class="page active" id="page-home"></div>
+        <div class="page" id="page-list">
           <div class="list-stats-strip" role="region" aria-label="สรุปสถิติ">
             <div class="list-stats-cell">
               <div class="list-stats-top"><span class="list-stats-icon all"><i class="ti ti-files" aria-hidden="true"></i></span><span class="list-stats-label">ทั้งหมด</span></div>
@@ -407,7 +408,8 @@
 
   <!-- MOBILE BOTTOM NAV -->
   <nav class="bottom-nav" aria-label="เมนูล่าง">
-    <button class="nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
+    <button class="nav-item active" data-page="home"><i class="ti ti-home" aria-hidden="true"></i>ภาพรวม</button>
+    <button class="nav-item" data-page="list"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-badge" id="nav-badge" style="display:none">0</span>รายการ</button>
     <button class="nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
     <button class="nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
     <button class="nav-item more-nav-item" id="more-nav-btn" type="button" aria-haspopup="dialog" aria-controls="more-sheet" aria-expanded="false"><i class="ti ti-dots" aria-hidden="true"></i>เพิ่มเติม</button>
@@ -1299,8 +1301,9 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/api.js?v=20260911"></script>
-<script src="js/app.js?v=20261001-1"></script>
+<script src="js/app.js?v=20261001-home"></script>
 <script src="js/support.js?v=20261001-3"></script>
+<script src="js/home.js?v=20261001-1"></script>
 <script>
 // Export CSV
 function exportCSV() {

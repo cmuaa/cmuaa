@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v10-centered-save-status';
+const CACHE = 'cmu-doctrack-v11-home-overview';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,10 @@ const ASSETS = [
   './js/app.js',
   './js/api.js',
   './js/support.js',
-  './css/workspace.css'
+  './css/workspace.css',
+  './css/home.css',
+  './js/home.js',
+  './icons/cmuaa-logo.png'
 ];
 
 self.addEventListener('install', e => {

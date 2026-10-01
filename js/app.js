@@ -33,7 +33,7 @@ function normalizeDocumentRecord(record) {
 // ===== STATE =====
 let state = {
   records: [],
-  page: 'list',
+  page: 'home',
   filter: 'all',
   search: '',
   loading: false,
@@ -227,6 +227,7 @@ function checkDateRollover() {
   lastKnownDate = today;
   checkDeadlines();
   if (state.page === 'calendar') renderCalendar();
+  if (state.page === 'home') renderHome();
 }
 
 function setupDateRolloverWatcher() {
@@ -368,6 +369,7 @@ function switchPage(p) {
   if (p === 'list' || p === 'send' || p === 'recv') renderList();
   if (p === 'stats') renderStats();
   if (p === 'finance') renderFinList();
+  if (p === 'home') renderHome();
   if (p === 'support') renderSupport();
   if (p === 'calendar') renderCalendar();
   if (p === 'rent') renderRentList();
@@ -377,7 +379,8 @@ function switchPage(p) {
 // ===== FAB =====
 function setupFab() {
   document.getElementById('fab').addEventListener('click', () => {
-    if (state.page === 'support') openSupportForm();
+    if (state.page === 'home') homeAddMenu();
+    else if (state.page === 'support') openSupportForm();
     else if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
     else if (state.page === 'rent') openRentBatchForm();
@@ -385,7 +388,8 @@ function setupFab() {
     else openForm('recv');
   });
   document.getElementById('desktop-add-btn').addEventListener('click', () => {
-    if (state.page === 'support') openSupportForm();
+    if (state.page === 'home') homeAddMenu();
+    else if (state.page === 'support') openSupportForm();
     else if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
     else if (state.page === 'rent') openRentBatchForm();
@@ -1041,6 +1045,7 @@ async function syncFromSheets(options = {}) {
   }
   finally {
     state.syncing = false;
+    if (state.page === 'home') renderHome();
     setSyncLoading(false);
     updateConnectionStatus();
   }
@@ -1138,7 +1143,7 @@ function hideLoadingOverlay() {
 }
 
 function render() {
-  switchPage('list');
+  switchPage('home');
   // Restore API URL in settings
   document.getElementById('api-url-input').value = API.url;
 }
