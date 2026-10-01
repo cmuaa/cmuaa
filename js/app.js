@@ -360,7 +360,7 @@ function switchPage(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === 'page-' + p));
   document.querySelectorAll('.nav-item[data-page], .desktop-nav-item[data-page], .more-sheet-item[data-page]').forEach(el => el.classList.toggle('active', el.dataset.page === p));
   const isMorePage = MORE_PAGES.has(p);
-  document.getElementById('more-nav-btn')?.classList.toggle('active', isMorePage);
+  document.getElementById('more-nav-btn')?.classList.toggle('active', isMorePage || p === 'support');
   const desktopMore = document.getElementById('desktop-more');
   desktopMore?.classList.toggle('has-active-child', isMorePage);
   if (desktopMore && isMorePage) desktopMore.open = true;
@@ -368,6 +368,7 @@ function switchPage(p) {
   if (p === 'list' || p === 'send' || p === 'recv') renderList();
   if (p === 'stats') renderStats();
   if (p === 'finance') renderFinList();
+  if (p === 'support') renderSupport();
   if (p === 'calendar') renderCalendar();
   if (p === 'rent') renderRentList();
   if (p === 'shirt') renderShirtList();
@@ -376,14 +377,16 @@ function switchPage(p) {
 // ===== FAB =====
 function setupFab() {
   document.getElementById('fab').addEventListener('click', () => {
-    if (state.page === 'finance') openFinForm();
+    if (state.page === 'support') openSupportForm();
+    else if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
     else if (state.page === 'rent') openRentBatchForm();
     else if (state.page === 'shirt') openShirtStockForm();
     else openForm('recv');
   });
   document.getElementById('desktop-add-btn').addEventListener('click', () => {
-    if (state.page === 'finance') openFinForm();
+    if (state.page === 'support') openSupportForm();
+    else if (state.page === 'finance') openFinForm();
     else if (state.page === 'calendar') openCalForm();
     else if (state.page === 'rent') openRentBatchForm();
     else if (state.page === 'shirt') openShirtStockForm();
@@ -1011,9 +1014,9 @@ async function syncFromSheets(options = {}) {
     const modules = [
       ['การเงิน', syncFinFromSheets],
       ['ปฏิทิน', syncCalFromSheets],
-      ['ค่าเช่า', syncRentFromSheets],
-      ['มิเตอร์กลาง', syncMasterMeterFromSheets],
-      ['สต็อกเสื้อ', syncShirtFromSheets],
+      ['การสนับสนุนกิจกรรม', syncSupportFromSheets],
+      ...(state.page === 'rent' ? [['ค่าเช่า', syncRentFromSheets], ['มิเตอร์กลาง', syncMasterMeterFromSheets]] : []),
+      ...(state.page === 'shirt' ? [['สต็อกเสื้อ', syncShirtFromSheets]] : []),
     ];
     // เรียกทีละโมดูลเพื่อลดโอกาสชน quota ของ Apps Script และ callback ของ JSONP
     const failed = [];

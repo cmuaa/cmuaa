@@ -16,6 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/style.css?v=20260911">
+  <link rel="stylesheet" href="css/workspace.css?v=20261001-1">
 </head>
 <body>
 
@@ -40,6 +41,7 @@
       <button class="desktop-nav-item active" data-page="list"><i class="ti ti-files" aria-hidden="true"></i>รายการทั้งหมด</button>
       <button class="desktop-nav-item" data-page="finance"><i class="ti ti-cash" aria-hidden="true"></i>การเงิน</button>
       <button class="desktop-nav-item" data-page="calendar"><i class="ti ti-calendar" aria-hidden="true"></i>ปฏิทิน</button>
+<button class="desktop-nav-item" data-page="support"><i class="ti ti-heart-handshake" aria-hidden="true"></i>การสนับสนุนกิจกรรม</button>
       <div class="desktop-nav-label">เครื่องมือ</div>
       <details class="desktop-more" id="desktop-more">
         <summary class="desktop-nav-item" aria-label="เปิดเมนูเพิ่มเติม">
@@ -152,6 +154,7 @@
           <div id="pagination" class="pagination-wrap"></div>
         </div>
 
+        <div class="page" id="page-support"></div>
         <!-- PAGE: FINANCE -->
         <div class="page" id="page-finance">
           <div class="stats-row" role="region" aria-label="สรุปการเงิน">
@@ -422,6 +425,7 @@
         <button class="more-sheet-close" id="more-sheet-close" type="button" aria-label="ปิดเมนูเพิ่มเติม"><i class="ti ti-x" aria-hidden="true"></i></button>
       </div>
       <div class="more-sheet-grid">
+        <button class="more-sheet-item" data-page="support"><i class="ti ti-heart-handshake" aria-hidden="true"></i><span><strong>การสนับสนุนกิจกรรม</strong><small>เงิน สิ่งของ และการส่งมอบ</small></span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
         <button class="more-sheet-item" data-page="rent"><i class="ti ti-building-store" aria-hidden="true"></i><span><strong>ค่าเช่า</strong><small>ค่าเช่าและค่าสาธารณูปโภค</small></span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
         <button class="more-sheet-item" data-page="shirt"><i class="ti ti-shirt" aria-hidden="true"></i><span><strong>สต็อกเสื้อ</strong><small>จำนวนคงเหลือและการเบิก</small></span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
         <button class="more-sheet-item" data-page="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i><span><strong>สถิติ</strong><small>ภาพรวมการดำเนินงาน</small></span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
@@ -1295,7 +1299,8 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/api.js?v=20260911"></script>
-<script src="js/app.js?v=20260911"></script>
+<script src="js/app.js?v=20261001-1"></script>
+<script src="js/support.js?v=20261001-1"></script>
 <script>
 // Export CSV
 function exportCSV() {

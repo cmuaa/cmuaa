@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v6-desktop-fixes';
+const CACHE = 'cmu-doctrack-v7-support-workspace';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,11 @@ const ASSETS = [
   './icons/app-icon.svg',
   './css/style.css',
   './js/app.js',
-  './js/api.js'
+  './js/api.js',
+  './js/support.js',
+  './css/workspace.css',
+  './fonts/workspace-thai.ttf',
+  './fonts/workspace-thai-bold.ttf'
 ];
 
 self.addEventListener('install', e => {
