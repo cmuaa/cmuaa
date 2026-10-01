@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v9-support-save-status';
+const CACHE = 'cmu-doctrack-v10-centered-save-status';
 const ASSETS = [
   './',
   './index.html',
