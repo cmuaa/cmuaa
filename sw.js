@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v7-support-workspace';
+const CACHE = 'cmu-doctrack-v8-google-sarabun';
 const ASSETS = [
   './',
   './index.html',
@@ -8,9 +8,7 @@ const ASSETS = [
   './js/app.js',
   './js/api.js',
   './js/support.js',
-  './css/workspace.css',
-  './fonts/workspace-thai.ttf',
-  './fonts/workspace-thai-bold.ttf'
+  './css/workspace.css'
 ];
 
 self.addEventListener('install', e => {
