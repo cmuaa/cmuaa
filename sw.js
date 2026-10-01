@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v14-consistent-save-status';
+const CACHE = 'cmu-doctrack-v15-consistent-entry-forms';
 const ASSETS = [
   './',
   './index.html',

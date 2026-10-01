@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/style.css?v=20260911">
-  <link rel="stylesheet" href="css/workspace.css?v=20261001-5">
+  <link rel="stylesheet" href="css/workspace.css?v=20261001-6">
   <link rel="stylesheet" href="css/home.css?v=20261001-3">
 </head>
 <body>
@@ -443,11 +443,11 @@
 </div>
 
 <!-- FORM OVERLAY (DRAWER) -->
-<div class="overlay" id="form-overlay" role="dialog" aria-modal="true" aria-labelledby="form-title">
+<div class="overlay workspace-entry" id="form-overlay" role="dialog" aria-modal="true" aria-labelledby="form-title">
   <div class="drawer">
     <div class="drawer-handle"></div>
     <div class="drawer-header">
-      <h2 id="form-title">บันทึกหนังสือรับ</h2>
+      <div class="entry-heading"><h2 id="form-title">บันทึกหนังสือรับ</h2><p>บันทึกข้อมูลหนังสือ ผู้รับผิดชอบ และไฟล์แนบ</p></div>
       <button class="drawer-close" onclick="closeForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
     </div>
     <div class="drawer-body">
@@ -685,11 +685,11 @@
 </div>
 
 <!-- CALENDAR FORM OVERLAY (DRAWER) -->
-<div class="overlay" id="cal-form-overlay" role="dialog" aria-modal="true" aria-labelledby="cal-form-title">
+<div class="overlay workspace-entry" id="cal-form-overlay" role="dialog" aria-modal="true" aria-labelledby="cal-form-title">
   <div class="drawer">
     <div class="drawer-handle"></div>
     <div class="drawer-header">
-      <h2 id="cal-form-title">เพิ่มกิจกรรม</h2>
+      <div class="entry-heading"><h2 id="cal-form-title">เพิ่มกิจกรรม</h2><p>ระบุรายละเอียด วันเวลา และผู้รับผิดชอบกิจกรรม</p></div>
       <button class="drawer-close" onclick="closeCalForm()" aria-label="ปิด"><i class="ti ti-x" aria-hidden="true"></i></button>
     </div>
     <div class="drawer-body">
