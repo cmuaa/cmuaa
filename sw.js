@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v8-google-sarabun';
+const CACHE = 'cmu-doctrack-v9-support-save-status';
 const ASSETS = [
   './',
   './index.html',
