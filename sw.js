@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v13-compact-logo';
+const CACHE = 'cmu-doctrack-v14-consistent-save-status';
 const ASSETS = [
   './',
   './index.html',

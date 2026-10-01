@@ -743,6 +743,7 @@ function clearSig() { if (state.sigPad) state.sigPad.clear(); }
 
 // ===== SUBMIT FORM =====
 async function submitForm() {
+  if(document.getElementById('loading-overlay').dataset.busy==='true')return;
   const get = id => document.getElementById(id)?.value?.trim() || '';
   const isEdit = !!editingId;
 
@@ -797,7 +798,8 @@ async function submitForm() {
       return;
     }
     if (API.url) {
-      showLoadingOverlay('กำลังอัปโหลดไฟล์แนบและบันทึกข้อมูล...\nกรุณาอย่าปิดหน้าต่างนี้', 'กำลังบันทึกเอกสาร');
+      showLoadingOverlay('กำลังอัปโหลดไฟล์แนบ กรุณารอสักครู่', 'กำลังบันทึก…');
+      await waitForSavePopupPaint();
       try {
         const res = await API.upload(currentFormType, file);
         if (res.ok) file_url = res.url;
@@ -809,9 +811,10 @@ async function submitForm() {
   }
 
   if (!document.getElementById('loading-overlay').classList.contains('open')) {
-    showLoadingOverlay('กำลังบันทึกข้อมูล...\nกรุณาอย่าปิดหน้าต่างนี้', 'กำลังบันทึกเอกสาร');
+    showLoadingOverlay(API.url?'กำลังบันทึกหนังสือไป Google Sheets กรุณารอสักครู่':'กำลังบันทึกหนังสือในเครื่องนี้ กรุณารอสักครู่', 'กำลังบันทึก…');
   }
 
+  await waitForSavePopupPaint();
   let record = {};
   if (currentFormType === 'recv') {
     record = { ...common,
@@ -1109,38 +1112,30 @@ function showToast(msg) {
 }
 
 // ===== GLOBAL LOADING OVERLAY (pop up ค้างระหว่างทำงานหนัก ไม่หายเองจนกว่าจะกดปิด) =====
-function showLoadingOverlay(message, title = 'กำลังดำเนินการ') {
-  document.getElementById('loading-title').textContent = title;
-  document.getElementById('loading-message').textContent = message || 'กรุณารอสักครู่...';
-  document.getElementById('loading-icon').className = 'ti ti-loader-2 rb-spin';
-  document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-neutral';
-  document.getElementById('loading-close-btn').style.display = 'none';
-  document.getElementById('loading-overlay').classList.add('open');
+function showOperationStatus(mode,message,title) {
+  const dialog=document.getElementById('loading-overlay');
+  const busy=mode==='busy';
+  if (!dialog.dataset.initialized) {
+    dialog.addEventListener('cancel',e=>{if(dialog.dataset.busy==='true')e.preventDefault();});
+    dialog.addEventListener('close',()=>{dialog.classList.remove('open');dialog.dataset.busy='false';});
+    dialog.dataset.initialized='true';
+  }
+  dialog.dataset.busy=String(busy);
+  document.getElementById('loading-title').textContent=title||(busy?'กำลังบันทึก…':mode==='success'?'บันทึกเรียบร้อย':'บันทึกไม่สำเร็จ');
+  document.getElementById('loading-message').textContent=message||'กรุณารอสักครู่…';
+  document.getElementById('loading-icon').className=busy?'ti ti-loader-2 rb-spin':mode==='success'?'ti ti-circle-check':'ti ti-alert-triangle';
+  document.getElementById('loading-icon-wrap').className='loading-icon-wrap loading-'+(busy?'neutral':mode);
+  document.getElementById('loading-close-btn').style.display=busy?'none':'inline-block';
+  dialog.classList.add('open');
+  if(!dialog.open)dialog.showModal();
+  if(!busy)document.getElementById('loading-close-btn').focus();
 }
-function updateLoadingMessage(message) {
-  document.getElementById('loading-message').textContent = message;
-}
-function showLoadingSuccess(message, title = 'ดำเนินการสำเร็จ') {
-  document.getElementById('loading-title').textContent = title;
-  document.getElementById('loading-message').textContent = message;
-  document.getElementById('loading-icon').className = 'ti ti-circle-check';
-  document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-success';
-  document.getElementById('loading-close-btn').style.display = 'inline-block';
-  document.getElementById('loading-overlay').classList.add('open');
-  document.getElementById('loading-close-btn').focus();
-}
-function showLoadingError(message, title = 'เกิดข้อผิดพลาด') {
-  document.getElementById('loading-title').textContent = title;
-  document.getElementById('loading-message').textContent = message;
-  document.getElementById('loading-icon').className = 'ti ti-alert-triangle';
-  document.getElementById('loading-icon-wrap').className = 'loading-icon-wrap loading-error';
-  document.getElementById('loading-close-btn').style.display = 'inline-block';
-  document.getElementById('loading-overlay').classList.add('open');
-  document.getElementById('loading-close-btn').focus();
-}
-function hideLoadingOverlay() {
-  document.getElementById('loading-overlay').classList.remove('open');
-}
+function showLoadingOverlay(message,title='กำลังบันทึก…'){showOperationStatus('busy',message,title);}
+function updateLoadingMessage(message){document.getElementById('loading-message').textContent=message;}
+function showLoadingSuccess(message,title='บันทึกเรียบร้อย'){showOperationStatus('success',message,title);}
+function showLoadingError(message,title='บันทึกไม่สำเร็จ'){showOperationStatus('error',message,title);}
+function hideLoadingOverlay(){const dialog=document.getElementById('loading-overlay');if(dialog.dataset.busy!=='true')dialog.close();}
+function waitForSavePopupPaint(){return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}
 
 function render() {
   switchPage('home');
@@ -3066,6 +3061,7 @@ function openCalEditForm(id) {
 }
 
 async function submitCalForm() {
+  if(document.getElementById('loading-overlay').dataset.busy==='true')return;
   const get = id => document.getElementById(id)?.value?.trim() || '';
   const isEdit = !!calEditingId;
   const title = get('cal-f-title');
@@ -3107,7 +3103,8 @@ async function submitCalForm() {
     updated_at: new Date().toISOString(),
   };
 
-  showLoadingOverlay('กำลังบันทึกกิจกรรม...\nกรุณาอย่าปิดหน้าต่างนี้', 'กำลังบันทึกปฏิทิน');
+  showLoadingOverlay(API.url?'กำลังบันทึกกิจกรรมไป Google Sheets กรุณารอสักครู่':'กำลังบันทึกกิจกรรมในเครื่องนี้ กรุณารอสักครู่', 'กำลังบันทึก…');
+  await waitForSavePopupPaint();
 
   if (isEdit) {
     const idx = calState.records.findIndex(x => x.id === calEditingId);

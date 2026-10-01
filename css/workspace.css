@@ -17,3 +17,5 @@ body{font-family:'Sarabun',Tahoma,sans-serif;background:#f7f8fa;color:#242632;fo
 @media(prefers-color-scheme:dark){:root{--white:#fff;--gray-25:#fcfcfd;--gray-50:#f7f8fa;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-400:#8a909d;--gray-500:#6b7280;--gray-600:#4b5563;--gray-700:#374151;--gray-900:#111827;--text:#242632;--text-sub:#656b79;--text-hint:#757c8b;--purple-pale:#f0ecfa;--gold-pale:#fdf6e3}.more-sheet-item,.form-body,.detail-body,.form-sheet,.detail-sheet,.more-sheet{background:#fff;color:#242632}.app-header,.bottom-nav{border-color:#e7e9ef}}
 :root{color-scheme:light}
 .sup-save-status{position:fixed;inset:0;margin:auto;border:0;padding:0;width:min(440px,calc(100% - 32px));max-height:calc(100dvh - 32px);border-radius:16px;color:var(--text);background:white}.sup-save-status::backdrop{background:#25183388;backdrop-filter:blur(2px)}.sup-save-status .loading-card{max-width:none;box-shadow:none;border-radius:16px}.sup-save-status .loading-message{overflow-wrap:anywhere}
+
+.loading-overlay.sup-save-status.open{display:block}.loading-overlay.sup-save-status{backdrop-filter:none}
