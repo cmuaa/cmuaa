@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v17-register-open';
+const CACHE = 'cmu-doctrack-v18-recv-number';
 const ASSETS = [
   './',
   './index.html',

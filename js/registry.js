@@ -8,18 +8,34 @@ window.Registry = {
     showToast('หน้านี้สำหรับดูเอกสารเท่านั้น');
     return false;
   },
-  number(type, year, seq) { return type === 'recv' ? `รบ. ${year}-${String(seq).padStart(3,'0')}` : `สก.มช.${seq}/${year}`; },
+  number(type, year, seq) { return type === 'recv' ? `${seq}/${year}` : `สก.มช.${seq}/${year}`; },
+  parseNumber(type, value) {
+    const number=String(value||'').trim();
+    let match;
+    if(type==='recv') {
+      match=number.match(/^(\d+)\s*\/\s*(\d{4})$/);
+      if(match)return {year:Number(match[2]),sequence:Number(match[1])};
+      match=number.match(/^รบ\.\s*(\d{4})-(\d+)$/);
+      if(match)return {year:Number(match[1]),sequence:Number(match[2])};
+    } else {
+      match=number.match(/^สก\.มช\.\s*(\d+)\/(\d{4})$/);
+      if(match)return {year:Number(match[2]),sequence:Number(match[1])};
+    }
+    return null;
+  },
   max(type, year) {
+    // Latest confirmed incoming number is 119/2569; do not issue lower numbers.
+    const lastKnown=type==='recv'&&Number(year)===2569?119:0;
     return state.records.filter(r=>r.type===type).reduce((max,r)=>{
-      const m=String(r.docno||'').trim().match(type==='recv'?/^รบ\.\s*(\d{4})-(\d+)$/:/^สก\.มช\.\s*(\d+)\/(\d{4})$/);
-      return m && Number(m[type==='recv'?1:2])===Number(year)?Math.max(max,Number(m[type==='recv'?2:1])):max;
-    },0);
+      const number=this.parseNumber(type,r.docno);
+      return number&&number.year===Number(year)?Math.max(max,number.sequence):max;
+    },lastKnown);
   },
   async config(year) {
     if(this.configs[year]) return this.configs[year];
     let c;
     if(API.url) c=await API.call({action:'getRegistryConfig',year});
-    else c=JSON.parse(localStorage.getItem('cmu_registry_config_'+year)||'null')||{year:Number(year),recv_start:1,send_start:1};
+    else c=JSON.parse(localStorage.getItem('cmu_registry_config_'+year)||'null')||{year:Number(year),recv_start:Number(year)===2569?120:1,send_start:1};
     if(!c || (API.url && c.version!==1)) throw Error('อัปเดต Apps Script ตาม REGISTRY_SETUP.md ก่อนใช้ทะเบียนใหม่');
     this.configs[year]=c; return c;
   },
@@ -109,7 +125,7 @@ window.Registry = {
   async remove(id) {
     if(!this.requireWriter()||this.busy||!confirm('ลบหนังสือรายการนี้? เลขที่ออกแล้วจะไม่ถูกนำกลับมาใช้ซ้ำ'))return;
     this.busy=true;
-    try{if(API.url)await API.post({action:'delete',id});else{const r=state.records.find(x=>x.id===id);if(r){const match=String(r.docno||'').match(r.type==='recv'?/^รบ\.\s*(\d{4})-(\d+)$/:/^สก\.มช\.\s*(\d+)\/(\d{4})$/);const year=match?Number(match[r.type==='recv'?1:2]):r.number_year||Number(localDateISO().slice(0,4))+543;const key='cmu_registry_last_'+r.type+'_'+year;localStorage.setItem(key,String(Math.max(Number(localStorage.getItem(key)||0),this.max(r.type,year))));}}
+    try{if(API.url)await API.post({action:'delete',id});else{const r=state.records.find(x=>x.id===id);if(r){const number=this.parseNumber(r.type,r.docno);const year=number?.year||r.number_year||Number(localDateISO().slice(0,4))+543;const key='cmu_registry_last_'+r.type+'_'+year;localStorage.setItem(key,String(Math.max(Number(localStorage.getItem(key)||0),this.max(r.type,year))));}}
       state.records=state.records.filter(x=>x.id!==id);saveLocal();closeDetail();renderList();showToast('ลบหนังสือแล้ว');
     }catch(e){showLoadingError(e.message,'ลบไม่สำเร็จ');}finally{this.busy=false;}
   },

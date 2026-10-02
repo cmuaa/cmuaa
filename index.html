@@ -488,7 +488,7 @@
           <div class="form-grid two">
             <div class="field">
               <label for="f-recv-docno">เลขหนังสือรับ</label>
-              <input type="text" id="f-recv-docno" placeholder="รบ. 2568-001">
+              <input type="text" id="f-recv-docno" placeholder="120/2569">
             </div>
             <div class="field">
               <label for="f-ref-no">ที่ (เลขจากหน่วยงาน)</label>
@@ -1319,9 +1319,9 @@
 <!-- TOAST -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/api.js?v=20261002-register-open"></script>
-<script src="js/app.js?v=20261002-register-open"></script>
-<script src="js/support.js?v=20261002-register-open"></script>
+<script src="js/api.js?v=20261002-recv-number"></script>
+<script src="js/app.js?v=20261002-recv-number"></script>
+<script src="js/support.js?v=20261002-recv-number"></script>
 <script src="js/home.js?v=20261001-1"></script>
 <script>
 // Export CSV
@@ -1352,7 +1352,7 @@ function exportCSV() {
   <h2 id="registry-config-title">ตั้งเลขเริ่มต้นทะเบียน</h2><p>ระบุเลขลำดับถัดไปเพื่อเริ่มต่อจากทะเบียนเดิม เลขรับกับเลขส่งแยกชุดกันตามปี</p>
   <form id="registry-config-form"><label>ปี พ.ศ.<input id="registry-config-year" type="number" min="2500" max="2700" required></label>
     <div class="registry-two"><label>เลขรับถัดไป<input id="registry-recv-start" type="number" min="1" required></label><label>เลขส่งถัดไป<input id="registry-send-start" type="number" min="1" required></label></div>
-    <small>ตัวอย่าง: รบ. 2569-001 และ สก.มช.1/2569<br>เลขที่ออกแล้วจะไม่ถูกนำกลับมาใช้ซ้ำ</small>
+    <small>ตัวอย่าง: 120/2569 และ สก.มช.1/2569<br>เลขที่ออกแล้วจะไม่ถูกนำกลับมาใช้ซ้ำ</small>
     <div id="registry-config-error" class="registry-error" role="alert"></div><footer><button type="button" onclick="this.closest('dialog').close()">ยกเลิก</button><button type="submit" class="registry-primary">บันทึก</button></footer>
   </form>
 </dialog>

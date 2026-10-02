@@ -7,7 +7,7 @@ function registryConfig(year) {
   if (!Number.isInteger(year) || year < 2500 || year > 2700) throw new Error('ปีทะเบียนไม่ถูกต้อง');
   const props = PropertiesService.getScriptProperties();
   return { ok: true, version: 1, year: year,
-    recv_start: Number(props.getProperty('CMU_START_recv_' + year) || 1),
+    recv_start: Math.max(year === 2569 ? 120 : 1, Number(props.getProperty('CMU_START_recv_' + year) || 1)),
     send_start: Number(props.getProperty('CMU_START_send_' + year) || 1) };
 }
 
@@ -33,16 +33,31 @@ function registryGetAll() {
 }
 
 function registryNumber(type, year, sequence) {
-  return type === 'recv' ? 'รบ. ' + year + '-' + ('000' + sequence).slice(-Math.max(3, String(sequence).length))
-    : 'สก.มช.' + sequence + '/' + year;
+  return type === 'recv' ? sequence + '/' + year : 'สก.มช.' + sequence + '/' + year;
+}
+
+function registryParseNumber(type, value) {
+  const number = String(value || '').trim();
+  let match;
+  if (type === 'recv') {
+    match = number.match(/^(\d+)\s*\/\s*(\d{4})$/);
+    if (match) return { year: Number(match[2]), sequence: Number(match[1]) };
+    // Recognize the previous format without changing existing document numbers.
+    match = number.match(/^รบ\.\s*(\d{4})-(\d+)$/);
+    if (match) return { year: Number(match[1]), sequence: Number(match[2]) };
+  } else {
+    match = number.match(/^สก\.มช\.\s*(\d+)\/(\d{4})$/);
+    if (match) return { year: Number(match[2]), sequence: Number(match[1]) };
+  }
+  return null;
 }
 
 function registryMaximum(records, type, year) {
-  let max = 0;
+  // Continue after the latest number confirmed by the association: 119/2569.
+  let max = type === 'recv' && Number(year) === 2569 ? 119 : 0;
   records.filter(function(r) { return r.type === type; }).forEach(function(r) {
-    const number = String(r.docno || '').trim();
-    const match = type === 'recv' ? number.match(/^รบ\.\s*(\d{4})-(\d+)$/) : number.match(/^สก\.มช\.\s*(\d+)\/(\d{4})$/);
-    if (match && Number(match[type === 'recv' ? 1 : 2]) === year) max = Math.max(max, Number(match[type === 'recv' ? 2 : 1]));
+    const number = registryParseNumber(type, r.docno);
+    if (number && number.year === Number(year)) max = Math.max(max, number.sequence);
   });
   return max;
 }
@@ -113,9 +128,9 @@ function registryDeleteDocument(id) {
     const records = registryGetAll().records;
     const r = records.find(function(x) { return x.id === String(id); });
     if (!r) throw new Error('ไม่พบหนังสือ');
-    const match = String(r.docno).match(r.type === 'recv' ? /^รบ\.\s*(\d{4})-(\d+)$/ : /^สก\.มช\.\s*(\d+)\/(\d{4})$/);
-    if (match) {
-      const year = Number(match[r.type === 'recv' ? 1 : 2]);
+    const number = registryParseNumber(r.type, r.docno);
+    if (number) {
+      const year = number.year;
       const key = 'CMU_LAST_' + r.type + '_' + year;
       const props = PropertiesService.getScriptProperties();
       props.setProperty(key, String(Math.max(registryMaximum(records, r.type, year), Number(props.getProperty(key) || 0))));
