@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="css/style.css?v=20260911">
   <link rel="stylesheet" href="css/workspace.css?v=20261001-6">
   <link rel="stylesheet" href="css/home.css?v=20261001-3">
+  <link rel="stylesheet" href="css/registry.css?v=20261002-1">
 </head>
 <body>
 
@@ -99,6 +100,11 @@
       <!-- MAIN CONTENT -->
       <main class="main-content desktop-content" role="main">
 
+        <div class="registry-access" role="region" aria-label="โหมดใช้งาน">
+          <strong id="registry-mode-label">ทะเบียนรับ–ส่งเอกสาร</strong>
+          <button id="registry-mode-button" type="button">ปลดล็อกการบันทึก</button>
+          <button type="button" class="writer-only" onclick="Registry.share()">ลิงก์สำหรับผู้ดู</button>
+        </div>
         <!-- PAGE: LIST -->
         <div class="page active" id="page-home"></div>
         <div class="page" id="page-list">
@@ -127,6 +133,10 @@
             <i class="ti ti-chevron-right" aria-hidden="true" style="margin-left:auto"></i>
           </div>
 
+          <div class="registry-tools">
+            <button type="button" onclick="Registry.openReport()"><i class="ti ti-printer" aria-hidden="true"></i> พิมพ์ / ส่งออกทะเบียน</button>
+            <button type="button" class="writer-only" onclick="Registry.openConfig()"><i class="ti ti-list-numbers" aria-hidden="true"></i> ตั้งเลขเริ่มต้น</button>
+          </div>
           <div class="search-wrap">
             <i class="ti ti-search" aria-hidden="true"></i>
             <input type="search" id="search-input" placeholder="ค้นหาเลขที่, เรื่อง, หน่วยงาน..." aria-label="ค้นหาเอกสาร">
@@ -464,6 +474,16 @@
 
       <form id="doc-form" onsubmit="return false">
 
+        <section class="registry-extra" aria-label="ทะเบียนและเอกสารเชื่อมโยง">
+          <div class="registry-two">
+            <label>ปีทะเบียน (พ.ศ.)<input id="registry-year" type="number" min="2500" max="2700" value="2569"></label>
+            <label class="registry-check"><input id="registry-auto" type="checkbox" checked> ออกเลขหนังสืออัตโนมัติ</label>
+          </div>
+          <small id="registry-number-hint">เลขจริงจะออกเมื่อบันทึกสำเร็จ</small>
+          <label id="registry-reply-field" hidden>หนังสือรับต้นเรื่อง<select id="registry-reply"><option value="">ไม่เชื่อมหนังสือรับ</option></select></label>
+          <label>แฟ้ม / ป้ายกำกับ<input id="registry-tags" type="text" maxlength="720" placeholder="เช่น ทุนการศึกษา, งานผ้าป่า"></label>
+          <small>แยกชื่อแฟ้มด้วยเครื่องหมาย , เพื่อค้นหาเอกสารที่เกี่ยวข้องได้ง่ายขึ้น</small>
+        </section>
         <!-- ฟิลด์หนังสือรับ -->
         <div data-show="recv" class="form-grid" style="gap:12px">
           <div class="form-grid two">
@@ -1300,9 +1320,9 @@
 <!-- TOAST -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/api.js?v=20260911"></script>
-<script src="js/app.js?v=20261001-save-status"></script>
-<script src="js/support.js?v=20261001-3"></script>
+<script src="js/api.js?v=20261002-registry"></script>
+<script src="js/app.js?v=20261002-registry"></script>
+<script src="js/support.js?v=20261002-registry"></script>
 <script src="js/home.js?v=20261001-1"></script>
 <script>
 // Export CSV
@@ -1328,5 +1348,35 @@ function exportCSV() {
   a.click();
 }
 </script>
+
+<dialog id="registry-access-dialog" class="registry-dialog" aria-labelledby="registry-access-title">
+  <h2 id="registry-access-title">ปลดล็อกการบันทึก</h2><p>ใช้รหัสเดียวสำหรับคนลงรับ–ส่งเอกสาร ไม่ต้องสร้างบัญชีรายคน</p>
+  <form id="registry-access-form"><label>รหัสสำหรับบันทึก<input id="registry-write-key" type="password" autocomplete="current-password" required></label>
+    <div id="registry-access-error" class="registry-error" role="alert"></div><footer><button type="button" onclick="this.closest('dialog').close()">ยกเลิก</button><button type="submit" class="registry-primary">ปลดล็อก</button></footer>
+  </form>
+</dialog>
+<dialog id="registry-config-dialog" class="registry-dialog" aria-labelledby="registry-config-title">
+  <h2 id="registry-config-title">ตั้งเลขเริ่มต้นทะเบียน</h2><p>ระบุเลขลำดับถัดไปเพื่อเริ่มต่อจากทะเบียนเดิม เลขรับกับเลขส่งแยกชุดกันตามปี</p>
+  <form id="registry-config-form"><label>ปี พ.ศ.<input id="registry-config-year" type="number" min="2500" max="2700" required></label>
+    <div class="registry-two"><label>เลขรับถัดไป<input id="registry-recv-start" type="number" min="1" required></label><label>เลขส่งถัดไป<input id="registry-send-start" type="number" min="1" required></label></div>
+    <small>ตัวอย่าง: รบ. 2569-001 และ สก.มช.1/2569<br>เลขที่ออกแล้วจะไม่ถูกนำกลับมาใช้ซ้ำ</small>
+    <div id="registry-config-error" class="registry-error" role="alert"></div><footer><button type="button" onclick="this.closest('dialog').close()">ยกเลิก</button><button type="submit" class="registry-primary">บันทึก</button></footer>
+  </form>
+</dialog>
+<dialog id="registry-report-dialog" class="registry-dialog" aria-labelledby="registry-report-title">
+  <h2 id="registry-report-title">ทะเบียนรับ–ส่งเอกสาร</h2><p>เลือกประเภทและช่วงวันที่ ระบบใช้คำค้นหาจากหน้ารายการด้วย และรวมทุกหน้าในช่วงที่เลือก</p>
+  <label>ประเภท<select id="registry-kind"><option value="">รับและส่ง</option><option value="recv">หนังสือรับ</option><option value="send">หนังสือส่ง</option></select></label>
+  <div class="registry-two" style="margin-top:14px"><label>ตั้งแต่วันที่<input id="registry-from" type="date"></label><label>ถึงวันที่<input id="registry-to" type="date"></label></div>
+  <div id="registry-report-error" class="registry-error" role="alert"></div>
+  <footer><button type="button" onclick="this.closest('dialog').close()">ปิด</button><button type="button" onclick="Registry.export()">CSV สำหรับ Excel</button><button type="button" class="registry-primary" onclick="Registry.print()">พิมพ์ทะเบียน</button></footer>
+</dialog>
+<dialog id="registry-share-dialog" class="registry-dialog" aria-labelledby="registry-share-title">
+  <h2 id="registry-share-title">ลิงก์สำหรับผู้ดู</h2><p>ส่งลิงก์นี้ให้อีก 2 คนเพื่อค้นหา ดูเอกสาร และพิมพ์ทะเบียน โดยไม่มีปุ่มแก้ไข</p>
+  <label>ลิงก์ดูเอกสาร<input id="registry-share-url" type="text" readonly onclick="this.select()"></label>
+  <small>ผู้ที่มีลิงก์สามารถอ่านข้อมูลได้ รหัสบันทึกไม่อยู่ในลิงก์ ต้องอัปเดต Apps Script จึงจะป้องกันการแก้ไขที่ระบบกลางได้</small>
+  <footer><button type="button" onclick="this.closest('dialog').close()">ปิด</button><button class="registry-primary" type="button" onclick="document.getElementById('registry-share-url').select();navigator.clipboard.writeText(document.getElementById('registry-share-url').value).then(()=>showToast('คัดลอกลิงก์แล้ว')).catch(()=>showToast('เลือกลิงก์แล้ว กดคัดลอกได้เลย'))">คัดลอกลิงก์</button></footer>
+</dialog>
+<script src="js/registry.js?v=20261002-1"></script>
+
 </body>
 </html>

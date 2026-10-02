@@ -207,7 +207,7 @@ function setupAutoSync() {
 }
 
 async function autoSyncFromSheets(force = false) {
-  if (!API.url || !navigator.onLine || state.syncing) return;
+  if (!API.url || !navigator.onLine || state.syncing || window.Registry?.busy) return;
 
   const now = Date.now();
   if (!force && now - lastAutoSyncAt < AUTO_SYNC_MIN_GAP_MS) return;
@@ -498,7 +498,7 @@ function renderList() {
   if (state.search) {
     items = items.filter(r =>
       [r.docno, r.ref_no, r.subject, r.from_org, r.to_org, r.handler, r.receiver,
-       r.sender, r.receiver_name, r.doc_type, r.note, r.detail, r.send_channel].some(v =>
+       r.sender, r.receiver_name, r.doc_type, r.note, r.detail, r.send_channel, ...(r.tags || [])].some(v =>
         v && String(v).toLowerCase().includes(state.search)
       )
     );
@@ -1015,7 +1015,7 @@ async function syncFromSheets(options = {}) {
   if (!silent) showToast('กำลังซิงก์...');
   try {
     const data = ensureSyncResponse(await API.getAll(), 'รับ-ส่งเอกสาร');
-    if (data.records) { state.records = data.records.map(normalizeDocumentRecord); saveLocal(); renderList(); }
+    if (data.records) { const localOnly = state.records.filter(r => r._local_only && !data.records.some(x => String(x.id) === String(r.id))); state.records = data.records.map(normalizeDocumentRecord).concat(localOnly); saveLocal(); renderList(); }
     checkDeadlines();
 
     const modules = [

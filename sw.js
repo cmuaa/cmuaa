@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v15-consistent-entry-forms';
+const CACHE = 'cmu-doctrack-v16-document-register';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,8 @@ const ASSETS = [
   './css/workspace.css',
   './css/home.css',
   './js/home.js',
+  './js/registry.js',
+  './css/registry.css',
   './icons/cmuaa-logo.png'
 ];
 
@@ -27,7 +29,7 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then(res => {

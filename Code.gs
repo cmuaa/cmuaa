@@ -59,100 +59,24 @@ function getOrCreateSheet(name, headers) {
 }
 
 
+// Registry.gs owns request validation and dispatch. Mutations only accept authenticated POST.
 function doPost(e) {
-  try {
-    const params = e.parameter;
-    let result;
-    if (params.action === 'uploadFile') {
-      result = uploadFile(params.type, params.filename, params.mimetype, params.data, params.subfolder);
-    } else if (params.action === 'saveSupport') {
-      result = saveSupport(JSON.parse(params.row));
-    } else if (params.action === 'deleteSupport') {
-      result = deleteSupport(params.id);
-    } else {
-      result = { ok: false, error: 'unknown action' };
-    }
-    return ContentService
-      .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: false, error: err.message }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
+  let result;
+  try { result = registryDispatch(e.parameter || {}); }
+  catch(err) { result = {ok:false,error:err.message}; }
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doGet(e) {
-  const params = e.parameter;
-  const callback = params.callback || 'callback';
+  const params = e.parameter || {};
+  const callback = String(params.callback || 'callback');
+  if (!/^[A-Za-z_$][\w$]*$/.test(callback)) return ContentService.createTextOutput('Invalid callback').setMimeType(ContentService.MimeType.TEXT);
   let result;
-
   try {
-    switch (params.action) {
-      case 'getAllSupport':
-        result = getAllSupport();
-        break;
-      case 'saveSupport':
-        result = saveSupport(JSON.parse(params.row));
-        break;
-      case 'deleteSupport':
-        result = deleteSupport(params.id);
-        break;
-      case 'getAll':
-        result = getAll();
-        break;
-      case 'addRecv':
-        result = addRecv(JSON.parse(params.row));
-        break;
-      case 'addSend':
-        result = addSend(JSON.parse(params.row));
-        break;
-      case 'uploadFile':
-        result = uploadFile(params.type, params.filename, params.mimetype, params.data, params.subfolder);
-        break;
-      case 'updateRecord':
-        result = updateRecord(params.type, JSON.parse(params.row));
-        break;
-      case 'updateStatus':
-        result = updateStatus(params.type, params.id, params.status);
-        break;
-      case 'delete':
-        result = deleteRecord(params.id);
-        break;
-      case 'addFinance':
-        result = addFinance(JSON.parse(params.row));
-        break;
-      case 'getAllFinance':
-        result = getAllFinance();
-        break;
-      case 'updateFinance':
-        result = updateFinance(JSON.parse(params.row));
-        break;
-      case 'deleteFinance':
-        result = deleteFinance(params.id);
-        break;
-      case 'addCalendar':
-        result = addCalendar(JSON.parse(params.row));
-        break;
-      case 'getAllCalendar':
-        result = getAllCalendar();
-        break;
-      case 'updateCalendar':
-        result = updateCalendar(JSON.parse(params.row));
-        break;
-      case 'deleteCalendar':
-        result = deleteCalendar(params.id);
-        break;
-      default:
-        result = { ok: false, error: 'unknown action' };
-    }
-  } catch(err) {
-    result = { ok: false, error: err.message };
-  }
-
-  return ContentService
-    .createTextOutput(callback + '(' + JSON.stringify(result) + ')')
-    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    if (!REGISTRY_READ_ACTIONS.includes(params.action)) throw new Error('การแก้ไขต้องใช้ POST พร้อมรหัสสำหรับบันทึก');
+    result = registryDispatch(params);
+  } catch(err) { result = {ok:false,error:err.message}; }
+  return ContentService.createTextOutput(callback + '(' + JSON.stringify(result) + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 function uploadFile(type, filename, mimetype, base64data, subfolder) {
@@ -213,7 +137,7 @@ function getAll() {
     docno: r[1], ref_no: r[2], issue_date: formatCalendarDate(r[3]),
     from_org: r[4], to_org: r[5], subject: r[6],
     handler: r[7], receiver: r[8], received_date: formatCalendarDate(r[9]),
-    deadline: formatCalendarDate(r[10]), doc_type: r[11], status: r[12], note: r[13], file_url: r[14]
+    deadline: formatCalendarDate(r[10]), doc_type: r[11], status: r[12], note: r[13], file_url: r[14], created_at: r[15] instanceof Date ? r[15].toISOString() : String(r[15] || '')
   }));
 
   const sendData = sendSheet.getDataRange().getValues().slice(1).map(r => ({
@@ -221,7 +145,7 @@ function getAll() {
     docno: r[1], issue_date: formatCalendarDate(r[2]), to_org: r[3],
     subject: r[4], detail: r[5], handler: r[6],
     sender: r[7], receiver_name: r[8], send_date: formatCalendarDate(r[9]),
-    send_channel: r[10], doc_type: r[11], status: r[12], note: r[13], file_url: r[14]
+    send_channel: r[10], doc_type: r[11], status: r[12], note: r[13], file_url: r[14], created_at: r[15] instanceof Date ? r[15].toISOString() : String(r[15] || '')
   }));
 
   const all = [...recvData, ...sendData]
