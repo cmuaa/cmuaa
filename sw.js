@@ -1,4 +1,4 @@
-const CACHE = 'cmu-doctrack-v19-support-history';
+const CACHE = 'cmu-doctrack-v20-no-share';
 const ASSETS = [
   './',
   './index.html',

@@ -100,10 +100,6 @@
       <!-- MAIN CONTENT -->
       <main class="main-content desktop-content" role="main">
 
-        <div class="registry-access" role="region" aria-label="โหมดใช้งาน">
-          <strong id="registry-mode-label">ทะเบียนรับ–ส่งเอกสาร</strong>
-          <button type="button" class="writer-only" onclick="Registry.share()">ลิงก์สำหรับผู้ดู</button>
-        </div>
         <!-- PAGE: LIST -->
         <div class="page active" id="page-home"></div>
         <div class="page" id="page-list">
@@ -1363,13 +1359,7 @@ function exportCSV() {
   <div id="registry-report-error" class="registry-error" role="alert"></div>
   <footer><button type="button" onclick="this.closest('dialog').close()">ปิด</button><button type="button" onclick="Registry.export()">CSV สำหรับ Excel</button><button type="button" class="registry-primary" onclick="Registry.print()">พิมพ์ทะเบียน</button></footer>
 </dialog>
-<dialog id="registry-share-dialog" class="registry-dialog" aria-labelledby="registry-share-title">
-  <h2 id="registry-share-title">ลิงก์สำหรับผู้ดู</h2><p>ส่งลิงก์นี้ให้อีก 2 คนเพื่อค้นหา ดูเอกสาร และพิมพ์ทะเบียน โดยไม่มีปุ่มแก้ไข</p>
-  <label>ลิงก์ดูเอกสาร<input id="registry-share-url" type="text" readonly onclick="this.select()"></label>
-  <small>ลิงก์นี้ซ่อนปุ่มเพิ่ม แก้ไข และลบในหน้าเว็บเท่านั้น ไม่ได้จำกัดสิทธิ์ที่ระบบกลาง หน้าเว็บปกติบันทึกได้โดยไม่ต้องใส่รหัส</small>
-  <footer><button type="button" onclick="this.closest('dialog').close()">ปิด</button><button class="registry-primary" type="button" onclick="document.getElementById('registry-share-url').select();navigator.clipboard.writeText(document.getElementById('registry-share-url').value).then(()=>showToast('คัดลอกลิงก์แล้ว')).catch(()=>showToast('เลือกลิงก์แล้ว กดคัดลอกได้เลย'))">คัดลอกลิงก์</button></footer>
-</dialog>
-<script src="js/registry.js?v=20261002-1"></script>
+<script src="js/registry.js?v=20261002-no-share"></script>
 
 </body>
 </html>

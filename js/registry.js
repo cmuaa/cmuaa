@@ -165,11 +165,6 @@ window.Registry = {
     document.body.append(frame);
   },
   openReport() {document.getElementById('registry-report-error').textContent='';document.getElementById('registry-report-dialog').showModal();},
-  share() {
-    if(!API.url){showLoadingError('ตั้งค่าและเชื่อมทะเบียนกลางก่อนสร้างลิงก์ดูเอกสาร');return;}
-    const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('view','1');url.searchParams.set('api',API.url);
-    document.getElementById('registry-share-url').value=url.href;document.getElementById('registry-share-dialog').showModal();
-  },
   markActions() {
   const re=/\b(openForm|openEditForm|toggleStatus|deleteRecord|newSupportFromDocument|openFinForm|openFinEditForm|deleteFinRecord|openCalForm|openCalEditForm|deleteCalRecord|openSupportForm|openRentForm|openRentBatchForm|openMasterMeterForm|openShirtStockForm|openShirtLogForm|homeAdd|homeAddMenu)\s*\(/;
     document.querySelectorAll('[onclick]').forEach(el=>{if(re.test(el.getAttribute('onclick')))el.classList.add('writer-only');});
@@ -178,7 +173,6 @@ window.Registry = {
   applyMode() {
     document.body.classList.toggle('registry-reader',!this.canWrite());
     document.body.classList.toggle('registry-viewer',this.viewer);
-    document.getElementById('registry-mode-label').textContent=this.viewer?'โหมดดูเอกสาร':(API.url?'ทะเบียนรับ–ส่งเอกสาร':'โหมดบันทึกในเครื่อง');
     this.markActions();
   },
   homeMetrics() {
