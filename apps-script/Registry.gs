@@ -1,18 +1,6 @@
 // Add this file alongside the current Code.gs. Existing document columns stay unchanged.
 const REGISTRY_META_HEADERS = ['id', 'type', 'JSON'];
-const REGISTRY_READ_ACTIONS = ['getAll', 'getAllFinance', 'getAllCalendar', 'getAllSupport', 'getRegistryConfig', 'getAccess'];
-
-function registryRequireWriter(params) {
-  const expected = PropertiesService.getScriptProperties().getProperty('CMU_WRITE_KEY');
-  if (!expected) throw new Error('ตั้งค่า CMU_WRITE_KEY ใน Script Properties ก่อนเปิดการบันทึก');
-  if (expected.length < 16) throw new Error('CMU_WRITE_KEY ต้องยาวอย่างน้อย 16 ตัวอักษร');
-  const supplied = String(params.write_key || '');
-  const a = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, expected);
-  const b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, supplied);
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  if (diff) throw new Error('รหัสสำหรับบันทึกไม่ถูกต้อง กรุณาปลดล็อกใหม่');
-}
+const REGISTRY_READ_ACTIONS = ['getAll', 'getAllFinance', 'getAllCalendar', 'getAllSupport', 'getRegistryConfig'];
 
 function registryConfig(year) {
   year = Number(year);
@@ -138,10 +126,7 @@ function registryDeleteDocument(id) {
 
 function registryDispatch(params) {
   const action = params.action;
-  if (!REGISTRY_READ_ACTIONS.includes(action)) registryRequireWriter(params);
   switch (action) {
-    case 'getAccess': return { ok: true, version: 1, protected: true, configured: !!PropertiesService.getScriptProperties().getProperty('CMU_WRITE_KEY') };
-    case 'authenticate': return { ok: true, version: 1 };
     case 'getRegistryConfig': return registryConfig(params.year);
     case 'setRegistryConfig': return registrySetConfig(params);
     case 'saveRegistryDocument': return registrySaveDocument(JSON.parse(params.row));

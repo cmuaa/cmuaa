@@ -5,9 +5,7 @@ const API = {
   setUrl(u) {
     const next = u.trim();
     if (next !== this.url) {
-      sessionStorage.removeItem('cmu_write_key');
-      sessionStorage.removeItem('cmu_write_api');
-      if (window.Registry) { Registry.key = ''; Registry.configs = {}; }
+      if (window.Registry) Registry.configs = {};
     }
     this.url = next;
     localStorage.setItem('cmu_api_url', this.url);
@@ -16,7 +14,7 @@ const API = {
   // GET สำหรับ action ทั่วไป (JSONP) — timeoutMs ปรับได้ต่องาน (ค่า default 20 วิ พอสำหรับ action ทั่วไป
   // แต่ action หนักๆ เช่นออกใบแจ้งหนี้/รวมไฟล์ ควรส่ง timeoutMs ที่นานกว่านี้เข้ามา)
   call(params, timeoutMs = 20000) {
-    const reads = ['getAll','getAllFinance','getAllCalendar','getAllSupport','getAllRent','getAllMasterMeter','getAllShirt','getRegistryConfig','getAccess'];
+    const reads = ['getAll','getAllFinance','getAllCalendar','getAllSupport','getAllRent','getAllMasterMeter','getAllShirt','getRegistryConfig'];
     if (!reads.includes(params.action)) return this.post(params);
     return new Promise((resolve, reject) => {
       if (!this.url) return reject(new Error('ยังไม่ได้ตั้งค่า API URL'));
@@ -50,12 +48,11 @@ const API = {
     });
   },
 
-  async post(params, authentication = false, timeoutMs = 45000) {
+  async post(params, timeoutMs = 45000) {
     if (!this.url) throw new Error('ยังไม่ได้ตั้งค่า API URL');
-    if (!authentication && window.Registry && !Registry.requireWriter()) throw new Error('โหมดดูเอกสารไม่สามารถแก้ไขข้อมูลได้');
+    if (window.Registry && !Registry.requireWriter()) throw new Error('โหมดดูเอกสารไม่สามารถแก้ไขข้อมูลได้');
     const body = new FormData();
     Object.entries(params).forEach(([k,v]) => body.append(k, String(v)));
-    if (!params.write_key && window.Registry?.key) body.append('write_key', Registry.key);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {

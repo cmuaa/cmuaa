@@ -1,13 +1,11 @@
-/* Small-team document register. Cloud writes are checked by Apps Script, not by CSS. */
+/* Small-team document register. The shared view link only changes the interface. */
 window.Registry = {
   viewer: new URLSearchParams(location.search).get('view') === '1',
-  key: sessionStorage.getItem('cmu_write_api') === API.url ? sessionStorage.getItem('cmu_write_key') || '' : '',
   configs: {}, busy: false, draftId: null,
-  canWrite() { return !this.viewer && (!API.url || !!this.key); },
+  canWrite() { return !this.viewer; },
   requireWriter() {
     if (this.canWrite()) return true;
-    showToast(this.viewer ? 'หน้านี้สำหรับดูเอกสารเท่านั้น' : 'ปลดล็อกเพื่อบันทึกข้อมูล');
-    if (!this.viewer) document.getElementById('registry-access-dialog')?.showModal();
+    showToast('หน้านี้สำหรับดูเอกสารเท่านั้น');
     return false;
   },
   number(type, year, seq) { return type === 'recv' ? `รบ. ${year}-${String(seq).padStart(3,'0')}` : `สก.มช.${seq}/${year}`; },
@@ -151,14 +149,6 @@ window.Registry = {
     document.body.append(frame);
   },
   openReport() {document.getElementById('registry-report-error').textContent='';document.getElementById('registry-report-dialog').showModal();},
-  async unlock(event) {
-    event.preventDefault();const form=event.target,btn=form.querySelector('[type="submit"]'),error=document.getElementById('registry-access-error');btn.disabled=true;error.textContent='';
-    try{const key=document.getElementById('registry-write-key').value;
-      if(!API.url)throw Error('ตั้งค่าลิงก์ Apps Script ก่อน หรือใช้โหมดบันทึกในเครื่อง');
-      await API.post({action:'authenticate',write_key:key},true);this.key=key;sessionStorage.setItem('cmu_write_key',key);sessionStorage.setItem('cmu_write_api',API.url);this.viewer=false;document.getElementById('registry-write-key').value='';document.getElementById('registry-access-dialog').close();this.applyMode();void syncFromSheets();
-    }catch(e){error.textContent=e.message;}finally{btn.disabled=false;}
-  },
-  lock() {this.key='';sessionStorage.removeItem('cmu_write_key');sessionStorage.removeItem('cmu_write_api');this.viewer=true;this.applyMode();switchPage('list');},
   share() {
     if(!API.url){showLoadingError('ตั้งค่าและเชื่อมทะเบียนกลางก่อนสร้างลิงก์ดูเอกสาร');return;}
     const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('view','1');url.searchParams.set('api',API.url);
@@ -172,9 +162,7 @@ window.Registry = {
   applyMode() {
     document.body.classList.toggle('registry-reader',!this.canWrite());
     document.body.classList.toggle('registry-viewer',this.viewer);
-    document.getElementById('registry-mode-label').textContent=this.canWrite()?(API.url?'โหมดบันทึก · ปลดล็อกแล้ว':'โหมดบันทึกในเครื่อง'):'โหมดดูเอกสาร';
-    document.getElementById('registry-mode-button').textContent=this.canWrite()&&API.url?'ล็อกการบันทึก':'ปลดล็อกการบันทึก';
-    document.getElementById('registry-mode-button').hidden=this.viewer && new URLSearchParams(location.search).get('view')==='1';
+    document.getElementById('registry-mode-label').textContent=this.viewer?'โหมดดูเอกสาร':(API.url?'ทะเบียนรับ–ส่งเอกสาร':'โหมดบันทึกในเครื่อง');
     this.markActions();
   },
   homeMetrics() {
@@ -212,6 +200,7 @@ window.Registry = {
 // Hook existing screens without replacing finance, calendar, support, or their data.
 (() => {
   const R=Registry;
+  sessionStorage.removeItem('cmu_write_key');sessionStorage.removeItem('cmu_write_api');
   const params=new URLSearchParams(location.search), shared=params.get('api');
   if(shared){try{const u=new URL(shared);if(u.protocol!=='https:'||u.hostname!=='script.google.com'||!/^\/macros\/s\/[^/]+\/exec$/.test(u.pathname))throw Error('invalid');API.setUrl(u.href);}catch(e){R.badSharedUrl=true;}}
   const baseMax=R.max.bind(R);R.max=(type,year)=>Math.max(baseMax(type,year),Number(localStorage.getItem('cmu_registry_last_'+type+'_'+year)||0));
@@ -235,13 +224,11 @@ window.Registry = {
   // Do not let an old mutation handler edit local state in view-only mode.
   ['homeAdd','homeAddMenu','openFinForm','openFinEditForm','submitFinForm','deleteFinRecord','openCalForm','openCalEditForm','submitCalForm','deleteCalRecord','openSupportForm','supportSave','supportDelete','newSupportFromDocument','openRentForm','openRentEditForm','submitRentForm','openRentBatchForm','submitRentBatchAll','deleteRentRecord','openMasterMeterForm','submitMasterMeter','openShirtStockForm','openShirtEditForm','submitShirtStockForm','deleteShirtStockRecord','openShirtLogForm','submitShirtLog','deleteShirtLogEntry','triggerShirtPhotoUpload'].forEach(name=>{const fn=window[name];if(typeof fn==='function')window[name]=function(...args){if(!R.requireWriter()){args[0]?.preventDefault?.();return;}return fn.apply(this,args);};});
   window.submitForm=()=>R.saveForm();window.toggleStatus=id=>R.changeStatus(id);window.deleteRecord=id=>R.remove(id);window.exportCSV=()=>R.openReport();
-  const setUrl=window.saveApiUrl;window.saveApiUrl=function(){R.key='';sessionStorage.removeItem('cmu_write_key');R.configs={};setUrl();R.applyMode();};
+  const setUrl=window.saveApiUrl;window.saveApiUrl=function(){R.configs={};setUrl();R.applyMode();};
   document.addEventListener('DOMContentLoaded',()=>{
-    document.getElementById('registry-access-form').addEventListener('submit',e=>R.unlock(e));
     document.getElementById('registry-config-form').addEventListener('submit',e=>R.saveConfig(e));
     document.getElementById('registry-config-year').addEventListener('change',()=>R.loadConfigInputs());
     ['registry-auto','registry-year'].forEach(id=>document.getElementById(id).addEventListener('change',()=>R.preview()));
-    document.getElementById('registry-mode-button').onclick=()=>R.canWrite()&&API.url?R.lock():document.getElementById('registry-access-dialog').showModal();
     R.applyMode();R.homeMetrics();if(R.viewer)switchPage('list');
     if(R.badSharedUrl)showToast('ลิงก์ทะเบียนกลางไม่ถูกต้อง กรุณาขอลิงก์ใหม่');
     const observer=new MutationObserver(()=>R.markActions());observer.observe(document.getElementById('app'),{childList:true,subtree:true});

@@ -59,7 +59,7 @@ function getOrCreateSheet(name, headers) {
 }
 
 
-// Registry.gs owns request validation and dispatch. Mutations only accept authenticated POST.
+// Registry.gs owns request validation and dispatch. Mutations only accept POST; no writer password is required.
 function doPost(e) {
   let result;
   try { result = registryDispatch(e.parameter || {}); }
@@ -73,7 +73,7 @@ function doGet(e) {
   if (!/^[A-Za-z_$][\w$]*$/.test(callback)) return ContentService.createTextOutput('Invalid callback').setMimeType(ContentService.MimeType.TEXT);
   let result;
   try {
-    if (!REGISTRY_READ_ACTIONS.includes(params.action)) throw new Error('การแก้ไขต้องใช้ POST พร้อมรหัสสำหรับบันทึก');
+    if (!REGISTRY_READ_ACTIONS.includes(params.action)) throw new Error('การแก้ไขต้องใช้ POST');
     result = registryDispatch(params);
   } catch(err) { result = {ok:false,error:err.message}; }
   return ContentService.createTextOutput(callback + '(' + JSON.stringify(result) + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);

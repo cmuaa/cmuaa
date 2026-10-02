@@ -102,7 +102,6 @@
 
         <div class="registry-access" role="region" aria-label="โหมดใช้งาน">
           <strong id="registry-mode-label">ทะเบียนรับ–ส่งเอกสาร</strong>
-          <button id="registry-mode-button" type="button">ปลดล็อกการบันทึก</button>
           <button type="button" class="writer-only" onclick="Registry.share()">ลิงก์สำหรับผู้ดู</button>
         </div>
         <!-- PAGE: LIST -->
@@ -1320,9 +1319,9 @@
 <!-- TOAST -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/api.js?v=20261002-registry"></script>
-<script src="js/app.js?v=20261002-registry"></script>
-<script src="js/support.js?v=20261002-registry"></script>
+<script src="js/api.js?v=20261002-register-open"></script>
+<script src="js/app.js?v=20261002-register-open"></script>
+<script src="js/support.js?v=20261002-register-open"></script>
 <script src="js/home.js?v=20261001-1"></script>
 <script>
 // Export CSV
@@ -1349,12 +1348,6 @@ function exportCSV() {
 }
 </script>
 
-<dialog id="registry-access-dialog" class="registry-dialog" aria-labelledby="registry-access-title">
-  <h2 id="registry-access-title">ปลดล็อกการบันทึก</h2><p>ใช้รหัสเดียวสำหรับคนลงรับ–ส่งเอกสาร ไม่ต้องสร้างบัญชีรายคน</p>
-  <form id="registry-access-form"><label>รหัสสำหรับบันทึก<input id="registry-write-key" type="password" autocomplete="current-password" required></label>
-    <div id="registry-access-error" class="registry-error" role="alert"></div><footer><button type="button" onclick="this.closest('dialog').close()">ยกเลิก</button><button type="submit" class="registry-primary">ปลดล็อก</button></footer>
-  </form>
-</dialog>
 <dialog id="registry-config-dialog" class="registry-dialog" aria-labelledby="registry-config-title">
   <h2 id="registry-config-title">ตั้งเลขเริ่มต้นทะเบียน</h2><p>ระบุเลขลำดับถัดไปเพื่อเริ่มต่อจากทะเบียนเดิม เลขรับกับเลขส่งแยกชุดกันตามปี</p>
   <form id="registry-config-form"><label>ปี พ.ศ.<input id="registry-config-year" type="number" min="2500" max="2700" required></label>
@@ -1373,7 +1366,7 @@ function exportCSV() {
 <dialog id="registry-share-dialog" class="registry-dialog" aria-labelledby="registry-share-title">
   <h2 id="registry-share-title">ลิงก์สำหรับผู้ดู</h2><p>ส่งลิงก์นี้ให้อีก 2 คนเพื่อค้นหา ดูเอกสาร และพิมพ์ทะเบียน โดยไม่มีปุ่มแก้ไข</p>
   <label>ลิงก์ดูเอกสาร<input id="registry-share-url" type="text" readonly onclick="this.select()"></label>
-  <small>ผู้ที่มีลิงก์สามารถอ่านข้อมูลได้ รหัสบันทึกไม่อยู่ในลิงก์ ต้องอัปเดต Apps Script จึงจะป้องกันการแก้ไขที่ระบบกลางได้</small>
+  <small>ลิงก์นี้ซ่อนปุ่มเพิ่ม แก้ไข และลบในหน้าเว็บเท่านั้น ไม่ได้จำกัดสิทธิ์ที่ระบบกลาง หน้าเว็บปกติบันทึกได้โดยไม่ต้องใส่รหัส</small>
   <footer><button type="button" onclick="this.closest('dialog').close()">ปิด</button><button class="registry-primary" type="button" onclick="document.getElementById('registry-share-url').select();navigator.clipboard.writeText(document.getElementById('registry-share-url').value).then(()=>showToast('คัดลอกลิงก์แล้ว')).catch(()=>showToast('เลือกลิงก์แล้ว กดคัดลอกได้เลย'))">คัดลอกลิงก์</button></footer>
 </dialog>
 <script src="js/registry.js?v=20261002-1"></script>
