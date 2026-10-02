@@ -1,5 +1,5 @@
 /* Home overview uses the existing records and opens the original forms. */
-PAGE_META.home={title:'ภาพรวมงานสมาคม',subtitle:'เอกสาร การเงิน การสนับสนุน และกำหนดการในหน้าเดียว',mobileSubtitle:'สมาคมลับ · งานสมาคม',action:'เพิ่มงานใหม่'};
+PAGE_META.home={title:'ภาพรวมงานสมาคม',subtitle:'เอกสาร การเงิน การสนับสนุน และกำหนดการ',mobileSubtitle:'สมาคมลับ · งานสมาคม',action:'เพิ่มงานใหม่'};
 const Home={filter:'ทั้งหมด',month:new Date().getMonth(),year:new Date().getFullYear(),day:null,rows:[],recent:[]};
 const homeText=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const homeIcon=k=>`<i class="ti ti-${{doc:'files',finance:'cash',support:'heart-handshake',calendar:'calendar'}[k]}" aria-hidden="true"></i>`;
