@@ -9,9 +9,9 @@ function saveSupport(r) {
   if (!r || typeof r.id !== 'string' || !r.id || !r.title || !r.agency) throw new Error('กรอกชื่อกิจกรรมและหน่วยงาน');
   if (!Number.isInteger(r.year) || r.year < 2400 || r.year > 2800) throw new Error('ปีที่บันทึกไม่ถูกต้อง');
   if (!Array.isArray(r.items) || !r.items.length) throw new Error('ไม่มีรายการที่สนับสนุน');
-  if (!['รอพิจารณา','อนุมัติแล้ว','ไม่อนุมัติ'].includes(r.decision)) throw new Error('สถานะการพิจารณาไม่ถูกต้อง');
-  if (!['รอดำเนินการ','ส่งมอบบางส่วน','เสร็จแล้ว','ยกเลิก'].includes(r.fulfilment)) throw new Error('สถานะการส่งมอบไม่ถูกต้อง');
-  r.items.forEach(i=>{if (!i.description || !['เงิน','สิ่งของ','อาหาร','บริการ'].includes(i.kind) || !Number.isFinite(i.quantity) || i.quantity <= 0 || (i.unit_price !== null && (!Number.isFinite(i.unit_price) || i.unit_price < 0))) throw new Error('จำนวนหรือราคาของรายการย่อยไม่ถูกต้อง');});
+  if (!['รอพิจารณา','อนุมัติแล้ว','ไม่อนุมัติ','ไม่ระบุ'].includes(r.decision)) throw new Error('สถานะการพิจารณาไม่ถูกต้อง');
+  if (!['รอดำเนินการ','ส่งมอบบางส่วน','เสร็จแล้ว','ยกเลิก','ไม่ระบุ'].includes(r.fulfilment)) throw new Error('สถานะการส่งมอบไม่ถูกต้อง');
+  r.items.forEach(i=>{if (!i.description || !['เงิน','สิ่งของ','อาหาร','บริการ','ไม่ระบุ'].includes(i.kind) || !Number.isFinite(i.quantity) || i.quantity <= 0 || (i.unit_price !== null && (!Number.isFinite(i.unit_price) || i.unit_price < 0))) throw new Error('จำนวนหรือราคาของรายการย่อยไม่ถูกต้อง');});
   if (r.amount_request !== null && (!Number.isFinite(r.amount_request) || r.amount_request < 0)) throw new Error('ยอดที่ขอไม่ถูกต้อง');
   if (r.decision === 'ไม่อนุมัติ' && r.fulfilment === 'เสร็จแล้ว') throw new Error('รายการไม่อนุมัติไม่สามารถส่งมอบเสร็จแล้ว');
   if (!Array.isArray(r.finance_ids) || !Array.isArray(r.files)) throw new Error('ข้อมูลเอกสารเชื่อมโยงไม่ถูกต้อง');
